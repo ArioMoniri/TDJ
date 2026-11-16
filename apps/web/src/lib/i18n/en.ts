@@ -2406,7 +2406,8 @@ export const en = {
   "db.versions.show": "Show",
   "db.versions.this_side": "This side",
   "db.versions.versions": "Versions",
-  "djMessage.big_four_apart": "The big four could not all be kept apart tonight: {pairs} play back to back.",
+  "djMessage.big_four_apart":
+    "{pairs} play back to back tonight, a marked exception: parting them broke another rule. Swap one of the two to part them.",
   "djMessage.big_four_missing": "{names} could not fit in tonight.",
   "djMessage.big_four_quarter": "The {quarters} quarter of the night has no big-four tanda.",
   "djMessage.big_four_rules": "The big four could not all be placed as the rules ask tonight.",
@@ -5576,6 +5577,8 @@ export const en = {
   "guide.closing_cortina_extra": "Tanda {n} has a cortina, but La Cumparsita follows it straight",
   "guide.big4_adjacent": "Two big-four tandas back to back: {a} then {b} (tandas {x}–{y})",
   "guide.big4_gap": "{b} comes back too soon (tandas {x} and {y})",
+  "guide.big4_stated":
+    "{a} then {b} stay back to back (tandas {x}–{y}): tonight's exception to the big-four rule, because parting them broke another rule",
   "guide.orchestra_repeat": "{o} plays in tandas {a} and {b} ({gap}-tanda gap)",
   "guide.four_plus_one": "The 4 + 1 closing wants a four-side tango última; tanda {n} is {r}, {k} sides",
   "guide.opening_switch": "Tanda 1 is now {o} {y}: switch the opening La Cumparsita to {o2} {y2}?",

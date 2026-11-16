@@ -529,7 +529,7 @@ STRICT_RULES.push(
   {
     key: "bigFour",
     label:
-      "The big four (Di Sarli, D'Arienzo, Troilo, Pugliese): one in every quartile, never two back to back, the same one ≥ 5 tandas apart, all four in a night of ≥ 3 h",
+      "The big four (Di Sarli, D'Arienzo, Troilo, Pugliese): one in every quartile, never two back to back, the same one ≥ 5 tandas apart, all four in a night of ≥ 3 h. Rarely, not never: a back-to-back pair the composer could not part without breaking another rule is a stated exception, recorded on the night and still listed here",
     severity: "should-fix",
     source: `${R21} §6`,
   },
@@ -1954,7 +1954,18 @@ function round21(
   n.tandas.forEach((x, i) => {
     for (const p of tandaProblems(x, o)) if (key[p.key]) add(key[p.key]!, i, `${name(x)}: ${p.detail}`);
   });
-  for (const p of bigFourProblems(n.tandas, o)) add("bigFour", p.tanda, p.detail, p.with);
+  // (2026-11, the owner: "rarely, not never" — a back-to-back pair the composer recorded (stats.settingFallbacks
+  // "bigFour: …") stays a should-fix item, read as the stated exception it is)
+  const stated = n.stats?.settingFallbacks?.filter((f) => f.startsWith("bigFour:")) ?? [];
+  for (const p of bigFourProblems(n.tandas, o))
+    add(
+      "bigFour",
+      p.tanda,
+      p.kind === "adjacent" && stated.some((f) => f.includes(p.detail))
+        ? `${p.detail}: back to back, a stated exception (parting them broke another rule tonight)`
+        : p.detail,
+      p.with,
+    );
   const place = cumparsitaPlacement(o);
   const first = n.tandas[0];
   if (!place.open || !first || preOpening(n)) not("cumparsitaOpener");

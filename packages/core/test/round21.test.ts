@@ -357,7 +357,9 @@ describe("big four — Di Sarli, D'Arienzo, Troilo, Pugliese spread over the nig
     // repeat gap, a phase or the arc: 2.5 pairs a night on these seeds (2.75 before), 2.42 over twelve (2.58). Zero is
     // not reached without trading the canon chairs — the early D'Arienzo, the summits, the Pugliese chair — or the
     // repeat gaps for it)
-    expect(adjacent / nights.length).toBeLessThanOrEqual(2.5);
+    // (2026-11, "rarely, not never" — bigFourAdjacent.test.ts: the pair mend and the draws' pair weight, each holding
+    // the panel's other rules: 2.25 a night on these four seeds)
+    expect(adjacent / nights.length).toBeLessThanOrEqual(2.25);
   });
   // 2026-11 (function review): 3 h golden nights left a quartile empty on 10 of 12 seeds (usually the second) and
   // had no Pugliese on seeds 8, 10 and 11. A quartile is a quarter of the night's tandas, whatever the hours.

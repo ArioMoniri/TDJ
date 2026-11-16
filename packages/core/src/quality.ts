@@ -193,6 +193,24 @@ export function renderQuality(rows: QualityRow[], audit?: CacheAudit): string {
       } |`,
     );
   lines.push("");
+  // 2026-11 (the owner: "rarely, not never"): the big four back to back, each pair the composer could not part
+  lines.push("## The big four back to back: the stated exceptions");
+  lines.push("");
+  lines.push(
+    "Two of Di Sarli, D'Arienzo, Troilo and Pugliese never play back to back — rarely, not never: a pair the composer could not part without breaking another of the panel's rules is recorded on the night (a `bigFour:` fallback), shown to the DJ in plain words and counted as a should-fix item above. A pair that is not recorded would be a fault.",
+  );
+  lines.push("");
+  lines.push("| Night | Pairs | Stated exceptions |");
+  lines.push("|---|---|---|");
+  for (const r of rows) {
+    const ps = r.strict.violations.filter((v) => v.rule === "bigFour" && / back to back/.test(v.detail));
+    // (bigFourProblems "adjacent": "A then B")
+    const all = r.strict.violations.filter((v) => v.rule === "bigFour" && / then /.test(v.detail));
+    lines.push(
+      `| ${r.name} | ${all.length} | ${ps.map((v) => `tandas ${v.tanda}–${v.tanda + 1}: ${v.detail.replace(/: back to back, .*$/, "")}`).join("; ") || "none"}${all.length > ps.length ? ` (**${all.length - ps.length} not recorded**)` : ""} |`,
+    );
+  }
+  lines.push("");
   lines.push("## The round-13 checks (after improveNight)");
   lines.push("");
   lines.push("| Night | Tanda year spread | Golden core share | Transitions | Heatmap best years |");

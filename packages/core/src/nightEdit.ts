@@ -436,6 +436,12 @@ const singerMatches = (singer: string | null | undefined, want: string) =>
 const TONE_STEP = 3;
 type Applied = { playlist: Playlist; change: EditChange } | { reason: string };
 
+/** the tanda-coherence faults (coherence.ts tandaProblems) `nt` has that `t`, the tanda it replaces, did not */
+const gainsTandaFault = (nt: Tanda, t: Tanda, p: Playlist) => {
+  const had = new Set(tandaProblems(t, p.options).map((x) => x.key));
+  return tandaProblems(nt, p.options).some((x) => !had.has(x.key));
+};
+
 function retuneInFamily(p: Playlist, i: number, dir: EditDirection, deps: ComposeDeps): Playlist | null {
   const sign = dir === "calmer" ? -1 : 1;
   const e0 = p.tandas[i]!.energy;
@@ -454,7 +460,9 @@ function retuneInFamily(p: Playlist, i: number, dir: EditDirection, deps: Compos
       .map((x) => ({ x, v: (sign * ((x.song.energy ?? 50) - (side.energy ?? 50))) / 10 + x.fit }))
       .sort((a, b) => b.v - a.v)[0]!.x;
     const r = replaceSide(cur, i, k, best.song.id, deps);
-    if (!r.reason) cur = r.playlist;
+    // (each side passes the Swap sheet's rules; together they may not break the tanda's own coherence — its one tone,
+    // its bpm and level bands — where the tanda kept it: a calmer tanda stays one tanda)
+    if (!r.reason && !gainsTandaFault(r.playlist.tandas[i]!, p.tandas[i]!, p)) cur = r.playlist;
   }
   return sign * (cur.tandas[i]!.energy - e0) >= TONE_STEP ? cur : null;
 }

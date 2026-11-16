@@ -13,9 +13,19 @@
  * on: the late milonga after the D'Arienzo summit wants mean fame ≥ 3 — Canaro–Maida is a colour orchestra, Caló–Berón
  * is not programmed for the peak, Donato and Tanturi are usually inside their repeat gap. That trade is the owner's.
  *
+ * The owner's decision (2026-11): "rarely, not never". A remaining pair is a stated exception: recorded on the night,
+ * a should-fix item in the strict panel (its detail says so) and in `pnpm quality`'s table of stated exceptions, said
+ * to the DJ in plain words (web djMessage) and explained by the edit guide where an edit touches it. The engine change
+ * was taken as far as it breaks no other rule: the pair mend and the draws' pair weight hold the panel's rules
+ * (compose.ts BIG_FOUR_PAIR_HELD, widened: the first version traded hotCold, ultima and instrCharacter on the golden
+ * set), and its narrowed Pugliese draw was dropped (it moved twelve of these nights, put Pugliese into the warm-up of
+ * seed 34, lost him from 2.5 h seed 5, made a −22/+27 sawtooth at seed 4's early D'Arienzo and took the golden set's
+ * tone band from 78 % to 75 %). Golden S1–S12 29 → 28, the QA seeds 15 → 13, golden + featured options 43 → 40; four
+ * nights move (S2, seed 21, featured options 36 and 181), every other rule as it was or within its ratchet.
+ *
  * What holds, as a ratchet on today's engine:
- * - no night has more pairs than the counts above, every pair left is recorded on the night
- *   (stats.settingFallbacks "bigFour: …"), every night ≥ 85;
+ * - no night has more pairs than the counts below, every pair left is recorded on the night
+ *   (stats.settingFallbacks "bigFour: …") and read as a stated exception by the strict panel, every night ≥ 85;
  * - the edits keep the rule: Change the end adds no pair, the Insert spot's first choice adds none, and a pair a
  *   Remove makes is named by the edit guide with a fix that parts it;
  * - the big four is one list: data/knowledge/night_shape.json `bigFour`.
@@ -33,6 +43,7 @@ import {
   insertTandaOptions,
   type Playlist,
   removeTanda,
+  strictChecks,
 } from "../src/index";
 import { findRoot, loadCatalog } from "../src/load";
 
@@ -55,10 +66,11 @@ const isBig = (id: string) => BIG_FOUR.includes(id);
 
 describe("the big four back to back: recorded, never more, the edits keep the rule", () => {
   it("the golden set and the QA seeds: no night with more pairs than today, every one recorded", () => {
-    // the counts on the engine of 2026-11 (the golden set S1–S12, then the other QA seeds); the goal is zero
+    // the counts on the engine of 2026-11 with the pair mend (the golden set S1–S12, then the other QA seeds; before
+    // it: 3 2 2 3 1 3 2 2 4 3 2 2 | 1 3 1 2); rarely, not never
     const TODAY: Record<number, number> = {
       1: 3,
-      2: 2,
+      2: 1,
       3: 2,
       4: 3,
       5: 1,
@@ -70,7 +82,7 @@ describe("the big four back to back: recorded, never more, the edits keep the ru
       11: 2,
       12: 2,
       13: 1,
-      21: 3,
+      21: 2,
       34: 1,
       55: 2,
     };
@@ -90,9 +102,40 @@ describe("the big four back to back: recorded, never more, the edits keep the ru
           `seed ${seed}: ${f.detail} is not recorded`,
         ).toBe(true);
     }
-    expect(golden).toBeLessThanOrEqual(29);
-    expect(qa).toBeLessThanOrEqual(15);
+    // (29 and 15 before the pair mend)
+    expect(golden).toBeLessThanOrEqual(28);
+    expect(qa).toBeLessThanOrEqual(13);
   });
+
+  it("a pair left is a stated exception: a should-fix item the strict panel reads as one, explained by the edit guide", () => {
+    let explained = 0;
+    for (const [seed, p] of nights) {
+      const r = strictChecks(p);
+      for (const f of pairs(p)) {
+        const v = r.violations.find((x) => x.rule === "bigFour" && x.tanda === f.tanda && x.with === f.with);
+        expect(v?.severity, `seed ${seed}: ${f.detail}`).toBe("should-fix");
+        expect(v?.detail, `seed ${seed}`).toBe(
+          `${f.detail}: back to back, a stated exception (parting them broke another rule tonight)`,
+        );
+      }
+      // an edit beside the pair (the tanda before it, its sides reordered) leaves the pair and the guide says why
+      const f = pairs(p).find((x) => x.with! > 1 && x.tanda < p.tandas.length - 1);
+      if (!f || explained >= 3) continue;
+      const k = f.with! - 1;
+      const after: Playlist = {
+        ...p,
+        tandas: p.tandas.map((t, i) => (i === k ? { ...t, songs: [...t.songs].reverse() } : t)),
+      };
+      const g = editGuide(p, after, deps).find((x) => x.message.key === "guide.big4_stated");
+      expect(g, `seed ${seed}: ${f.detail}`).toBeTruthy();
+      expect(g!.tone).toBe("info");
+      expect(g!.text).toContain(`stay back to back (tandas ${f.with! + 1}–${f.tanda + 1})`);
+      expect(g!.text).toContain("because parting them broke another rule");
+      expect([f.with, f.tanda]).toContain(g!.fix!.fix.kind === "swapTanda" ? g!.fix!.fix.tanda : -1);
+      explained++;
+    }
+    expect(explained).toBeGreaterThan(0);
+  }, 600000);
 
   it("every other rule the repair touches still holds on those nights", () => {
     for (const [seed, p] of nights) {
@@ -113,6 +156,12 @@ describe("the big four back to back: recorded, never more, the edits keep the ru
           expect(noted && j - i >= 4, `seed ${seed}: ${t.orchestra} at ${i + 1} and ${j + 1}`).toBe(true);
         }
       }
+      // Pugliese after the midpoint (the pair mend narrows his chair; a draw that left him only the última once let him
+      // into the warm-up of seed 34)
+      p.tandas.forEach((t, i) => {
+        if (t.orchestraId === "osvaldo-pugliese")
+          expect(i / (n - 1), `seed ${seed}: Pugliese at tanda ${i + 1}`).toBeGreaterThanOrEqual(0.5);
+      });
       // never two vals / milonga in a row
       for (let i = 1; i < n; i++)
         expect(
