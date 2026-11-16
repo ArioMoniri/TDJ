@@ -17,6 +17,7 @@ import { asFavouriteTable, favouritesActive, withPraise } from "./favourites";
 import { withCortinaStarts } from "./hooks";
 import { familyBand, goldenClassOf, isColour, isGoldenNight } from "./knowledge";
 import { mergeLearned } from "./learn";
+import { CUMPARSITA_PREF, ULTIMA_INSTRUMENTAL_OK, ULTIMA_POOL } from "./nightShape";
 import { isPeakSlot, meanFameOf } from "./order";
 import { ERA_PRESETS, ERA_SETTINGS } from "./profiles";
 import { cueFamilies, pickStrictCloser, recue, recueBetter, strictRepair } from "./repair";
@@ -108,35 +109,8 @@ export interface ComposeExtras {
   /** tandas to keep in place (locked by the user); matched by index */ locked?: Tanda[];
 }
 
-const CUMPARSITA_PREF = [
-  "juan-d-arienzo",
-  "osvaldo-pugliese",
-  "carlos-di-sarli",
-  "anibal-troilo",
-  "rodolfo-biagi",
-  "francisco-canaro",
-  "alfredo-de-angelis",
-];
-/** corpus rule 15: the última is Pugliese, D'Arienzo, D'Agostino–Vargas, Di Sarli, De Angelis instr., Troilo–Fiorentino … */
-export const ULTIMA_POOL = [
-  "osvaldo-pugliese",
-  "juan-d-arienzo",
-  "angel-d-agostino",
-  "carlos-di-sarli",
-  "alfredo-de-angelis",
-  "anibal-troilo",
-  "ricardo-tanturi",
-  "rodolfo-biagi",
-  "miguel-calo",
-  "enrique-rodriguez",
-];
-const ULTIMA_INSTRUMENTAL_OK = new Set([
-  "osvaldo-pugliese",
-  "juan-d-arienzo",
-  "carlos-di-sarli",
-  "alfredo-de-angelis",
-  "anibal-troilo",
-]);
+// (2026-11: the closing Cumparsita's preferred orchestras and the última pool are data — data/knowledge/
+// night_shape.json, read by nightShape.ts)
 /** a "colour" tanda: one softer, elegant tanda in the breather after the first peak */
 const COLOUR_ORCHESTRAS = [
   "miguel-calo",

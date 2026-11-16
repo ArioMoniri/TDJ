@@ -8,8 +8,10 @@ import {
   hardViolations,
   learnedForRequest,
   likedShapeDefaults,
+  OPENER_CHOICES,
   rememberFeedback,
   rememberSet,
+  ULTIMA_CHOICES,
 } from "@tdj/core";
 import {
   ChevronRight,
@@ -211,25 +213,17 @@ const OPENER: Array<[NonNullable<NightRules["openerRule"]>, string]> = lazy(() =
   ["any", tx("composer.any")],
 ]);
 /** round 15: the night's shape as settings — who opens, who plays the última, what closes ("auto" = the rules) */
+// (2026-11: the orchestras offered are data — data/knowledge/night_shape.json, @tdj/core nightShape.ts)
 const OPEN_WITH: Array<[string, string]> = lazy(() => [
   ["auto", tx("composer.auto_the_opener_rule")],
-  ["carlos-di-sarli", "Di Sarli"],
-  ["francisco-canaro", "Canaro"],
-  ["angel-d-agostino", "D'Agostino"],
-  ["osvaldo-fresedo", "Fresedo"],
-  ["juan-d-arienzo", "D'Arienzo"],
-  ["anibal-troilo", "Troilo"],
-  ["enrique-rodriguez", "Rodríguez"],
+  ...OPENER_CHOICES.map((c): [string, string] => [c.id, c.label]),
 ]);
 const ULTIMA_WITH: Array<[string, string]> = lazy(() => [
   ["auto", tx("composer.auto_the_ultima_rule")],
-  ["ricardo-tanturi|Alberto Castillo", "Tanturi / Castillo"],
-  ["anibal-troilo|Francisco Fiorentino", "Troilo / Fiorentino"],
-  ["rodolfo-biagi|Jorge Ortíz", "Biagi / Ortiz"],
-  ["carlos-di-sarli|Roberto Rufino", "Di Sarli / Rufino"],
-  ["angel-d-agostino|Angel Vargas", "D'Agostino / Vargas"],
-  ["juan-d-arienzo|~", tx("composer.d_arienzo_instrumental")],
-  ["osvaldo-pugliese|*", "Pugliese"],
+  ...ULTIMA_CHOICES.map((c): [string, string] => [
+    c.key,
+    c.labelKey ? tx(c.labelKey as Parameters<typeof tx>[0]) : (c.label ?? c.key),
+  ]),
 ]);
 const CLOSERS: Array<[NonNullable<NightRules["closer"]>, string]> = lazy(() => [
   ["auto", "La Cumparsita"],

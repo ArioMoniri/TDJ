@@ -1,3 +1,4 @@
+import { BIG_FOUR_SHORT, orchestraShortName } from "@tdj/core";
 import { capFirst, fmtList, type MsgKey, t } from "@/lib/i18n";
 
 /**
@@ -8,27 +9,13 @@ import { capFirst, fmtList, type MsgKey, t } from "@/lib/i18n";
  * Wave 3: the sentences are in the DJ's language (lib/i18n); the core's own words inside them (names, years) are not.
  */
 
-/** "Juan D'Arienzo" → "D'Arienzo", "Carlos Di Sarli" → "Di Sarli", "Orquesta Típica Víctor" → "Típica Víctor" */
-export function shortName(full: string): string {
-  const w = full
-    .replace(/\(.*?\)/g, "")
-    .replace(/^Orquesta\s+/i, "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (w.length < 2) return w[0] ?? full;
-  const prev = w[w.length - 2]!.toLowerCase();
-  if (["di", "de", "del", "da", "la", "típica", "tipica"].includes(prev))
-    return `${w[w.length - 2]} ${w[w.length - 1]}`;
-  return w[w.length - 1]!;
-}
+/**
+ * "Juan D'Arienzo" → "D'Arienzo", "Carlos Di Sarli" → "Di Sarli", "Orquesta Típica Víctor" → "Típica Víctor"
+ * (2026-11: one implementation, @tdj/core nightShape.ts)
+ */
+export const shortName = (full: string): string => orchestraShortName(full, "dj");
 
-const BIG_FOUR_NAME: Record<string, string> = {
-  "juan-d-arienzo": "D'Arienzo",
-  "carlos-di-sarli": "Di Sarli",
-  "anibal-troilo": "Troilo",
-  "osvaldo-pugliese": "Pugliese",
-};
+const BIG_FOUR_NAME = BIG_FOUR_SHORT;
 
 /** "A, B and C" in the DJ's language */
 const list = (xs: string[]) => fmtList(xs);

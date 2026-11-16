@@ -1,3 +1,5 @@
+import { BIG_FOUR_SHORT } from "@tdj/core";
+
 /**
  * 2026-11 (the owner: "… help to create the night") — the guided builder's live guidance: the night's length
  * against the target, the big-four spread, the energy arc, the rhythm cycle (TTV TTM) and the cortinas. Each line
@@ -29,12 +31,8 @@ export interface GuideLine {
   fix?: GuideFix;
 }
 
-export const BIG_FOUR_NAME: Record<string, string> = {
-  "carlos-di-sarli": "Di Sarli",
-  "juan-d-arienzo": "D'Arienzo",
-  "anibal-troilo": "Troilo",
-  "osvaldo-pugliese": "Pugliese",
-};
+/** the big four's short names (2026-11: one source, data/knowledge/night_shape.json via @tdj/core) */
+export const BIG_FOUR_NAME: Readonly<Record<string, string>> = BIG_FOUR_SHORT;
 
 const letter = (r: string) => (r === "vals" ? "V" : r === "milonga" ? "M" : "T");
 /** "TTV TTM" — the cycle in groups of three */

@@ -1,0 +1,55 @@
+{
+  "about": "2026-11 — the orchestra lists of the night's shape, in one place (they were written out in compose.ts, Composer.tsx, djMessage.ts, buildGuide.ts and editCheck.ts). Read by packages/core/src/nightShape.ts and re-exported to the web. bigFour: the short name a DJ reads for each of the big four (the rule itself is coherence.ts BIG_FOUR). cumparsitaPreferred: the orchestras whose La Cumparsita closes the night first (×weight in compose.ts). ultimaPool: corpus rule 15, the orchestras of the última; ultimaInstrumentalOk: those whose instrumental tanda may close. openerChoices / ultimaChoices: the Composer's 'Opens with' and 'Última' pickers (key orchestra|singer: '~' instrumental, '*' any voice; labelKey: an i18n key instead of a name).",
+  "bigFour": {
+    "carlos-di-sarli": "Di Sarli",
+    "juan-d-arienzo": "D'Arienzo",
+    "anibal-troilo": "Troilo",
+    "osvaldo-pugliese": "Pugliese"
+  },
+  "cumparsitaPreferred": [
+    "juan-d-arienzo",
+    "osvaldo-pugliese",
+    "carlos-di-sarli",
+    "anibal-troilo",
+    "rodolfo-biagi",
+    "francisco-canaro",
+    "alfredo-de-angelis"
+  ],
+  "ultimaPool": [
+    "osvaldo-pugliese",
+    "juan-d-arienzo",
+    "angel-d-agostino",
+    "carlos-di-sarli",
+    "alfredo-de-angelis",
+    "anibal-troilo",
+    "ricardo-tanturi",
+    "rodolfo-biagi",
+    "miguel-calo",
+    "enrique-rodriguez"
+  ],
+  "ultimaInstrumentalOk": [
+    "osvaldo-pugliese",
+    "juan-d-arienzo",
+    "carlos-di-sarli",
+    "alfredo-de-angelis",
+    "anibal-troilo"
+  ],
+  "openerChoices": [
+    { "id": "carlos-di-sarli", "label": "Di Sarli" },
+    { "id": "francisco-canaro", "label": "Canaro" },
+    { "id": "angel-d-agostino", "label": "D'Agostino" },
+    { "id": "osvaldo-fresedo", "label": "Fresedo" },
+    { "id": "juan-d-arienzo", "label": "D'Arienzo" },
+    { "id": "anibal-troilo", "label": "Troilo" },
+    { "id": "enrique-rodriguez", "label": "Rodríguez" }
+  ],
+  "ultimaChoices": [
+    { "key": "ricardo-tanturi|Alberto Castillo", "label": "Tanturi / Castillo" },
+    { "key": "anibal-troilo|Francisco Fiorentino", "label": "Troilo / Fiorentino" },
+    { "key": "rodolfo-biagi|Jorge Ortíz", "label": "Biagi / Ortiz" },
+    { "key": "carlos-di-sarli|Roberto Rufino", "label": "Di Sarli / Rufino" },
+    { "key": "angel-d-agostino|Angel Vargas", "label": "D'Agostino / Vargas" },
+    { "key": "juan-d-arienzo|~", "labelKey": "composer.d_arienzo_instrumental" },
+    { "key": "osvaldo-pugliese|*", "label": "Pugliese" }
+  ]
+}

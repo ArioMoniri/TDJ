@@ -25,6 +25,7 @@ export * from "./memory";
 export * from "./night";
 export * from "./nightCodec";
 export * from "./nightEdit";
+export * from "./nightShape";
 export * from "./order";
 export * from "./popularity";
 export * from "./praise";
