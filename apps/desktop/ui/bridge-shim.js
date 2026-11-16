@@ -79,7 +79,8 @@
         set: (v) => {
           ps.set.call(ms, v);
           send();
-          invoke("keep_awake", { on: v === "playing" }).catch(() => {});
+          // a paused / held night (a break, an interruption) keeps the screen on too (lib/booth/nativeAudio.ts)
+          invoke("keep_awake", { on: v === "playing" || !!window.__TDJ_NIGHT_RUNS__ }).catch(() => {});
         },
       });
   }

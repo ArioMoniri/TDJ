@@ -33,6 +33,11 @@ const COMMANDS: &[&str] = &[
     "cue_play",
     "cue_stop",
     "check_updates",
+    // 2026-11: outputs and the night's continuity (src/audio.rs)
+    "audio_route",
+    "audio_route_picker",
+    "audio_set_output",
+    "audio_night",
 ];
 
 fn main() {

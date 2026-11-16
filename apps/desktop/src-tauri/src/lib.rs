@@ -12,6 +12,9 @@
 mod agents;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 mod apple;
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+mod apple_audio;
+mod audio;
 mod bridge;
 mod commands;
 #[cfg_attr(mobile, allow(dead_code))] // folder picking on iPad: Swift plugin, see folders.rs
@@ -602,8 +605,8 @@ pub fn run() {
                 app.set_menu(m)?;
                 app.on_menu_event(|app, e| on_menu(app, e.id().as_ref()));
             }
-            #[cfg(target_os = "ios")]
-            apple::audio_session_playback();
+            // the audio session (iOS: .playback, interruptions, route changes) and the Mac's device listeners
+            audio::install(app.handle());
             #[cfg(any(target_os = "macos", target_os = "ios"))]
             {
                 let h = app.handle().clone();
@@ -663,6 +666,10 @@ pub fn run() {
             commands::cue_play,
             commands::cue_stop,
             commands::check_updates,
+            audio::audio_route,
+            audio::audio_route_picker,
+            audio::audio_set_output,
+            audio::audio_night,
         ])
         .build(tauri::generate_context!())
         .expect("error while building TDJ")

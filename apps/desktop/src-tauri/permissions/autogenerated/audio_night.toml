@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-audio-night"
+description = "Enables the audio_night command without any pre-configured scope."
+commands.allow = ["audio_night"]
+
+[[permission]]
+identifier = "deny-audio-night"
+description = "Denies the audio_night command without any pre-configured scope."
+commands.deny = ["audio_night"]
