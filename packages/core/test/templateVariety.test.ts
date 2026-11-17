@@ -25,13 +25,15 @@ import {
   templateNight,
 } from "../src/index";
 import { loadCatalog } from "../src/load";
+import { warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 const nights: Playlist[] = [];
 const SEEDS = Array.from({ length: 24 }, (_, i) => i + 1);
-beforeAll(() => {
+beforeAll(async () => {
   deps = loadCatalog();
-  for (const seed of SEEDS) nights.push(compose({ hours: 4, seed }, deps));
+  // (one night at a time, the event loop turning between them: composeOnce.ts `warm`)
+  await warm(SEEDS.map((seed) => () => nights.push(compose({ hours: 4, seed }, deps))));
 }, 900000);
 afterEach(() => new Promise((r) => setTimeout(r, 0)));
 const setsOf = (p: Playlist) => p.tandas.map((t) => sideSetKey(t.songs.map((s) => s.id)));

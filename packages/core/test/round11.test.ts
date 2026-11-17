@@ -15,6 +15,7 @@ import {
 } from "../src/index";
 import { loadCatalog } from "../src/load";
 import { isPeakSlot as isPeak15, orderCost as orderCost15 } from "../src/order";
+import { WARM_TIMEOUT, warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 beforeAll(() => {
@@ -54,6 +55,9 @@ const golden = (seed: number) => {
 const both = (seed: number) => [night(seed), golden(seed)];
 const pos = (p: Playlist, i: number) => i / Math.max(1, p.tandas.length - 1);
 const famous = (t: { songs: Song[] }, min = 2) => t.songs.filter((s) => (s.fame ?? 0) >= min).length;
+
+// the nights every test reads, composed first with the event loop turning between them (composeOnce.ts)
+beforeAll(() => warm(SEEDS.map((s) => () => both(s))), WARM_TIMEOUT);
 
 describe("R1 — the summit sides", () => {
   // round 14 (DJ review S2): the D'Arienzo summit is Echagüe 1938–39 or an instrumental 1937–40; on a golden night the

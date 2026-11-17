@@ -26,6 +26,7 @@ import {
   strictChecks,
 } from "../src/index";
 import { findRoot, loadCatalog } from "../src/load";
+import { WARM_TIMEOUT, warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 let FO: Record<string, unknown>;
@@ -90,6 +91,12 @@ const R15 = [
 ];
 
 // ---------------------------------------------------------------------------------------------------------------
+// the nights every test reads, composed first with the event loop turning between them (composeOnce.ts)
+beforeAll(
+  () => warm([...SEEDS.map((s) => () => golden(s)), ...PANEL_SEEDS.map((s) => () => night(s))]),
+  WARM_TIMEOUT,
+);
+
 describe("A — index corrections (discography review §4)", () => {
   it("Recuerdo (Tanturi 1942-11-04) is an instrumental, and the 1941 vals keeps its own Deezer track", () => {
     const s = byId("79264f596c")!;
