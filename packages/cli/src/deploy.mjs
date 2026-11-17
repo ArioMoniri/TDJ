@@ -229,9 +229,18 @@ export function forkOf(ctx, cfg) {
   if (ctx.run("gh", ["auth", "status"], { allowFail: true }).status !== 0) {
     throw new CliError("The GitHub CLI is not signed in.", ["Run `gh auth login`, then try again."]);
   }
-  const repo = cfg.repo || `${ctx.run("gh", ["api", "user", "--jq", ".login"]).stdout.trim()}/TDJ`;
+  const login = ctx.run("gh", ["api", "user", "--jq", ".login"], { allowFail: true }).stdout.trim();
+  const repo = cfg.repo || `${login}/TDJ`;
   const bad = v.repo(repo);
   if (bad) throw new CliError(bad);
+  // never the upstream repository for anyone but its owner: a deploy role trusting it would let the upstream
+  // author's workflows deploy into YOUR account, and its secrets and variables are not yours to set
+  const [owner] = repo.split("/");
+  if (repo.toLowerCase() === UPSTREAM.toLowerCase() && owner?.toLowerCase() !== login.toLowerCase()) {
+    throw new CliError(`${repo} is the upstream repository, not your fork.`, [
+      `Fork it (https://github.com/${UPSTREAM}/fork), then pass --repo <you>/TDJ or leave --repo out.`,
+    ]);
+  }
   return repo;
 }
 

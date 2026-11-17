@@ -1,0 +1,19 @@
+# `COPY . .` in the Dockerfile must never carry a local secret or deploy state into an image
+.git
+**/node_modules
+**/.next
+**/.turbo
+.sst
+.open-next
+.release
+.claude
+**/.env
+**/.env.*
+**/*.p8
+**/*.p12
+**/*.pem
+**/*.key
+**/*.mobileprovision
+**/*.provisionprofile
+**/*.certSigningRequest
+**/*.keychain-db

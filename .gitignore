@@ -38,3 +38,14 @@ apps/desktop/fastlane/store-creative.html
 apps/desktop/fastlane/app_previews
 apps/desktop/fastlane/app_previews_mac
 apps/desktop/fastlane/app_previews_posters
+
+# never commit a key, certificate or local env file (the leak check, scripts/security/leaks.test.mjs, fails on one)
+.env.*
+!.env.example
+*.p8
+*.p12
+*.pem
+*.mobileprovision
+*.provisionprofile
+*.keychain-db
+UPDATER_KEY_PASSWORD
