@@ -6080,6 +6080,7 @@ export const en = {
   "prelisten.mini_speaker": "On this device's speaker",
   "prelisten.mini_not_room": "the room doesn't hear it",
   // 2026-11: the one player (components/player/PlayerDock.tsx)
+  "dock.player": "Player",
   "dock.song_of": "Song {n} of {count}",
   "dock.cortina": "Cortina",
   "dock.next_tanda": "Next tanda: {rhythm}",

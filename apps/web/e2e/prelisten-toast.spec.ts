@@ -333,7 +333,10 @@ test("the Booth plays a night with headphones set: a Library row's play pre-list
   if (await toastEl.isVisible().catch(() => false)) {
     const tb = (await toastEl.boundingBox())!;
     const mb = (await page.getByTestId("booth-mini").boundingBox())!;
-    expect(tb.y + tb.height).toBeLessThanOrEqual(mb.y + 0.5);
+    // (2026-11: in the sidebar the player stands beside the page; at the page's foot the toast stands over it)
+    const apart =
+      tb.x >= mb.x + mb.width - 0.5 || tb.x + tb.width <= mb.x + 0.5 || tb.y + tb.height <= mb.y + 0.5;
+    expect(apart).toBe(true);
   }
   // Stop: a 44 px target; the pre-listen ends, the room plays on
   const stop = page.getByTestId("booth-mini-cue-stop");

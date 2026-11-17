@@ -10,6 +10,7 @@ import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { sheetUp } from "@/lib/motion";
 import { openSong } from "@/lib/openSong";
+import { orchestraName } from "@/lib/orchestraName";
 import { externalSeek, loadPlayAccess, stepList, useFindSheet } from "@/lib/playback";
 import { externalAudio, ownAudio, stopAt, usePlayer } from "@/lib/player";
 import { scopeStep } from "@/lib/playScope";
@@ -158,7 +159,7 @@ export function MiniPlayerCard() {
   const controllable = !!track && track.source.kind !== "spotify";
   const total = stopAt(track, queue, list?.clipSec) ?? (duration || 30);
   const artistLine = track
-    ? `${track.orchestra}${track.singer ? ` · ${track.singer}` : ""}${track.year ? ` · ${track.year}` : ""}`
+    ? `${orchestraName({ orchestra: track.orchestra, singer: track.singer })}${track.singer ? ` · ${track.singer}` : ""}${track.year ? ` · ${track.year}` : ""}`
     : "";
   // 2026-11: Previous / Next stay inside what the play covers (a tanda only, on to the end, this song only)
   const canPrev = !!list && scopeStep(list.scope, list.items.length, list.index, -1) !== null;

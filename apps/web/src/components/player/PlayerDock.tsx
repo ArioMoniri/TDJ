@@ -197,9 +197,11 @@ export function PlayerDock() {
 
   // the floating card's height (it follows what it holds)
   const panel = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const [cardH, setCardH] = useState(168);
   useEffect(() => {
-    const el = panel.current;
+    // (the shell, its padding included: the panel alone left the card 12 px lower than its margin)
+    const el = shellRef.current;
     if (place !== "float" || !el || typeof ResizeObserver !== "function") return;
     const put = () => setCardH(Math.ceil(el.offsetHeight) || 168);
     put();
@@ -589,7 +591,6 @@ export function PlayerDock() {
   };
 
   /* ——— the quick controls close on a press outside or Esc ——— */
-  const shellRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!quick) return;
     const out = (e: PointerEvent) => {
@@ -625,8 +626,11 @@ export function PlayerDock() {
   const vAlign = pos && env ? (pos.y + box.h / 2 > env.vh / 2 ? "up" : "down") : "up";
 
   const shell = (
+    // biome-ignore lint/a11y/useSemanticElements: a display: contents shell around the bar, not a form's fieldset
     <div
       ref={shellRef}
+      role="group"
+      aria-label={t("dock.player")}
       className={`dock${place === "float" ? " glass" : ""}`}
       data-testid="player-dock"
       data-place={place ?? "idle"}
@@ -639,6 +643,7 @@ export function PlayerDock() {
       style={style}
       onPointerDownCapture={onPointerDownCapture}
       onClickCapture={onClickCapture}
+      onDragStart={(e) => e.preventDefault()}
     >
       {place === "disc" && (
         <Gramophone

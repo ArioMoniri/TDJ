@@ -10,6 +10,7 @@ import { nightMusicSec } from "@/lib/lengths";
 import { spring } from "@/lib/motion";
 import { askDeleteNights, deleteLabel, protectedReason } from "@/lib/nightDelete";
 import { lengthText } from "@/lib/nightName";
+import { orchestraName } from "@/lib/orchestraName";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
@@ -454,7 +455,7 @@ export function Sidebar() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate">
                             <span className="sr-only">{tx("sidebar.tanda", { p1: i + 1 })} </span>
-                            {t.orchestra}
+                            {orchestraName({ orchestra: t.orchestra, singer: t.singer })}
                           </span>
                           {/* 2026-11: the tanda's type in words (rhythm, vocal or instrumental) */}
                           <span className="side-tanda-type block truncate" data-rhythm={t.rhythm}>

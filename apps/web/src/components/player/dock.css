@@ -121,6 +121,14 @@
   padding: 4px 6px 8px;
   touch-action: none;
 }
+/* a floating player is moved, not read: no text selection (a drag over selected text became the browser's own
+   drag-and-drop and lost the player) */
+.dock[data-place="float"],
+.dock[data-place="disc"],
+.dock[data-dragging] {
+  user-select: none;
+  -webkit-user-select: none;
+}
 .dock.glass::after,
 .dock-panel.glass::after {
   background: rgb(var(--surface) / 0.86);

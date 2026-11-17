@@ -6284,6 +6284,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "prelisten.mini_speaker": "Bu cihazın hoparlöründe",
   "prelisten.mini_not_room": "salon duymaz",
   // 2026-11: the one player (components/player/PlayerDock.tsx)
+  "dock.player": "Çalar",
   "dock.song_of": "Şarkı {n}/{count}",
   "dock.cortina": "Kortina",
   "dock.next_tanda": "Sıradaki tanda: {rhythm}",

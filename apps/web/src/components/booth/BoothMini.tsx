@@ -19,6 +19,7 @@ import { placeSeekBubble } from "@/lib/booth/seekBubble";
 import type { useBooth as UseBooth } from "@/lib/booth/store";
 import { useDock } from "@/lib/dock/store";
 import { t } from "@/lib/i18n";
+import { orchestraName } from "@/lib/orchestraName";
 import { usePlayer } from "@/lib/player";
 import { DockGrip } from "../player/DockGrip";
 import { openNowPlaying, openRoomOutput } from "../player/open";
@@ -173,7 +174,14 @@ export function BoothMini() {
   const pos = Math.max(0, Math.min(len, s.position));
   const held = s.holding || (s.holdBefore !== null && s.holdBefore !== undefined);
   const entity = s.entities[s.planIndex] ?? null;
-  const orchestra = (entity as { orchestra?: string } | null)?.orchestra ?? it.artist;
+  const ent = entity as { orchestra?: string; orchestraId?: string | null; singer?: string | null } | null;
+  const orchestra = ent?.orchestra ?? it.artist;
+  // never a raw accompanists' credit ("J.ricardo-G.barbieri"), never the "Guitarras (solo singer)" label
+  const orchestraShown = orchestraName({
+    orchestra,
+    orchestraId: ent?.orchestraId,
+    singer: ent?.singer ?? it.singer,
+  });
   const status = s.starting
     ? t("booth.ui2.mini_starting")
     : !live && s.state === "paused"
@@ -284,7 +292,7 @@ export function BoothMini() {
           </Marquee>
         </span>
         <span className="booth-mini-sub">
-          <Marquee text={orchestra}>{orchestra}</Marquee>
+          <Marquee text={orchestraShown}>{orchestraShown}</Marquee>
         </span>
         <span className="booth-mini-when" data-testid="booth-mini-when">
           {when}
