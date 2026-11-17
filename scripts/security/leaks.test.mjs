@@ -115,6 +115,8 @@ test("no key, certificate, profile or .env file is tracked", () => {
 test("no secret-shaped value in any tracked text file", () => {
   const bad = [];
   for (const f of tracked) {
+    // (this file holds the patterns themselves)
+    if (f === "scripts/security/leaks.test.mjs") continue;
     const body = text(join(ROOT, f));
     if (body) bad.push(...findings(f, body, SECRET_RULES, (v) => FAKE.test(v)));
   }
