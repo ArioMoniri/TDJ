@@ -39,7 +39,7 @@ commit ([docs/RELEASING.md](docs/RELEASING.md)).
 **Composes a night.** Choose the length and the era, press Compose. You get tandas in a TTVTTM cycle, a cortina
 picked for the tanda that follows it, an energy arc with a breather between two peaks, and a score that tells you
 what it checked. Each night gets its own cover, drawn from its arc, with an era label that follows what is
-actually in it. The featured night is mine: 25 tandas, 4 h 35 min of the golden age with Turkish cortinas.
+actually in it. The featured night is mine: 25 tandas, 4 h 37 min of the golden age with Turkish cortinas.
 
 <p align="center"><a href="media/readme/compose.mp4"><img src="media/readme/compose.gif" width="840" alt="Composing a four-hour night in T-DJ: one tap, then the energy arc and the tandas"/></a></p>
 
