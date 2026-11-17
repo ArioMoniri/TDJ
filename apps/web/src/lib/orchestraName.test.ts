@@ -1,7 +1,8 @@
 import { buildSongIndex, type Song, searchSongs } from "@tdj/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { setLocale } from "./i18n";
-import { creditName, creditSpans, isCredit, orchestraName } from "./orchestraName";
+import { creditName, creditSpans, isCredit, orchestraName, orchestraQuery } from "./orchestraName";
+import { completionsFor } from "./smartSearch";
 
 /**
  * 2026-11 (the owner: "J.ricardo-G.barbieri-J.m.aguilar / Carlos Gardel" on the Library's rows): a raw accompanists'
@@ -101,5 +102,47 @@ describe("the search on a credit", () => {
     expect(creditSpans(raw, shown, [[12, 16]])).toEqual([[shown.indexOf("Barb"), shown.indexOf("Barb") + 4]]);
     expect(creditSpans("Francisco Canaro", "Francisco Canaro", [[0, 4]])).toEqual([[0, 4]]);
     expect(creditSpans(raw, shown, [[0, 1]])?.length ?? 0).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('a search never shows the raw credit (QA 2026-11: a tap on the Library\'s list or a completion filled the field with "J.ricardo-G.barbieri")', () => {
+  const side = (id: string, orchestra: string, orchestraId: string, title: string): Song =>
+    ({
+      id,
+      title,
+      orchestra,
+      orchestraId,
+      singer: "Carlos Gardel",
+      year: 1927,
+      rhythm: "tango",
+      durationSec: 170,
+    }) as Song;
+  const songs = [
+    side("a", "J.ricardo-G.barbieri", "j-ricardo-g-barbieri", "A Media Luz"),
+    side("b", "J.ricardo-G.barbieri", "j-ricardo-g-barbieri", "A Medianoche"),
+    side("c", "Francisco Canaro", "francisco-canaro", "Sentimiento Gaucho"),
+  ];
+  const ix = buildSongIndex(songs);
+
+  it("an orchestra's query is its people by name; any other name as it is", () => {
+    expect(orchestraQuery("J.ricardo-G.barbieri")).toBe("José Ricardo Guillermo Barbieri");
+    expect(orchestraQuery("Francisco Canaro")).toBe("Francisco Canaro");
+  });
+
+  it("the names find the credit's sides", () => {
+    const hits = searchSongs(ix, orchestraQuery("J.ricardo-G.barbieri"), { limit: 10 }).items;
+    expect(hits.map((h) => h.song.id).sort()).toEqual(["a", "b"]);
+  });
+
+  it("the orchestra completion fills in the names, never the credit", () => {
+    const q = "guillermo barb";
+    const c = completionsFor(q, { ...searchSongs(ix, q, { limit: 50 }) }).filter(
+      (x) => x.kind === "orchestra",
+    );
+    expect(c.length).toBeGreaterThan(0);
+    for (const x of c) {
+      expect(x.query).not.toMatch(/[A-Z]\.[a-z]+-/);
+      expect(x.query).toContain("Guillermo Barbieri");
+    }
   });
 });

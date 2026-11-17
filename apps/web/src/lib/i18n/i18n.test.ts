@@ -73,6 +73,13 @@ describe("dictionaries", () => {
     expect(bad.map((k) => `${k}: ${tr[k as keyof typeof tr]}`)).toEqual([]);
   });
 
+  it('Turkish writes kortina, as the glossary says (QA 2026-11: "Son şarkı → cortina" beside "Kortina")', () => {
+    const bad = trKeys.filter((k) =>
+      /\bcortina/i.test((tr[k as keyof typeof tr] ?? "").replace(/\{\w+\}/g, " ")),
+    );
+    expect(bad.map((k) => `${k}: ${tr[k as keyof typeof tr]}`)).toEqual([]);
+  });
+
   it("no value is empty", () => {
     expect(enKeys.filter((k) => !(en[k as keyof typeof en] as string).trim())).toEqual([]);
     expect(trKeys.filter((k) => !(tr[k as keyof typeof tr] ?? "").trim())).toEqual([]);

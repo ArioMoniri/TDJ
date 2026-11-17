@@ -1,4 +1,11 @@
-import { normTitle, parseSongQuery, type SongFilters, type SongSearchHit } from "@tdj/core";
+import {
+  creditPeople,
+  isCreditName,
+  normTitle,
+  parseSongQuery,
+  type SongFilters,
+  type SongSearchHit,
+} from "@tdj/core";
 import type { Song } from "./types";
 import type { SongSearchPage } from "./useSongSearch";
 
@@ -136,14 +143,17 @@ export function completionsFor(
   const tails = [words.slice(-2), words.slice(-1)].filter((x) => x.length);
   const names = (kind: "orchestra" | "singer", labels: string[]) => {
     for (const label of labels) {
-      const n = fold(label);
+      // QA 2026-11: a raw credit ("J.ricardo-G.barbieri") is matched and completed by its people's names — the field
+      // never shows the credit, and the names find the same sides (core display.ts indexes them)
+      const said = kind === "orchestra" && isCreditName(label) ? creditPeople(label).join(" ") : label;
+      const n = fold(said);
       for (const tail of tails) {
         const f = fold(tail.join(" "));
         if (f.length < 2) continue;
         const starts = n.startsWith(f) || n.split(" ").some((_, i, a) => a.slice(i).join(" ").startsWith(f));
         if (starts && n !== f) {
           const head = words.slice(0, words.length - tail.length).join(" ");
-          add({ kind, label, query: withFilters([head, label].filter(Boolean).join(" "), q) });
+          add({ kind, label, query: withFilters([head, said].filter(Boolean).join(" "), q) });
           break;
         }
       }

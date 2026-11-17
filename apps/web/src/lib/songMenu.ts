@@ -101,6 +101,40 @@ export function openSongMenu(
   });
 }
 
+/**
+ * QA 2026-11 (a real finger on an iPad and a phone): a long press opens the menu while the finger is still down, the
+ * sheet slides in under it, and the finger lifting sends its click to whatever is there now — a menu item (Song DNA,
+ * Swap…, Play from here) or the backdrop, which closed the menu at once. That one click is swallowed: from the open
+ * until 400 ms after the finger lifts (pointerup / pointercancel / touchend); a fresh press or a key is the DJ's own and
+ * ends the guard at once. Returns the function that ends it.
+ */
+export function swallowReleaseClick(target: EventTarget, afterLift = 400): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const lifts = ["pointerup", "pointercancel", "touchend"] as const;
+  const CAP = { capture: true };
+  const stop = () => {
+    target.removeEventListener("click", onClick, CAP);
+    target.removeEventListener("pointerdown", stop, CAP);
+    target.removeEventListener("keydown", stop, CAP);
+    for (const t of lifts) target.removeEventListener(t, onLift, CAP);
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+  const onClick = (e: Event) => {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    stop();
+  };
+  const onLift = () => {
+    if (!timer) timer = setTimeout(stop, afterLift);
+  };
+  target.addEventListener("click", onClick, CAP);
+  target.addEventListener("pointerdown", stop, CAP);
+  target.addEventListener("keydown", stop, CAP);
+  for (const t of lifts) target.addEventListener(t, onLift, CAP);
+  return stop;
+}
+
 export interface SongMenuHandlers {
   "data-song-menu": "";
   onContextMenu: (e: ReactMouseEvent<HTMLElement>) => void;
@@ -170,6 +204,8 @@ export function useSongMenuProps(spec: SongMenuSpec | null | (() => SongMenuSpec
           if (row.closest("[data-dragging]") || row.querySelector("[data-dragging]")) return;
           if (!show(x0, y0, true, row)) return;
           fired = Date.now();
+          // the finger is still down: its lifting is not a tap on the menu that opened under it
+          swallowReleaseClick(window);
           pressHaptic();
         }, LONG_PRESS_MS);
       },

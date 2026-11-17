@@ -191,13 +191,13 @@ export function BoothMini() {
         : null;
   const where =
     it.tanda > 0 && it.tanda <= tandas ? t("booth.ui2.mini_tanda", { tanda: it.tanda, count: tandas }) : "";
-  const when = [
-    where,
-    live ? t("booth.ui2.mini_to_next", { time: clock(len - pos) }) : "",
-    s.timeToCumparsita > 0 ? t("booth.ui2.mini_to_cumparsita", { time: clock(s.timeToCumparsita) }) : "",
-  ]
+  // QA 2026-11 (the sidebar's player wrapped these into four cramped lines beside the cover): two facts, each its own
+  // line under the cover in the sidebar and the card — where the night is and the next item, then La Cumparsita
+  const whenNow = [where, live ? t("booth.ui2.mini_to_next", { time: clock(len - pos) }) : ""]
     .filter(Boolean)
     .join(" · ");
+  const whenEnd =
+    s.timeToCumparsita > 0 ? t("booth.ui2.mini_to_cumparsita", { time: clock(s.timeToCumparsita) }) : "";
   // 2026-11 (the owner: dancer-useful info, compact): which song of the tanda, and the next tanda's rhythm
   const tandaList = s.playlist?.tandas ?? [];
   const inTanda = it.kind === "track" ? items.filter((x) => x.kind === "track" && x.tanda === it.tanda) : [];
@@ -294,8 +294,18 @@ export function BoothMini() {
         <span className="booth-mini-sub">
           <Marquee text={orchestraShown}>{orchestraShown}</Marquee>
         </span>
+      </button>
+      {/* the night's lines: beside the cover in the bar, under it (the card's full width, a fact per line) in the
+          sidebar, the card and the quick controls */}
+      <button type="button" className="booth-mini-meta" onClick={back} tabIndex={-1} aria-hidden>
         <span className="booth-mini-when" data-testid="booth-mini-when">
-          {when}
+          {whenNow && <span className="booth-mini-line">{whenNow}</span>}
+          {whenNow && whenEnd && <span className="booth-mini-sep">{" · "}</span>}
+          {whenEnd && (
+            <span className="booth-mini-line" data-testid="booth-mini-cumparsita">
+              {whenEnd}
+            </span>
+          )}
         </span>
         {dance && (
           <span className="booth-mini-dance" data-testid="booth-mini-dance">

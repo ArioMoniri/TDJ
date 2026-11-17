@@ -438,7 +438,8 @@ test("3. song sheet (clips): Play now plays after the confirm tap; Play next sho
   await r3.getByTestId("booth-row-open").click();
   const link = sheet.getByTestId("booth-pick-headphones");
   await expect(link).toContainText("Pick your headphones first");
-  expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  // (the sheet scales in from 0.96: measured once it has settled)
+  await expect.poll(async () => (await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await link.click();
   await expect(page.getByTestId("booth-output-sheet")).toBeVisible();
   await expect(page.getByTestId("booth-output-sheet")).toContainText(/headphones/i);

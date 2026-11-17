@@ -6,6 +6,7 @@ import { ChevronRight, Grid3x3 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { coverageWith, DEFAULT_COVERAGE, editGrade, nextGrade } from "@/lib/era";
 import { eraWords, gradeWords as gradeWord } from "@/lib/eraWords";
+import { creditName, creditSpans, orchestraQuery } from "@/lib/orchestraName";
 import { useSongOpen } from "@/lib/songOpen";
 import type { MetaOrchestra, OrchestraProfile } from "@/lib/types";
 import { useSharedQuery } from "@/lib/usePageQuery";
@@ -23,6 +24,8 @@ import { Empty, patchMap, useDb, useDbEdit, ValueCell } from "./shared";
 
 const ORCHESTRA_FIELDS = [
   { name: "name", weight: 10, get: (o: MetaOrchestra) => o.name },
+  // a raw credit ("J.ricardo-G.barbieri") is found by its people's names too
+  { name: "credit", weight: 10, get: (o: MetaOrchestra) => orchestraQuery(o.name) },
   { name: "alias", weight: 8, get: (o: MetaOrchestra) => o.aliases },
   { name: "singer", weight: 3, get: (o: MetaOrchestra) => (o.topSingers ?? []).map(([n]) => n) },
   { name: "style", weight: 2, get: (o: MetaOrchestra) => o.style },
@@ -298,11 +301,14 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
     );
     return (
       <article key={o.id} className="group-inset min-w-0" data-orchestra={o.id} data-testid="orchestra-card">
-        <OrchestraButton name={o.name} onClick={() => setDetail(o)}>
+        <OrchestraButton name={creditName(o.name)} onClick={() => setDetail(o)}>
           <Artwork src={o.artwork} orchestra={o.name} orchestraId={o.id} size="l" />
           <span className="min-w-0 flex-1">
             <span className="text-headline block truncate">
-              <Highlight text={o.name} spans={q.trim() ? marks.get(o.id) : undefined} />
+              <Highlight
+                text={creditName(o.name)}
+                spans={q.trim() ? creditSpans(o.name, creditName(o.name), marks.get(o.id)) : undefined}
+              />
             </span>
             <span className="text-subhead block truncate text-[var(--label-2)]">
               {[
@@ -447,7 +453,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
       <Sheet
         open={!!detail}
         onClose={() => setDetail(null)}
-        title={detail?.name ?? ""}
+        title={detail ? creditName(detail.name) : ""}
         trailing={tx("db.orchestrasTab.done")}
         testId="orchestra-detail"
       >
@@ -467,7 +473,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                   >
                     <span className="min-w-0 flex-1">
                       <span className="cell-label">
-                        {tx("song.open_orchestra_page", { orchestra: o.name })}
+                        {tx("song.open_orchestra_page", { orchestra: creditName(o.name) })}
                       </span>
                       <span className="text-footnote cell-sub text-[var(--label-2)]">
                         {tx("song.orchestra_page_sub")}
@@ -492,7 +498,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                 >
                   <ValueCell
                     label={tx("db.orchestrasTab.energy_2")}
-                    inputLabel={tx("db.orchestrasTab.energy", { name: o.name })}
+                    inputLabel={tx("db.orchestrasTab.energy", { name: creditName(o.name) })}
                     editing={editing}
                     value={p.energy}
                     placeholder={o.energy ?? 50}
@@ -503,7 +509,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                   />
                   <PickerRow
                     label={tx("db.orchestrasTab.style_2")}
-                    ariaLabel={tx("db.orchestrasTab.style", { name: o.name })}
+                    ariaLabel={tx("db.orchestrasTab.style", { name: creditName(o.name) })}
                     value={p.style ?? o.style ?? "balanced"}
                     items={STYLES}
                     onChange={(s) => s && setField(o, "style", s)}
@@ -511,7 +517,7 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                   />
                   <PickerRow
                     label={tx("db.orchestrasTab.importance")}
-                    ariaLabel={tx("db.orchestrasTab.tier", { name: o.name })}
+                    ariaLabel={tx("db.orchestrasTab.tier", { name: creditName(o.name) })}
                     value={String(p.tier ?? o.tier)}
                     items={TIERS}
                     onChange={(t) => t && setField(o, "tier", Number(t))}
@@ -523,7 +529,9 @@ export function OrchestrasTab({ orchestras }: { orchestras: MetaOrchestra[] }) {
                         ? tx("db.orchestrasTab.earliest_in_the_night_2")
                         : tx("db.orchestrasTab.earliest_in_the_night")
                     }
-                    inputLabel={tx("db.orchestrasTab.earliest_point_in_the_night_in", { name: o.name })}
+                    inputLabel={tx("db.orchestrasTab.earliest_point_in_the_night_in", {
+                      name: creditName(o.name),
+                    })}
                     editing={editing}
                     value={p.notBefore === undefined ? undefined : Math.round(p.notBefore * 100)}
                     placeholder={
