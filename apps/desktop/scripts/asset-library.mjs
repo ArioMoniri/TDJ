@@ -283,6 +283,11 @@ export function plan(local, cat, { platform = "IOS", only = ["duo", "preview", "
     ...s,
     specs: [...s.specs],
     limit: cat.limit(s.placementType, s.group),
+    /** every spec the group takes for this placement type (the catalog's mapping) */
+    accepted: cat
+      .mappings(s.placementType)
+      .filter((m) => m.placementGroupId === s.group)
+      .flatMap((m) => m.specs ?? []),
   }));
   for (const s of out) {
     // one iPhone Duo group for both postures with fewer places than files: keep every scene once (open book first),
@@ -546,9 +551,12 @@ export function createSync(deps) {
           known.delete(f.ref);
           return "skipped";
         }
-        throw new Error(
-          `${f.fileName}: Apple matched spec ${specId}, expected one of ${slot.specs.join(", ")}`,
-        );
+        // an image can fit more than one spec (a size-specific and a universal one): Apple picks; the placement
+        // itself is the judge, and refuses an asset its group does not take
+        if (!(slot.accepted ?? []).includes(specId))
+          log(
+            `  ${label}: Apple matched ${f.fileName} to spec ${specId} (expected ${slot.specs.join(", ")}); placing it, Apple decides`,
+          );
       }
       assets.push(a);
     }

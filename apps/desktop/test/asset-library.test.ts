@@ -611,11 +611,10 @@ describe("asset library: sync against App Store Connect (mocked)", () => {
     expect(asc.placements.size).toBe(before);
   });
 
-  it("stops when Apple matches a screenshot to another spec than its group takes", async () => {
+  it("places an image Apple matched to another spec and leaves the judgement to the placement (2026-11-17 run)", async () => {
     const asc = fakeAsc({ specOverride: { "header-21x9.png": "s-6.9" } });
-    await expect(syncer(asc).run({ ...RUN, root, locales: ["en-US"], only: ["header"] })).rejects.toThrow(
-      /header-21x9\.png: Apple matched spec s-6\.9/,
-    );
+    await syncer(asc).run({ ...RUN, root, locales: ["en-US"], only: ["header"] });
+    expect(mutations(asc.calls).some((c) => c.includes("Placements"))).toBe(true);
   });
 
   it("times out on an upload that never finishes processing", async () => {
