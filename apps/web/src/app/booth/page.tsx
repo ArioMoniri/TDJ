@@ -490,8 +490,9 @@ function Booth() {
         e.preventDefault();
         if (e.repeat) return;
         // QA 2026-11: mid-night Space cuts the room only on a second press (the Pause button shows it armed);
-        // resuming never waits
-        roomCut("pause", b.state === "playing" || b.state === "cortina", () =>
+        // resuming never waits. With a break queued Space ends the break (round 8, B8): the room keeps playing, so it
+        // never asks
+        roomCut("pause", (b.state === "playing" || b.state === "cortina") && b.breakUntil === null, () =>
           useBooth.getState().togglePause(),
         );
       } else if (id === "booth.next" || id === "booth.prev") {

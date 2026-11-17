@@ -22,8 +22,25 @@ jobs:
       - run: pnpm lint
       - run: pnpm readme:check
       - run: pnpm typecheck
-      - run: pnpm --filter @tdj/core test
       - run: pnpm quality
+
+  # the engine's invariants (58 files, ~1,000 tests of whole composed nights: over 20 min on one runner) in three
+  # shards of whole files, each file beside the others on the runner's cores (packages/core/vitest.config.ts)
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Core tests (shard ${{ matrix.shard }} of 3)
+        run: pnpm --filter @tdj/core test --shard=${{ matrix.shard }}/3
 
   # one production build, reused by every e2e shard
   build:

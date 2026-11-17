@@ -7,6 +7,7 @@ import { runHistory } from "@/lib/editToast";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import {
+  adoptMotionGrant,
   nativeShake,
   needsMotionPermission,
   requestMotion,
@@ -38,6 +39,11 @@ export function ShakeUndo() {
   // what was last done on each page (an undo makes the next shake offer its redo)
   const lastKind = useRef(new Map<string, "record" | "undo" | "redo">());
   useEffect(() => onEdit((e, kind) => lastKind.current.set(e.scope, kind)), []);
+
+  // a browser that has requestPermission but grants motion already (Chrome): taken as the grant, no tap needed
+  useEffect(() => {
+    if (shakeWanted(pref) && needsMotionPermission() && !pref.granted) void adoptMotionGrant();
+  }, [pref]);
 
   // iOS: a grant given before is asked again once, on the first tap (silent while WebKit still remembers it)
   useEffect(() => {

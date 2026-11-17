@@ -1392,6 +1392,10 @@ test("Spotify proves the playlist: a 118-row night whose chunk 2 Spotify drops o
     };
     if (j.opening) id(j.opening);
     for (const t of j.tandas) {
+      // the DJ's own tandas: their carried ids are kept as they are (lib/spotifyPlan.ts). A bare id on a side the
+      // index knows a later take of is no proof of the recording, so that side was searched again — and a mock
+      // search that found no take of its year left it out ("117 of 117"), on whichever nights the compose drew one
+      t.pinned = { by: "dj" };
       for (const s of t.songs) id(s);
       if (t.cortina) id(t.cortina);
     }

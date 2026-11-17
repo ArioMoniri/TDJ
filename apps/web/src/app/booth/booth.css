@@ -1877,6 +1877,20 @@ html[data-booth] {
     clip-path: inset(50%);
     white-space: nowrap;
   }
+  /* then the status keeps its state and source ("Playing · Rehearsal"): the source's detail (" · 30 s clips") steps
+     aside — the transport's Start and the Now card say it — so the device names stay whole (CI's Chromium drew the
+     row a few per cent wider and cut both names) */
+  .booth-toolbar > .booth-chip {
+    position: relative;
+  }
+  .booth-toolbar > .booth-chip > .booth-chip-detail {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 @media (min-width: 600px) and (max-width: 899.98px) {
   .booth-head-row [data-testid="booth-find-songs"] {
@@ -2669,6 +2683,11 @@ html[data-booth] {
     padding: 0 4px 0 0;
     text-align: left;
     border-radius: 12px;
+  }
+  /* before the night the bar is Start and ••• (the Now card above names the song): the cover steps aside like the rest
+     of the transport (.booth-prestart-hide, which the rule above outranked), so "Start · 30 s clips" is never cut */
+  .booth .booth-strip[data-started="false"] > .booth-strip-now-phone {
+    display: none;
   }
   .booth .booth-strip > .booth-strip-now-phone .booth-art {
     --art: 40px;

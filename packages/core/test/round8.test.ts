@@ -22,6 +22,7 @@ import {
   toTraktorNML,
 } from "../src/index";
 import { loadCatalog } from "../src/load";
+import { composeOnce, WARM_TIMEOUT, warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 beforeAll(() => {
@@ -31,7 +32,7 @@ afterEach(() => new Promise((r) => setTimeout(r, 0)));
 
 const SEEDS = Array.from({ length: 12 }, (_, i) => i + 1);
 const golden = (seed: number, extra: Record<string, unknown> = {}) =>
-  compose({ hours: 4, seed, ...extra }, deps);
+  composeOnce({ hours: 4, seed, ...extra }, deps);
 const pos = (p: Playlist, i: number) => i / Math.max(1, p.tandas.length - 1);
 const BA_RULES = {
   context: { region: "buenos-aires" as const, event: "milonga" as const, dayOfWeek: "saturday" as const },
@@ -43,6 +44,9 @@ const BA_RULES = {
   },
 };
 const undatedSong = (s: Song) => s.yearApprox || !s.year || !!s.transcription;
+
+// the nights most tests read, composed first with the event loop turning between them (composeOnce.ts)
+beforeAll(() => warm(SEEDS.map((s) => () => golden(s))), WARM_TIMEOUT);
 
 describe("R1 — refinements ('Tell the DJ') never destroy the night", () => {
   it("'more X' prefers, never restricts the pool; 'no X' excludes; a locked tanda that contradicts is called out", () => {
@@ -95,7 +99,7 @@ describe("R2 — never a tanda from undated or transcription rows", () => {
     (era) => {
       for (const seed of [1, 2, 3, 4, 5, 6]) {
         for (const extra of [{}, BA_RULES]) {
-          const p = compose({ hours: 4, seed, eras: [era], ...extra }, deps);
+          const p = composeOnce({ hours: 4, seed, eras: [era], ...extra }, deps);
           expect(p.tandas.length).toBeGreaterThan(8);
           for (const t of p.tandas) {
             expect(t.yearRange, `${era} seed ${seed} tanda ${t.index} ${t.orchestra}`).not.toBeNull();
@@ -134,7 +138,7 @@ describe("R3 — rhythm at the song level, duplicates merged in the index", () =
   it("no milonga/vals inside a tango tanda (index rhythm, then the title) across eras and seeds", () => {
     for (const era of ["golden", "post-golden", "all"] as const)
       for (const seed of [1, 2, 3, 4])
-        for (const t of compose({ hours: 4, seed, eras: [era] }, deps).tandas)
+        for (const t of composeOnce({ hours: 4, seed, eras: [era] }, deps).tandas)
           for (const s of t.songs) {
             expect(s.rhythm, `${era} ${seed}: ${t.orchestra} – ${s.title}`).toBe(t.rhythm);
             if (t.rhythm !== "milonga") expect(normTitle(s.title).startsWith("milonga ")).toBe(false);

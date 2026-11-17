@@ -25,6 +25,7 @@ import {
 import { loadCatalog } from "../src/load";
 import { isPeakSlot as isPeak15, orderCost as orderCost15 } from "../src/order";
 import { makeRng } from "../src/rng";
+import { composeOnce, WARM_TIMEOUT, warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 beforeAll(() => {
@@ -35,7 +36,7 @@ afterEach(() => new Promise((r) => setTimeout(r, 0)));
 
 const SEEDS = Array.from({ length: 12 }, (_, i) => i + 1);
 const golden = (seed: number, extra: Record<string, unknown> = {}) =>
-  compose({ hours: 4, seed, ...extra }, deps);
+  composeOnce({ hours: 4, seed, ...extra }, deps);
 const pos = (p: Playlist, t: { index: number }) =>
   p.tandas.indexOf(p.tandas.find((x) => x === t)!) / (p.tandas.length - 1);
 const corpusCumparsitaYears = (orchestraId: string) =>
@@ -44,6 +45,9 @@ const corpusCumparsitaYears = (orchestraId: string) =>
       .filter((f) => f.role === "cumparsita" && f.orchestraId === orchestraId && f.year)
       .map((f) => f.year!),
   );
+
+// the nights most tests read, composed first with the event loop turning between them (composeOnce.ts)
+beforeAll(() => warm(SEEDS.map((s) => () => golden(s))), WARM_TIMEOUT);
 
 describe("A1 — the última is a strong closing tanda", () => {
   it("delivers energy ≥ target−4 from the corpus closer pool in every seed", () => {
@@ -360,7 +364,7 @@ describe("B9 — cortina planning", () => {
     // with no show break and the default length, the fitted mean stays within ±8 s of the setting (round 9: the cues
     // themselves are jittered ±7 s around that mean, never more than 15 s from the setting)
     const within8 = [1, 2, 3, 4, 5, 6].filter((seed) => {
-      const r = compose({ hours: 4, seed }, deps);
+      const r = composeOnce({ hours: 4, seed }, deps);
       const ls = r.tandas.slice(0, -1).map((t) => t.cortina!.lengthSec ?? 0);
       const mean = ls.reduce((a, b) => a + b, 0) / ls.length;
       return Math.abs(mean - 45) <= 8 && ls.every((l) => Math.abs(l - 45) <= 15);
@@ -524,7 +528,7 @@ describe("C15 — the scorer measures what the panel measured", () => {
 describe("knowledge the JSON already carries", () => {
   it("subPeriods with an empty phase list are never programmed (Troilo 1950s, Di Sarli 1950s in the warm-up)", () => {
     for (const seed of SEEDS) {
-      const p = compose({ hours: 4, seed, eras: ["golden-extended"] }, deps);
+      const p = composeOnce({ hours: 4, seed, eras: ["golden-extended"] }, deps);
       for (const t of p.tandas) {
         if (t.orchestraId === "anibal-troilo" && t.yearRange)
           expect(t.yearRange[0], `seed ${seed}`).toBeLessThan(1950);
@@ -535,7 +539,7 @@ describe("knowledge the JSON already carries", () => {
   });
   it("singerDanceable:false and nonDanceSingers never appear; Laurenz/del Río never at a peak", () => {
     for (const seed of SEEDS) {
-      const p = compose({ hours: 4, seed, eras: ["golden-extended"] }, deps);
+      const p = composeOnce({ hours: 4, seed, eras: ["golden-extended"] }, deps);
       for (const t of p.tandas) {
         expect(t.singer ?? "").not.toMatch(/Tita Merello|Nelly Omar|Solo de Piano/);
         if (t.orchestraId === "pedro-laurenz" && t.singer?.includes("del Río"))

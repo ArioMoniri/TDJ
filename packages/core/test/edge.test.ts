@@ -23,6 +23,7 @@ import {
   tandaDuration,
 } from "../src/index";
 import { loadCatalog } from "../src/load";
+import { composeOnce, WARM_TIMEOUT, warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 beforeAll(() => {
@@ -82,10 +83,13 @@ describe("night length", () => {
   });
 });
 
+// the nights the integrity checks read, composed first with the event loop turning between them (composeOnce.ts)
+beforeAll(() => warm(SEEDS.map((seed) => () => composeOnce({ hours: 4, seed }, deps))), WARM_TIMEOUT);
+
 describe("tanda integrity across seeds (golden era, 4 h)", () => {
   it("one orchestra, one rhythm, one singer, ≤maxYearSpread, no song or title reused, correct sizes", () => {
     for (const seed of SEEDS) {
-      const p = compose({ hours: 4, seed }, deps);
+      const p = composeOnce({ hours: 4, seed }, deps);
       const ids = new Set<string>();
       const titles = new Set<string>();
       for (const t of p.tandas) {
@@ -107,7 +111,7 @@ describe("tanda integrity across seeds (golden era, 4 h)", () => {
   });
   it("no orchestra repeats inside the configured gap and the first tanda is a tango", () => {
     for (const seed of SEEDS) {
-      const p = compose({ hours: 4, seed }, deps);
+      const p = composeOnce({ hours: 4, seed }, deps);
       expect(p.tandas[0]?.rhythm).toBe("tango");
       for (let i = 0; i < p.tandas.length; i++)
         for (let j = i + 1; j < Math.min(p.tandas.length, i + p.options.orchestraRepeatGap); j++)

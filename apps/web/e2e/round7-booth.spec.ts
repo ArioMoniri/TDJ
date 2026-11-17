@@ -153,8 +153,18 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
   expect(m.stripGlass).toBe(true);
   expect(m.glassInContent).toBe(0);
   expect(m.small).toBe(0);
-  expect(m.title).toBe("34px");
+  // (2026-11, the iPhone Duo layout: a window from 900 px wide and under 760 px tall — this 1280 × 720 one — keeps the
+  // compact Now card, its title at 22 px; a taller window has the full card's 34 px title)
+  expect(m.title).toBe("22px");
   expect(m.big).toBe("44px");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => getComputedStyle(document.querySelector('[data-testid="booth-now-title"]')!).fontSize,
+      ),
+    )
+    .toBe("34px");
 });
 
 test("rehearsal: the night plays through the mocked previews; h holds, space pauses / resumes, Stop + Fade out stops, → arms the next", async ({
@@ -180,6 +190,11 @@ test("rehearsal: the night plays through the mocked previews; h holds, space pau
   // space: play; space again: an immediate pause; space: resume (round 20)
   await page.keyboard.press("Space");
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing", { timeout: 15000 });
+  // (QA 2026-11, one-touch room cuts: mid-night Space asks first — the first press arms Pause, the second within
+  // 3 s pauses; resuming never waits)
+  await page.keyboard.press("Space");
+  await expect(page.getByTestId("booth-pause")).toHaveAttribute("data-armed", "true");
+  await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "playing");
   await page.keyboard.press("Space");
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "paused");
   await expect(page.getByTestId("booth-play")).toHaveText(/Resume/);
