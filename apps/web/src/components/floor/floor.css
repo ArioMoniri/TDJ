@@ -1,5 +1,8 @@
 /* 2026-11 — the dancers' Floor screen: read at 3–5 m (type in viewport units), dark always (a dim room, a projector),
-   high contrast, no controls; a slow drift keeps a TV from burning in; Reduce motion and Battery saver keep it still. */
+   high contrast, no controls; a slow drift keeps a TV from burning in; Reduce motion and Battery saver keep it still.
+   Redesign (the owner: "almost empty"): a top line (rhythm, year, tanda of the night), the title, the orchestra and the
+   singer, "Song 2 of 4" with its dots and the join-the-floor strip, and a foot with what comes next, the time left
+   in the tanda, La Cumparsita's countdown and the night's strip. Phone to 4K: every size clamps, nothing overflows. */
 /* the /screen page: the app's chrome (sidebar, tab bar, mini player, toasts) leaves the page */
 html[data-floor] body > :not(#tdj-floor) {
   /* biome-ignore lint/complexity/noImportantStyles: the shell's own display rules must not bring it back */
@@ -10,6 +13,10 @@ html[data-floor] body > :not(#tdj-floor) {
   --floor-bg: #07070a;
   --floor-text: #fbfbfd;
   --floor-dim: rgb(251 251 253 / 0.72);
+  --floor-faint: rgb(251 251 253 / 0.16);
+  --floor-tango: #ff6b8e;
+  --floor-vals: #4fd1c5;
+  --floor-milonga: #a78bfa;
   position: fixed;
   inset: 0;
   z-index: 200;
@@ -21,10 +28,10 @@ html[data-floor] body > :not(#tdj-floor) {
   place-items: center;
 }
 .floor[data-rhythm="vals"] {
-  --floor-tone: #4fd1c5;
+  --floor-tone: var(--floor-vals);
 }
 .floor[data-rhythm="milonga"] {
-  --floor-tone: #a78bfa;
+  --floor-tone: var(--floor-milonga);
 }
 .floor[data-rhythm="cortina"] {
   --floor-tone: #f5a524;
@@ -37,13 +44,13 @@ html[data-floor] body > :not(#tdj-floor) {
   inset: -20%;
   background:
     radial-gradient(
-      40% 50% at 30% 30%,
-      color-mix(in srgb, var(--floor-tone) 38%, transparent),
+      40% 50% at 25% 25%,
+      color-mix(in srgb, var(--floor-tone) 30%, transparent),
       transparent 70%
     ),
     radial-gradient(
-      50% 50% at 75% 80%,
-      color-mix(in srgb, var(--floor-tone) 22%, transparent),
+      50% 50% at 80% 85%,
+      color-mix(in srgb, var(--floor-tone) 16%, transparent),
       transparent 70%
     );
   filter: blur(40px);
@@ -57,7 +64,9 @@ html[data-floor] body > :not(#tdj-floor) {
 }
 .floor-drift {
   position: relative;
-  width: min(92vw, 1600px);
+  width: min(92vw, 1680px);
+  max-height: 100%;
+  min-width: 0;
   animation: floor-drift 180s ease-in-out infinite alternate;
 }
 @keyframes floor-drift {
@@ -78,103 +87,145 @@ html[data-floor] body > :not(#tdj-floor) {
 :root[data-power="saver"] .floor-drift {
   animation: none;
 }
+.floor p,
+.floor h1 {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
 .floor-center {
   text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 0.4vh;
 }
 .floor-eyebrow {
-  font-size: clamp(18px, 2.6vw, 44px);
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-size: clamp(16px, 2.2vw, 40px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--floor-tone);
 }
 .floor-title {
-  font-size: clamp(36px, 7vw, 132px);
+  font-size: clamp(34px, 6.4vw, 128px);
   font-weight: 800;
   line-height: 1.02;
   letter-spacing: -0.02em;
   margin-top: 0.15em;
+  text-wrap: balance;
 }
 .floor-sub,
 .floor-next {
-  font-size: clamp(20px, 3.2vw, 60px);
+  font-size: clamp(20px, 3vw, 58px);
   color: var(--floor-dim);
-  margin-top: 0.5em;
+  margin-top: 0.4em;
 }
 .floor-next {
   color: var(--floor-text);
-  font-weight: 600;
-}
-.floor-count {
-  font-size: clamp(22px, 3.6vw, 68px);
-  margin-top: 0.6em;
-  color: var(--floor-tone);
   font-weight: 700;
 }
+.floor-count {
+  font-size: clamp(22px, 3.4vw, 64px);
+  margin-top: 0.5em;
+  color: var(--floor-tone);
+  font-weight: 800;
+}
+
+/* ---- a song ---- */
 .floor-song {
   display: grid;
-  gap: 0.6vh;
+  gap: clamp(10px, 2.2vh, 32px);
+  min-width: 0;
 }
 .floor-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.6em;
-  font-size: clamp(16px, 2.2vw, 40px);
+  gap: 0.5em 0.8em;
+  font-size: clamp(15px, 2vw, 38px);
   color: var(--floor-dim);
+  font-weight: 600;
+}
+.floor-tanda {
+  margin-inline-start: auto;
 }
 .floor-rhythm {
-  padding: 0.15em 0.7em;
+  display: inline-block;
+  padding: 0.18em 0.75em;
   border-radius: 999px;
   background: var(--floor-tone);
   color: #0b0b10;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+.floor-body {
+  display: grid;
+  gap: clamp(12px, 3vh, 40px);
+  min-width: 0;
+}
+@media (min-aspect-ratio: 4 / 3) and (min-width: 1000px) {
+  .floor-song[data-extras] .floor-body:has(.floor-lyrics, .floor-video) {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    align-items: center;
+  }
+}
+.floor-who {
+  display: grid;
+  gap: 0.4vh;
+  min-width: 0;
+}
+.floor-songtitle {
+  font-size: clamp(22px, 3.6vw, 72px);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--floor-text);
+}
 .floor-orchestra {
-  font-size: clamp(40px, 8.4vw, 168px);
+  font-size: clamp(38px, 7.4vw, 156px);
   font-weight: 800;
   line-height: 0.98;
   letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 .floor-singer {
-  font-size: clamp(26px, 4.6vw, 92px);
+  font-size: clamp(22px, 3.8vw, 80px);
   font-weight: 600;
-  color: var(--floor-text);
-}
-.floor-songtitle {
-  font-size: clamp(18px, 2.6vw, 48px);
   color: var(--floor-dim);
-  font-style: italic;
 }
 .floor-place {
-  margin-top: 2.2vh;
+  margin-top: clamp(8px, 2vh, 28px);
 }
 .floor-count-line {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.7em;
-  font-size: clamp(22px, 3.4vw, 64px);
-  font-weight: 700;
+  gap: 0.6em;
+  font-size: clamp(22px, 3.2vw, 64px);
+  font-weight: 800;
 }
-.floor-dots {
+.tanda-dots {
   display: inline-flex;
   gap: 0.35em;
+  align-items: center;
 }
-.floor-dots i {
-  width: 0.7em;
-  height: 0.7em;
+.tanda-dots i {
+  width: 0.62em;
+  height: 0.62em;
   border-radius: 999px;
-  border: 0.09em solid var(--floor-dim);
+  border: 0.09em solid currentColor;
+  opacity: 0.6;
 }
-.floor-dots i[data-done] {
-  background: var(--floor-dim);
+.tanda-dots i[data-done] {
+  background: currentColor;
+  opacity: 0.45;
 }
-.floor-dots i[data-on] {
-  background: var(--floor-tone);
-  border-color: var(--floor-tone);
-  box-shadow: 0 0 0.6em var(--floor-tone);
+.tanda-dots i[data-on] {
+  opacity: 1;
+  border-color: var(--floor-tone, var(--tint));
+  background: var(--floor-tone, var(--tint));
+}
+.floor .tanda-dots i[data-on] {
+  box-shadow: 0 0 0.5em var(--floor-tone);
 }
 /* the join-the-floor strip: green (come in) → amber (the last song) */
 .floor-strip {
@@ -184,17 +235,25 @@ html[data-floor] body > :not(#tdj-floor) {
 }
 .floor-seg {
   flex: 1;
-  min-height: clamp(36px, 6vh, 96px);
+  min-width: 0;
+  min-height: clamp(30px, 5vh, 84px);
   display: grid;
   place-items: center;
-  border-radius: 14px;
-  font-size: clamp(14px, 1.8vw, 34px);
+  border-radius: 12px;
+  font-size: clamp(13px, 1.6vw, 32px);
   font-weight: 700;
   color: #0b0b10;
-  opacity: 0.38;
+  opacity: 0.32;
   transition:
     opacity 0.6s ease,
     transform 0.6s ease;
+}
+.floor-seg > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding-inline: 4px;
 }
 .floor-seg[data-stage="invite"] {
   background: #5ee08a;
@@ -209,35 +268,101 @@ html[data-floor] body > :not(#tdj-floor) {
   background: #f5a524;
 }
 .floor-seg[data-past] {
-  opacity: 0.18;
+  opacity: 0.16;
 }
 .floor-seg[data-on] {
   opacity: 1;
-  transform: scaleY(1.12);
-  box-shadow: 0 0 2vw rgb(255 255 255 / 0.18);
+  box-shadow: 0 0 2vw rgb(255 255 255 / 0.16);
 }
 .floor-advice {
-  margin-top: 1.4vh;
-  font-size: clamp(22px, 3.4vw, 64px);
+  margin-top: 1vh;
+  font-size: clamp(18px, 2.6vw, 52px);
   font-weight: 700;
 }
+
+/* the foot: what comes next and the time left */
+.floor-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4em 1.4em;
+  padding-top: clamp(10px, 2vh, 28px);
+  border-top: 1px solid var(--floor-faint);
+  font-size: clamp(18px, 2.4vw, 48px);
+}
+.floor-foot-next {
+  display: grid;
+  gap: 0.15em;
+  min-width: 0;
+}
+.floor-then {
+  font-weight: 800;
+}
+.floor-then-tanda {
+  color: var(--floor-dim);
+  font-weight: 600;
+}
+.floor-left {
+  color: var(--floor-tone);
+  font-weight: 800;
+}
+.floor-night {
+  display: grid;
+  gap: 0.5em;
+  width: 100%;
+  font-size: clamp(14px, 1.7vw, 34px);
+  color: var(--floor-dim);
+  font-weight: 600;
+  text-align: start;
+}
+.floor-center .floor-night {
+  margin-top: 4vh;
+  width: min(80vw, 1200px);
+}
+.night-strip {
+  display: flex;
+  gap: 3px;
+  height: clamp(6px, 1vh, 14px);
+  min-width: 0;
+}
+.night-strip i {
+  flex: 1;
+  min-width: 0;
+  border-radius: 999px;
+  background: var(--floor-tango, var(--tone-tango));
+  opacity: 0.5;
+}
+.night-strip i[data-rhythm="vals"] {
+  background: var(--floor-vals, var(--tone-vals));
+}
+.night-strip i[data-rhythm="milonga"] {
+  background: var(--floor-milonga, var(--tone-milonga));
+}
+.night-strip i[data-done] {
+  opacity: 0.18;
+}
+.night-strip i[data-on] {
+  opacity: 1;
+  transform: scaleY(1.6);
+}
+
 .floor-lyrics {
-  margin-top: 3vh;
-  text-align: left;
+  text-align: start;
+  min-width: 0;
 }
 .floor-lyric-now {
-  font-size: clamp(26px, 4.2vw, 84px);
+  font-size: clamp(24px, 3.6vw, 76px);
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.12;
 }
 .floor-lyric-next {
-  font-size: clamp(18px, 2.8vw, 56px);
+  font-size: clamp(18px, 2.4vw, 50px);
   color: var(--floor-dim);
   margin-top: 0.3em;
 }
 .floor-video {
-  margin-top: 2vh;
-  width: min(60vw, 960px);
+  width: min(100%, 960px);
   aspect-ratio: 16 / 9;
   border-radius: 16px;
   overflow: hidden;
@@ -245,4 +370,11 @@ html[data-floor] body > :not(#tdj-floor) {
 .floor-video > * {
   width: 100%;
   height: 100%;
+}
+/* short screens (a phone in landscape, 720 p): the strip's words go, the foot tightens */
+@media (max-height: 560px) {
+  .floor-strip,
+  .floor-advice {
+    display: none;
+  }
 }

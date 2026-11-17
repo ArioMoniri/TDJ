@@ -1,8 +1,9 @@
 "use client";
 import "./search.css";
-import { creditDisplay, type SongFacets, type SongFilters, singerDisplay } from "@tdj/core";
+import { type SongFacets, type SongFilters, singerDisplay } from "@tdj/core";
 import { Heart } from "lucide-react";
 import { fmtNumber, t } from "@/lib/i18n";
+import { creditName } from "@/lib/orchestraName";
 import { useTip } from "../ui/Tip";
 
 /**
@@ -228,9 +229,10 @@ export function singerLabel(key: string): string {
 
 /**
  * An orchestra facet's chip (QA fix 2026-11: raw credits "J.ricardo-G.barbieri", "Orquesta (unspecified)"): the
- * credit as two names, the unspecified orchestra as "Other orchestras"
+ * credit as names ("José Ricardo, Guillermo Barbieri, José María Aguilar (guitars)", lib/orchestraName.ts
+ * creditName), the unspecified orchestra as "Other orchestras"
  */
 export function orchestraLabel(name: string): string {
   if (/^orquesta \(unspecified\)$|^unknown$/i.test(name.trim())) return t("search.other_orchestras");
-  return creditDisplay(name);
+  return creditName(name);
 }

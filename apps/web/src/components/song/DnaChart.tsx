@@ -6,6 +6,7 @@ import { type ChartMark, chartLayout } from "@/lib/dnaChart";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
+import { creditName } from "@/lib/orchestraName";
 import { PlayListContext, tapPlay, useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { useSongMenuProps } from "@/lib/songMenu";
@@ -67,7 +68,7 @@ export function DnaChart({
             {layout.lanes.map((lane, li) => (
               <div className="dna-chart-lane" key={lane.orchestraId} style={{ height: lane.height }}>
                 <div className="dna-chart-label" title={lane.orchestra} lang="es">
-                  {lane.orchestra}
+                  {creditName(lane.orchestra)}
                 </div>
                 <div className="dna-chart-plot">
                   <Gridlines layout={layout} />
@@ -211,7 +212,7 @@ function Tooltip({ r, x, dy }: { r: DnaRecording; x: number; dy: number }) {
     >
       <strong className="block tabular-nums">{r.year}</strong>
       <span className="block" lang="es">
-        {r.orchestra}
+        {creditName(r.orchestra)}
       </span>
       <span className="block text-[var(--label-2)]" lang="es">
         {voiceOf(r)}

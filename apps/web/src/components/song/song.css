@@ -406,9 +406,13 @@ html:has(.dna-overlay) #tdj-youtube-dock {
   /* biome-ignore lint/complexity/noImportantStyles: the dock sets its z-index inline (lib/booth/sources/youtube.ts) */
   z-index: 80 !important;
 }
-/* 2026-11 — Now playing, v2: the artwork blurred and darkened behind everything, a cover that pulses on the beat, the
-   transport and progress on the Booth's clock, and Lyrics · Video · Rhythm · About. iPhone: stacked; iPad landscape
-   and desktops: a split; wide desktops: centred at 1280 px. Light and dark follow the Booth's theme tokens. */
+/* 2026-11 — Now playing (components/booth/NowPlayingView.tsx), redesigned after the owner's "not aesthetic … the
+   rhythm booming around the song image is not fine": Apple Music's calm hierarchy. The artwork blurred and darkened
+   behind everything; the cover large and still, a slow low glow behind it on the beat (never a scale, never a shake;
+   off with Reduce motion, Battery saver or the Beat glow switch); the dancers' card; a segmented control. Glass only
+   on the control layer (the bar, the segmented control); content on the surface. iPhone: stacked; iPad landscape and
+   desktops: the player beside the card and the tabs; wide desktops: centred at 1280 px. Light and dark follow the
+   theme tokens. */
 .now-view-v2 {
   isolation: isolate;
   overflow: hidden;
@@ -420,6 +424,21 @@ html:has(.dna-overlay) #tdj-youtube-dock {
 .now-view-v2 .now-view-body {
   background: transparent;
 }
+.now-bar-title {
+  padding-inline: 4px;
+}
+.now-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+}
 .now-bg {
   position: absolute;
   inset: -12%;
@@ -429,8 +448,8 @@ html:has(.dna-overlay) #tdj-youtube-dock {
 .now-bg > * {
   width: 100% !important;
   height: 100% !important;
-  filter: blur(64px) saturate(1.5);
-  opacity: 0.6;
+  filter: blur(64px) saturate(1.4);
+  opacity: 0.55;
   transform: scale(1.2);
 }
 .now-bg::after {
@@ -439,34 +458,53 @@ html:has(.dna-overlay) #tdj-youtube-dock {
   inset: 0;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, rgb(var(--bg-grouped)) 45%, transparent) 0%,
-    color-mix(in srgb, rgb(var(--bg-grouped)) 70%, transparent) 55%,
+    color-mix(in srgb, rgb(var(--bg-grouped)) 50%, transparent) 0%,
+    color-mix(in srgb, rgb(var(--bg-grouped)) 74%, transparent) 50%,
     rgb(var(--bg-grouped)) 100%
   );
 }
-.now-split {
+.now-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   max-width: 1280px !important;
+  padding-top: 8px;
 }
-.now-left {
+.now-player {
   display: grid;
   justify-items: center;
   gap: 14px;
   text-align: center;
   min-width: 0;
 }
+/* the cover and its beat glow: the glow is a soft light behind the art; the art itself never moves */
+.now-cover-wrap {
+  --beat: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(80vw, 380px);
+}
+.now-cover-glow {
+  position: absolute;
+  inset: -6%;
+  z-index: 0;
+  border-radius: 28px;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--tint) 60%, transparent), transparent);
+  filter: blur(26px);
+  opacity: calc(0.08 + var(--beat) * 0.3);
+  pointer-events: none;
+}
 .now-cover {
-  --pulse: 0;
-  width: min(78vw, 420px);
+  position: relative;
+  z-index: 1;
+  width: 100%;
   aspect-ratio: 1;
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
   box-shadow:
-    0 24px 60px rgb(0 0 0 / 0.35),
-    0 0 calc(var(--pulse) * 48px) color-mix(in srgb, var(--tint) 55%, transparent);
-  transform: scale(calc(1 + var(--pulse) * 0.025));
-  will-change: transform;
+    0 18px 48px rgb(0 0 0 / 0.28),
+    0 0 0 0.5px rgb(0 0 0 / 0.08);
 }
 .now-cover > * {
   width: 100% !important;
@@ -475,26 +513,46 @@ html:has(.dna-overlay) #tdj-youtube-dock {
 .now-meta {
   width: 100%;
   min-width: 0;
-}
-.now-meta > div {
-  justify-content: center;
+  display: grid;
+  gap: 4px;
 }
 .now-title {
-  font-size: clamp(24px, 3.2vw, 34px);
+  font-size: clamp(24px, 2.6vw, 32px);
   font-weight: 700;
   line-height: 1.15;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
 }
 .now-artist {
   font-size: 17px;
+  font-weight: 500;
+  color: var(--label);
+  overflow-wrap: anywhere;
+}
+.now-artist-singer {
   color: var(--label-2);
 }
+.now-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.now-year {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+}
 .now-progress {
-  width: min(100%, 520px);
+  width: min(100%, 460px);
 }
 .now-times {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--label-2);
 }
@@ -523,8 +581,8 @@ html:has(.dna-overlay) #tdj-youtube-dock {
 .now-play {
   display: grid;
   place-items: center;
-  width: 72px;
-  height: 72px;
+  width: 68px;
+  height: 68px;
   border-radius: 999px;
   background: var(--label);
   color: rgb(var(--bg-grouped));
@@ -533,18 +591,101 @@ html:has(.dna-overlay) #tdj-youtube-dock {
 .now-tbtn:active:not(:disabled) {
   opacity: 0.72;
 }
-.now-place {
+
+/* the dancers' card: content on the surface */
+.now-dancer {
+  --tone: var(--tone-tango);
+  --floor-tone: var(--tone);
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: var(--radius-m);
+  background: color-mix(in srgb, rgb(var(--bg-cell)) 90%, transparent);
+  box-shadow: 0 0 0 0.5px var(--separator);
+}
+.now-dancer[data-rhythm="vals"] {
+  --tone: var(--tone-vals);
+}
+.now-dancer[data-rhythm="milonga"] {
+  --tone: var(--tone-milonga);
+}
+.now-dancer[data-rhythm="cortina"] {
+  --tone: var(--system-gold);
+}
+.now-dancer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.now-dancer-rhythm {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+}
+.now-dancer-tanda {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+}
+.now-dancer-who {
+  margin-top: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.now-dancer-singer {
+  font-weight: 500;
+  color: var(--label-2);
+}
+.now-dancer-place {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 10px;
+  font-size: 17px;
+}
+.now-dancer-place .tanda-dots {
+  font-size: 17px;
+  color: var(--label-2);
+}
+.now-dancer-songof {
+  font-weight: 700;
+}
+.now-dancer-advice {
   font-size: 15px;
   color: var(--label-2);
+}
+.now-dancer-facts {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+  font-size: 15px;
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+}
+.now-dancer-next {
+  color: var(--label);
+  font-weight: 600;
+}
+.now-dancer .night-strip {
+  margin-top: 14px;
+  height: 6px;
 }
 .now-upnext {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: min(100%, 520px);
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: color-mix(in srgb, rgb(var(--bg-elevated, var(--bg-grouped))) 70%, transparent);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--separator);
   text-align: left;
 }
 .now-upnext-art {
@@ -557,65 +698,225 @@ html:has(.dna-overlay) #tdj-youtube-dock {
 .now-right {
   min-width: 0;
 }
-.now-tabs {
+
+/* the segmented control: the chosen tab a filled pill; the focus ring for the keyboard only */
+.now-seg {
   position: sticky;
   top: 0;
   z-index: 2;
   display: flex;
-  gap: 4px;
-  padding: 4px;
-  margin-bottom: 8px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--fill-3) 80%, transparent);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: var(--material-thick);
+  box-shadow: inset 0 0 0 0.5px var(--separator);
+  backdrop-filter: blur(var(--blur-regular)) saturate(1.6);
+  -webkit-backdrop-filter: blur(var(--blur-regular)) saturate(1.6);
 }
-.now-tab {
+.now-seg-btn {
   flex: 1;
+  min-width: 0;
   min-height: 44px;
-  border-radius: 9px;
+  padding: 0 8px;
+  border-radius: 999px;
   font-size: 15px;
   font-weight: 600;
   color: var(--label-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  outline: none;
+  transition:
+    background-color var(--dur-xs, 0.15s) ease,
+    color var(--dur-xs, 0.15s) ease;
 }
-.now-tab[aria-selected="true"] {
-  background: rgb(var(--bg-grouped));
+.now-seg-btn:hover:not([aria-selected="true"]) {
   color: var(--label);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.18);
+}
+.now-seg-btn[aria-selected="true"] {
+  background: var(--label);
+  color: rgb(var(--bg-grouped));
+}
+.now-seg-btn:focus {
+  outline: none;
+}
+.now-seg-btn:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
+}
+.now-seg[data-pointer] .now-seg-btn:focus-visible {
+  outline: none;
 }
 .now-panel[hidden] {
   display: none;
 }
-.now-floor-exit {
+
+/* lyrics in the play view: synced lines large, the sounding one bright, the others dim; plain text calm and smaller */
+.now-lyrics .group-inset {
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+}
+.now-lyrics-lines {
+  display: block;
+  max-height: clamp(280px, 58vh, 640px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-block: 12vh;
+  -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+}
+.lyric-line.lyric-line-big {
+  margin: 0;
+  padding: 6px 8px;
+  font-size: clamp(22px, 2.3vw, 30px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--label);
+  opacity: 0.3;
+  overflow-wrap: anywhere;
+  transition:
+    opacity 0.35s ease,
+    background-color 0.16s ease;
+}
+.lyric-line.lyric-line-big:hover {
+  opacity: 0.6;
+}
+.lyric-line.lyric-line-big[data-current] {
+  opacity: 1;
+}
+.now-lyrics-plain {
+  max-height: clamp(240px, 52vh, 600px);
+  max-width: 38em;
+  overflow-y: auto;
+  padding: 4px 2px;
+  color: var(--label-2);
+  line-height: 1.6;
+}
+.now-lyrics-note {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--label-2);
+}
+.now-lyrics-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 4px;
+  border-top: 0.5px solid var(--separator);
+}
+.now-lyrics > .section-foot {
+  padding-inline: 0;
+}
+.now-lyrics-source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 2px;
+  font-size: 13px;
+  color: var(--label-2);
+}
+.now-lyrics-source > .truncate {
+  flex: 0 1 auto;
+}
+.now-lyrics-info {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  color: var(--label-2);
+}
+.now-lyrics-info[aria-expanded="true"] {
+  color: var(--tint);
+}
+.now-lyrics-credits {
+  display: block;
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* the Floor screen mode: its two buttons, faint, over the dancers' view */
+.now-floor-tools {
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + 12px);
   right: 12px;
   z-index: 210;
+  display: flex;
+  gap: 8px;
+}
+.now-floor-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
   color: #fff;
-  opacity: 0.5;
+  background: rgb(255 255 255 / 0.1);
+  opacity: 0.55;
+}
+.now-floor-btn:hover,
+.now-floor-btn:focus-visible {
+  opacity: 1;
 }
 @media (max-width: 599.98px) {
   .now-hide-narrow {
     display: none;
   }
 }
-@media (min-width: 900px) {
-  .now-split {
-    grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
-    gap: 40px;
-    align-items: start;
-    padding-top: 12px;
+/* iPad portrait and small laptops: still one column, the cover a little smaller */
+@media (min-width: 600px) and (max-width: 999.98px) {
+  .now-grid {
+    max-width: 640px !important;
   }
-  .now-left {
+  .now-cover-wrap {
+    width: min(60vw, 360px, 42vh);
+  }
+}
+/* iPad landscape and desktops: the player on the left (sticky), the dancers' card and the tabs on the right */
+@media (min-width: 1000px) {
+  .now-grid {
+    grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+    grid-template-areas:
+      "player dancer"
+      "player right";
+    grid-template-rows: auto 1fr;
+    column-gap: clamp(32px, 4vw, 64px);
+    row-gap: 16px;
+    align-items: start;
+    padding-top: 16px;
+  }
+  .now-player {
+    grid-area: player;
     position: sticky;
     top: 0;
   }
-  .now-cover {
-    width: min(100%, 420px);
+  .now-dancer {
+    grid-area: dancer;
+  }
+  .now-right {
+    grid-area: right;
+  }
+  .now-cover-wrap {
+    width: min(100%, 420px, 46vh);
+  }
+  .now-lyrics-lines {
+    max-height: clamp(280px, calc(100dvh - 420px), 640px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .now-cover {
-    transform: none;
+  .now-cover-glow {
+    display: none;
   }
+  .lyric-line.lyric-line-big,
+  .now-seg-btn {
+    transition: none;
+  }
+}
+:root.power-saver .now-cover-glow {
+  display: none;
 }

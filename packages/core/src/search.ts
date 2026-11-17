@@ -1,3 +1,4 @@
+import { creditPeople } from "./display";
 import { popularityScore } from "./popularity";
 import { filterSongs, type SongHit, type SongQuery } from "./songSearch";
 import {
@@ -126,13 +127,20 @@ export function orchestraAliases(
   };
 }
 
+/** an orchestra's aliases plus, for a raw accompanists' credit, its people by name (display.ts creditPeople) */
+function withCredit(aliases: string[] | undefined, orchestra: string): string[] | undefined {
+  const people = creditPeople(orchestra);
+  return people.length ? [...(aliases ?? []), ...people] : aliases;
+}
+
 export function buildSongIndex(songs: Song[], o: SongIndexOptions = {}): SongIndex {
   const aliasOf = orchestraAliases(songs, o.aliases);
   const text = buildTextIndex<Song>(songs, [
     { name: "title", weight: 10, get: (s) => s.title },
     { name: "alt", weight: 7, get: (s) => s.altTitles },
     { name: "orchestra", weight: 6, get: (s) => s.orchestra },
-    { name: "alias", weight: 5, get: (s) => aliasOf(s.orchestraId) },
+    // the orchestra profiles' aliases, and the people of a raw accompanists' credit ("Guillermo Barbieri")
+    { name: "alias", weight: 5, get: (s) => withCredit(aliasOf(s.orchestraId), s.orchestra) },
     { name: "singer", weight: 4, get: (s) => s.singer },
     { name: "year", weight: 3, get: (s) => (s.year ? String(s.year) : null) },
     { name: "rhythm", weight: 3, get: (s) => RHYTHM_WORDS[s.rhythm] ?? [s.rhythm] },

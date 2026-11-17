@@ -5,6 +5,7 @@ import { useState } from "react";
 import { analyseSong, useMeasuring } from "@/lib/analyze";
 import { t } from "@/lib/i18n";
 import { fmtLen } from "@/lib/lengths";
+import { orchestraName } from "@/lib/orchestraName";
 import { bpmText, keyText, useSongData } from "@/lib/songView";
 import { Group } from "../Form";
 import { Artwork } from "../ui/Artwork";
@@ -49,7 +50,7 @@ export function SongFacts({ song, header = true }: { song: Song; header?: boolea
               {song.title}
             </p>
             <p className="text-subhead text-[var(--label-2)]">
-              <span lang="es">{song.orchestra}</span>
+              <span lang="es">{orchestraName(song)}</span>
               {year ? ` · ${song.yearApprox ? "≈ " : ""}${song.year ?? year}` : ""}
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -85,7 +86,7 @@ export function SongFacts({ song, header = true }: { song: Song; header?: boolea
               to={{ kind: "orchestra", id: song.orchestraId }}
               className="-my-3 inline-flex min-h-11 items-center text-[var(--tint)]"
             >
-              <span lang="es">{song.orchestra}</span>
+              <span lang="es">{orchestraName(song)}</span>
             </DnaLink>
           }
         />
