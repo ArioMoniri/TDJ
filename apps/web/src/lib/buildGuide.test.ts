@@ -41,6 +41,24 @@ describe("the guided builder's draft edits", () => {
 });
 
 describe("the guidance lines", () => {
+  it("a night with no tandas: the energy arc and the rhythm cycle are pending, never passed", () => {
+    const lines = guideLines([], plan, { minutes: 0, cortinas: [] });
+    const by = Object.fromEntries(lines.map((l) => [l.key, l]));
+    for (const k of ["energy", "cycle"] as const) {
+      expect(by[k]!.ok, k).toBe(false);
+      expect(by[k]!.pending, k).toBe(true);
+    }
+    // (the cycle still offers what tanda 1 should be)
+    expect(by.cycle!.fix).toEqual({ kind: "rhythm", rhythm: "tango" });
+    // one tanda in: checked, no longer pending
+    const one = guideLines([{ rhythm: "tango", orchestraId: "carlos-di-sarli", energy: 55 }], plan, {
+      minutes: 12,
+      cortinas: [],
+    });
+    for (const l of one) expect(l.pending, l.key).toBeUndefined();
+    expect(one.find((l) => l.key === "energy")!.ok).toBe(true);
+    expect(one.find((l) => l.key === "cycle")!.ok).toBe(true);
+  });
   it("the rhythm cycle reads in threes", () => {
     expect(cycleText(["tango", "tango", "vals", "tango", "tango", "milonga"])).toBe("TTV TTM");
   });

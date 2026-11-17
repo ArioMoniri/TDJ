@@ -61,6 +61,7 @@ export function NightClosingGroup() {
         label={t("settings.night.last_cumparsita")}
         sub={t(SUB[fmt])}
         ariaLabel={t("settings.night.last_cumparsita")}
+        wrapValue
         value={fmt}
         items={CLOSING_FORMATS.map((k) => [k, t(LABEL[k])] as [ClosingFormat, string])}
         onChange={(k) => {

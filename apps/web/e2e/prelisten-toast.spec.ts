@@ -363,14 +363,30 @@ test("no headphones set: one question — choose headphones, or this device's sp
   await expect(sheet).toBeVisible({ timeout: 10_000 });
   await expect(sheet.getByTestId("prelisten-why")).toHaveAttribute("data-why", "none");
   await expect(sheet.getByTestId("prelisten-lead")).toContainText("never in the room");
+  // (final QA) the title is whole at a phone's width too: it wraps, never "Pre-listen while the night …"
+  const title = sheet.getByTestId("sheet-title");
+  for (const w of [1440, 390]) {
+    await page.setViewportSize({ width: w, height: w > 600 ? 900 : 844 });
+    await expect(title).toHaveText("Pre-listen while the night plays");
+    const cut = await title.evaluate(
+      (e) =>
+        e.scrollWidth > e.clientWidth + 1 ||
+        e.scrollHeight > e.clientHeight + 1 ||
+        getComputedStyle(e).textOverflow === "ellipsis",
+    );
+    expect(cut, `title cut at ${w} px`).toBe(false);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
   // the outputs offered for the headphones: never the room's (the DDJ, the default)
   const outs = sheet.getByTestId("prelisten-output");
   const ids = await outs.evaluateAll((els) => els.map((e) => e.getAttribute("data-device")));
-  expect(ids).toEqual(expect.arrayContaining(["pods", "mac"]));
+  expect(ids).toEqual(["pods"]);
   expect(ids).not.toContain("default");
   expect(ids).not.toContain("ddj");
-  // the device speaker is offered: it is not the room's output
+  // the built-in speakers are not headphones: listed once, as the device speaker (it is not the room's output)
+  expect(ids).not.toContain("mac");
   await expect(sheet.getByTestId("prelisten-speaker")).toContainText("MacBook Pro Speakers");
+  await expect(sheet.getByText("MacBook Pro Speakers")).toHaveCount(1);
   // every choice is a 44 px target
   for (const b of await sheet.locator("button").all()) {
     const bb = await b.boundingBox();

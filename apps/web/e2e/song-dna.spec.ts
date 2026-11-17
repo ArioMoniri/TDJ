@@ -179,6 +179,24 @@ test("Library → song details: length, voice, credits, lyrics from LRCLIB, ever
   await expect(page.getByTestId("dna-title")).toHaveText("Malena", { timeout: 30000 });
   await expect(page.getByTestId("dna-credit")).toContainText("Homero Manzi");
   await expect(page.getByTestId("dna-timeline").locator("[data-current]")).toHaveCount(1);
+  // (final QA) every lane's name is whole (two lines at most, never "Guitarras (solo singe"), its full name its title;
+  // the guitars label reads as a singer with guitars
+  const lanes = await page.getByTestId("dna-lane-label").evaluateAll((els) =>
+    els.map((e) => {
+      const t = e.firstElementChild as HTMLElement;
+      return {
+        text: t.textContent ?? "",
+        title: e.getAttribute("title") ?? "",
+        cut: t.scrollHeight > t.clientHeight + 1 || t.scrollWidth > t.clientWidth + 1,
+      };
+    }),
+  );
+  expect(lanes.length).toBeGreaterThan(5);
+  for (const l of lanes) {
+    expect(l.cut, l.text).toBe(false);
+    expect(l.title).toBe(l.text);
+  }
+  expect(lanes.some((l) => /guitarras \(solo singe/i.test(l.text))).toBe(false);
   await expect(page.getByTestId("dna-recordings").getByTestId("library-row").first()).toBeVisible();
   await expect(page.getByTestId("dna-related")).toContainText("Sur");
   await expect(page.getByTestId("dna-you")).toBeVisible();

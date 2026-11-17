@@ -555,6 +555,15 @@ test("Energy tonight: one-line title, a compact Scrub, the plot across the card,
       });
       return {
         eyebrowH: r(eyebrow).height,
+        eyebrowCut: (eyebrow as HTMLElement).scrollWidth > (eyebrow as HTMLElement).clientWidth + 1,
+        scrubName: scrub.getAttribute("aria-label") ?? "",
+        said: eyebrow.textContent ?? "",
+        scrubHit: (() => {
+          const a = getComputedStyle(scrub, "::after");
+          const b = r(scrub);
+          const pad = (v: string) => -(Number.parseFloat(v) || 0);
+          return Math.min(b.width + pad(a.left) + pad(a.right), b.height + pad(a.top) + pad(a.bottom));
+        })(),
         lineH: Number.parseFloat(getComputedStyle(eyebrow).lineHeight) || 17,
         scrubH: r(scrub).height,
         scrubCy: r(scrub).top + r(scrub).height / 2,
@@ -567,6 +576,11 @@ test("Energy tonight: one-line title, a compact Scrub, the plot across the card,
       };
     });
     expect(m.eyebrowH, name).toBeLessThanOrEqual(m.lineH + 2);
+    // the whole title on one line (no "ENERGY …"): Scrub shrinks to its icon on a narrow card, named for a reader
+    expect(m.eyebrowCut, `${name}: the title is cut`).toBe(false);
+    expect(m.scrubName, name).toBe("Scrub");
+    expect(m.said, `${name}: a reader hears the full title`).toContain("Energy tonight");
+    expect(m.scrubHit, `${name}: Scrub is a 44 px target`).toBeGreaterThanOrEqual(43.5);
     expect(m.scrubH, name).toBeLessThanOrEqual(36);
     expect(Math.abs(m.scrubCy - m.eyebrowCy), name).toBeLessThanOrEqual(2);
     // the dots use most of the plot's width (they sat in its middle third)

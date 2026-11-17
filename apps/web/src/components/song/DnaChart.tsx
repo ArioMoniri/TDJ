@@ -6,7 +6,7 @@ import { type ChartMark, chartLayout } from "@/lib/dnaChart";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { t } from "@/lib/i18n";
-import { creditName } from "@/lib/orchestraName";
+import { creditName, isGuitarsLabel, orchestraName } from "@/lib/orchestraName";
 import { PlayListContext, tapPlay, useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { useSongMenuProps } from "@/lib/songMenu";
@@ -67,8 +67,14 @@ export function DnaChart({
             <div className="dna-chart-img" role="img" aria-label={summary} data-testid="dna-chart-img" />
             {layout.lanes.map((lane, li) => (
               <div className="dna-chart-lane" key={lane.orchestraId} style={{ height: lane.height }}>
-                <div className="dna-chart-label" title={lane.orchestra} lang="es">
-                  {creditName(lane.orchestra)}
+                <div
+                  className="dna-chart-label"
+                  title={laneName(lane)}
+                  lang={isGuitarsLabel(lane) ? undefined : "es"}
+                  data-testid="dna-lane-label"
+                >
+                  {/* final QA: up to two lines, never "Guitarras (solo singe"; the whole name in the title */}
+                  <span className="dna-chart-label-text">{laneName(lane)}</span>
                 </div>
                 <div className="dna-chart-plot">
                   <Gridlines layout={layout} />
@@ -144,6 +150,21 @@ function Gridlines({ layout }: { layout: ReturnType<typeof chartLayout> }) {
       ))}
     </div>
   );
+}
+
+/**
+ * a lane's name as the rows read it: a credit as names, the guitars label as "{singer} with guitars" (the lane's one
+ * singer) or "A singer with guitars"
+ */
+function laneName(lane: {
+  orchestra: string;
+  orchestraId: string;
+  marks: Array<{ r: DnaRecording }>;
+}): string {
+  if (!isGuitarsLabel(lane)) return creditName(lane.orchestra);
+  const singers = new Set(lane.marks.map((m) => m.r.singer ?? ""));
+  const one = singers.size === 1 ? [...singers][0] : null;
+  return orchestraName({ orchestra: lane.orchestra, orchestraId: lane.orchestraId, singer: one || null });
 }
 
 const voiceOf = (r: Pick<DnaRecording, "singer">) => singerDisplay(r.singer) ?? t("song.instrumental");

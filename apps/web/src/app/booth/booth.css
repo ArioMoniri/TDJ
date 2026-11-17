@@ -2808,6 +2808,43 @@ html[data-booth] {
   height: 280px;
   max-height: none;
 }
+/* final QA: on a narrow card (the desktop's chart column) the title stays whole on one line: Scrub gives way first,
+   as its icon alone (32 px pill, the 44 px target around it; its name is the button's aria-label) */
+.booth .booth-energy-head {
+  container: energy-head / inline-size;
+}
+.booth-energy-title-short {
+  display: none;
+}
+@container energy-head (max-width: 230px) {
+  .booth .booth-scrub-toggle {
+    width: 32px;
+    padding: 0;
+  }
+  .booth .booth-scrub-toggle > span {
+    display: none;
+  }
+  .booth .booth-scrub-toggle::after {
+    inset: -6px;
+  }
+}
+/* the narrowest card (the 1440 px desktop's chart column): the short title, the full one kept for a screen reader */
+@container energy-head (max-width: 175px) {
+  .booth .booth-energy-head > .booth-eyebrow {
+    position: relative;
+  }
+  .booth .booth-energy-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .booth .booth-energy-title-short {
+    display: inline;
+  }
+}
 /* (the chart's svg rules are for the chart: Scrub's glyph keeps its 14 px) */
 .booth .booth-energy .booth-scrub-toggle > svg {
   display: inline-block;

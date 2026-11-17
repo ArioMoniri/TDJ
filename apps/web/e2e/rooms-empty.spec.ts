@@ -119,6 +119,55 @@ test("an empty room: built together, its cortinas come by themselves, the owner'
   await expect(ana.getByTestId("room-tanda-1").getByTestId("cortina-len")).not.toHaveText("0:30", {
     timeout: 20_000,
   });
+
+  // (final QA) at a phone's width the settings' phrases are whole: the closing format wraps, never "Straight after…"
+  await ana.setViewportSize({ width: 390, height: 844 });
+  await ana.getByTestId("room-open-settings").click();
+  await expect(settings).toBeVisible();
+  const fmt = settings
+    .locator(".cell", { has: ana.getByLabel("The last La Cumparsita", { exact: true }) })
+    .locator("[data-picker-value]");
+  await expect(fmt).not.toBeEmpty();
+  expect(
+    await fmt.evaluate((e) => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1),
+  ).toBe(false);
+  const cell = (await fmt.locator("xpath=..").boundingBox())!;
+  expect(cell.height).toBeGreaterThanOrEqual(43.5);
+  await ana.keyboard.press("Escape");
+  await ana.setViewportSize({ width: 1280, height: 900 });
+
+  // (final QA) a tanda inserted before tanda 1: the opening La Cumparsita follows the new tanda 1 — the room's night
+  // is what the engine's mend leaves it (its orchestra near its years, or a stated fallback: core room-opening.test)
+  const opening0 = await roomNight(ana, baseURL!, code);
+  expect(opening0.opening).toBeTruthy();
+  await ana.getByTestId("room-tanda-1").getByRole("button", { name: "Tanda 1 actions" }).click();
+  await ana.getByRole("menuitem", { name: "Insert tanda before" }).click();
+  await takeFirstTanda(ana);
+  await expect(tandaRows(ana)).toHaveCount(3, { timeout: 30_000 });
+  await expect
+    .poll(
+      async () => {
+        const n = await roomNight(ana, baseURL!, code);
+        if (n.tandas.length !== 3 || !n.opening) return "waiting";
+        const r = await ana.request.post(`${baseURL}/api/spot`, {
+          data: { action: "mend", playlist: n, cumparsitas: true },
+        });
+        const j = (await r.json()) as { opening?: { id: string } | null };
+        return j.opening?.id === n.opening.id ? "follows" : "stale";
+      },
+      { timeout: 60_000 },
+    )
+    .toBe("follows");
+  await expect(ana.getByTestId("night-editor-opening")).toBeVisible();
   await a.close();
   await b.close();
 });
+
+/** the room's night as the server resolves it */
+async function roomNight(page: Page, baseURL: string, code: string) {
+  const r = await page.request.get(`${baseURL}/api/rooms/${code}?resolve=1&user=Ana`);
+  const v = (await r.json()) as {
+    playlist?: { tandas: unknown[]; opening?: { id: string; orchestraId: string } | null } | null;
+  };
+  return v.playlist ?? { tandas: [], opening: null };
+}

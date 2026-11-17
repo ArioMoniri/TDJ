@@ -233,7 +233,12 @@ html[data-floor] body > :not(#tdj-floor) {
   gap: 0.6vw;
   margin-top: 1.2vh;
 }
+/* final QA: every pill's word meets WCAG AA (4.5:1). An inactive pill is the stage's colour as a dark tint with an
+   outline and its word in that colour (green / lime / yellow / amber on the near-black: 8–14:1); the song playing
+   now is the solid colour with a dark word (11–14:1), a glow and a light ring; the songs gone by step back (a fainter
+   tint, the word still ≥ 4.5:1). No pill fades as a whole: opacity took the words down with it (1.6:1). */
 .floor-seg {
+  --seg: #5ee08a;
   flex: 1;
   min-width: 0;
   min-height: clamp(30px, 5vh, 84px);
@@ -242,10 +247,13 @@ html[data-floor] body > :not(#tdj-floor) {
   border-radius: 12px;
   font-size: clamp(13px, 1.6vw, 32px);
   font-weight: 700;
-  color: #0b0b10;
-  opacity: 0.32;
+  color: var(--seg);
+  background: color-mix(in srgb, var(--seg) 14%, var(--floor-bg));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--seg) 45%, var(--floor-bg));
   transition:
-    opacity 0.6s ease,
+    background-color 0.6s ease,
+    color 0.6s ease,
+    box-shadow 0.6s ease,
     transform 0.6s ease;
 }
 .floor-seg > span {
@@ -256,23 +264,28 @@ html[data-floor] body > :not(#tdj-floor) {
   padding-inline: 4px;
 }
 .floor-seg[data-stage="invite"] {
-  background: #5ee08a;
+  --seg: #5ee08a;
 }
 .floor-seg[data-stage="start"] {
-  background: #9be35c;
+  --seg: #9be35c;
 }
 .floor-seg[data-stage="fine"] {
-  background: #e3d65c;
+  --seg: #e3d65c;
 }
 .floor-seg[data-stage="last"] {
-  background: #f5a524;
+  --seg: #f5a524;
 }
 .floor-seg[data-past] {
-  opacity: 0.16;
+  color: color-mix(in srgb, var(--seg) 72%, var(--floor-bg));
+  background: color-mix(in srgb, var(--seg) 7%, var(--floor-bg));
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--seg) 22%, var(--floor-bg));
 }
 .floor-seg[data-on] {
-  opacity: 1;
-  box-shadow: 0 0 2vw rgb(255 255 255 / 0.16);
+  color: #0b0b10;
+  background: var(--seg);
+  box-shadow:
+    0 0 0 2px var(--floor-text),
+    0 0 2vw color-mix(in srgb, var(--seg) 55%, transparent);
 }
 .floor-advice {
   margin-top: 1vh;

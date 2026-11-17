@@ -190,12 +190,18 @@ export function EnergyRail({ onJump }: { onJump?: (planIndex: number) => void })
     >
       <div className="booth-energy-head">
         <p className="booth-eyebrow" data-hint={t("booth.energyRail.how_lively_each_tanda_is_from")}>
-          {t("booth.energyRail.energy_tonight")}
+          {/* final QA: the narrowest card shows the short title, whole ("Energy", never "ENERGY …"); a reader
+              hears the full one */}
+          <span className="booth-energy-title">{t("booth.energyRail.energy_tonight")}</span>
+          <span className="booth-energy-title-short" aria-hidden>
+            {t("booth.energyRail.energy_short")}
+          </span>
         </p>
         <button
           type="button"
           className="booth-scrub-toggle"
           aria-pressed={scrub}
+          aria-label={t("booth.ui2.scrub")}
           onClick={toggle}
           data-hint={t("booth.ui2.scrub_hint")}
           data-testid="booth-scrub-toggle"

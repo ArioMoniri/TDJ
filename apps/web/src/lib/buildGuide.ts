@@ -26,6 +26,8 @@ export type GuideFix =
 export interface GuideLine {
   key: "length" | "bigfour" | "energy" | "cycle" | "cortinas";
   ok: boolean;
+  /** final QA: nothing to check yet (a night with no tandas): neither passed nor failed */
+  pending?: boolean;
   /** what the page prints, by key (numbers and names) */
   vals: Record<string, string | number>;
   fix?: GuideFix;
@@ -86,7 +88,8 @@ export function guideLines(
   const offArc = worst >= 0 && Math.abs(gap) > 15;
   out.push({
     key: "energy",
-    ok: !offArc,
+    ok: !offArc && !!tandas.length,
+    ...(tandas.length ? {} : { pending: true }),
     vals: offArc
       ? {
           n: worst + 1,
@@ -103,7 +106,8 @@ export function guideLines(
   const nextR = plannedR[tandas.length];
   out.push({
     key: "cycle",
-    ok: off < 0,
+    ok: off < 0 && !!tandas.length,
+    ...(tandas.length ? {} : { pending: true }),
     vals: {
       // (the last six tandas and the plan over the same places: a whole night of letters says nothing)
       have: cycleText(tandas.slice(-6).map((t) => t.rhythm)) || "–",

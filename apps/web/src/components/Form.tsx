@@ -178,6 +178,7 @@ export function PickerRow<K extends string>({
   sub,
   tile,
   tip,
+  wrapValue,
 }: {
   label: ReactNode;
   value: K | undefined;
@@ -194,6 +195,8 @@ export function PickerRow<K extends string>({
   /** leading Settings tile */
   tile?: ReactNode;
   tip?: string;
+  /** the values are phrases: the current one wraps onto more lines instead of ending in "…" */
+  wrapValue?: boolean;
 }) {
   const id = useId();
   const t = useTip(tipOf(tip, sub));
@@ -218,7 +221,9 @@ export function PickerRow<K extends string>({
           aria-label={trailingDotTitle}
         />
       )}
-      <span className="cell-value">{current ?? placeholder}</span>
+      <span className={wrapValue ? "cell-value cell-value-wrap" : "cell-value"} data-picker-value>
+        {current ?? placeholder}
+      </span>
       {!disabled && <ChevronsUpDown size={14} strokeWidth={2} className="cell-chevron" aria-hidden />}
       <select
         id={id}
