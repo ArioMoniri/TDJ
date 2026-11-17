@@ -1,6 +1,6 @@
 [package]
 name = "tdj-desktop"
-version = "0.1.0"
+version = "1.0.0"
 description = "TDJ for macOS and iPadOS (Tauri 2), standalone on each device"
 edition = "2021"
 rust-version = "1.80"
