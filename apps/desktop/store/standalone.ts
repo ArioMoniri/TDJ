@@ -18,7 +18,7 @@ const ORIGIN = `http://127.0.0.1:${PORT}`;
 
 /** The services' image CDNs the page may show artwork from (Deezer, Spotify, the Cover Art Archive). */
 const MEDIA_HOSTS =
-  /^(cdn-images\.dzcdn\.net|e-cdns-images\.dzcdn\.net|i\.scdn\.co|coverartarchive\.org|([a-z0-9-]+\.)*archive\.org)$/;
+  /^(cdn-images\.dzcdn\.net|e-cdns-images\.dzcdn\.net|i\.scdn\.co|image-cdn-[a-z]+\.spotifycdn\.com|mosaic\.scdn\.co|coverartarchive\.org|([a-z0-9-]+\.)*archive\.org)$/;
 
 async function main() {
   const server = await startPreview(PORT);

@@ -359,8 +359,10 @@ export async function fetchLiveCover(
     if (ok(j?.url)) return { url: j.url, final: true };
     if (j && !j.retry) return { url: null, final: true };
   }
-  // no route (an older linked server, a static host) or its upstream unreachable: ask Spotify from the page
-  const u = q.spotifyUrl ? await direct(q.spotifyUrl).catch(() => null) : null;
+  // no route (an older linked server, a static host) or its upstream unreachable: ask Spotify from the page; never in
+  // the iPhone, iPad and Mac apps, which make no request of their own beyond the services' image CDNs (standalone.ts)
+  const inApp = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+  const u = q.spotifyUrl && !inApp ? await direct(q.spotifyUrl).catch(() => null) : null;
   return { url: u, final: false };
 }
 
