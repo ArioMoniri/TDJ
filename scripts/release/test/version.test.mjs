@@ -135,3 +135,29 @@ test("release notes: the store's what's new, then one version, one commit, and e
   });
   assert.ok(live.includes(release.appStoreUrl));
 });
+
+test("release notes: without a public web URL they link only GitHub and Apple, never a private deployment", async () => {
+  const { releaseNotes } = await import("../release-notes.mjs");
+  const release = { ...readRelease(), webUrl: "", testflightUrl: "", appStoreLive: false };
+  const md = releaseNotes({ version: "1.0.0", build: "460000", commit: "0123abcd", notes: "New.", release });
+  const hosts = [...md.matchAll(/https?:\/\/([^/\s)]+)/g)].map((m) => m[1]);
+  assert.ok(hosts.length > 0);
+  assert.deepEqual([...new Set(hosts)], ["github.com"]);
+  assert.match(
+    md,
+    /\[deploy your own\]\(https:\/\/github\.com\/ArioMoniri\/TDJ\/blob\/v1\.0\.0\/docs\/SELF_DEPLOY\.md\)/,
+  );
+  assert.doesNotMatch(md, /amazonaws|cloudfront|lambda-url|localhost/);
+  // the committed package.json publishes no web address
+  assert.equal(readRelease().webUrl, "");
+});
+
+test("the release workflow verifies the updater assets before publishing and keeps one build number", () => {
+  const wf = readFileSync(join(ROOT, ".github/workflows/release-apps.yml"), "utf8");
+  const sh = readFileSync(join(ROOT, "scripts/release/mac-build.sh"), "utf8");
+  assert.match(wf, /verify-updater\.mjs[\s\S]*Publish the draft release/);
+  assert.match(wf, /package-manager-cache: false/);
+  assert.match(sh, /verify-updater\.mjs/);
+  assert.doesNotMatch(sh, /ios build[^\n]*--build-number/);
+  assert.match(sh, /bundleVersion\\":\\"\$BUILD/);
+});
