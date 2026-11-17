@@ -1,6 +1,6 @@
 {
   "name": "@tdj/desktop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "TDJ for macOS, iPadOS and iOS (Tauri 2; one universal iPhone + iPad app). Release flow: docs/RELEASING.md",
   "license": "PolyForm-Noncommercial-1.0.0",
