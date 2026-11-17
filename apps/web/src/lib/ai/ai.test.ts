@@ -288,3 +288,36 @@ describe("the hand-built draft", () => {
     expect(d).toHaveLength(1);
   });
 });
+
+describe("provider errors never carry the key (the shared key is the organiser's)", () => {
+  const failing = (message: string) =>
+    (async () =>
+      new Response(JSON.stringify({ error: { message } }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      })) as unknown as typeof fetch;
+  it("OpenAI and Gemini: the key, and anything key-shaped, become [key]", async () => {
+    const key = "sk-proj-0123456789abcdefSECRET";
+    const err = await providerFor(
+      { provider: "openai", key },
+      {
+        fetch: failing(`Incorrect API key provided: ${key}. Also sk-other1234567.`),
+        baseUrl: { openai: "http://mock" },
+      },
+    )
+      .complete({ system: "s", user: "u" })
+      .catch((e: Error) => e);
+    expect((err as Error).message).not.toContain(key);
+    expect((err as Error).message).not.toMatch(/sk-other/);
+    expect((err as Error).message).toContain("[key]");
+    const g = "AIzaSyA0123456789abcdefghijklmnopqrstu";
+    const gerr = await providerFor(
+      { provider: "gemini", key: g },
+      { fetch: failing(`API key not valid: ${g}`), baseUrl: { gemini: "http://mock" } },
+    )
+      .complete({ system: "s", user: "u" })
+      .catch((e: Error) => e);
+    expect((gerr as Error).message).not.toContain(g);
+    expect((gerr as { status?: number }).status).toBe(401);
+  });
+});

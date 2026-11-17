@@ -1,7 +1,14 @@
 import { t as tx } from "@/lib/i18n";
 import { type AcpConnection, acpComplete, transportFor } from "./acp";
 import { type AiProvider, modelFor } from "./models";
-import { LlmError, type ModelProvider, type ModelReply, type ToolCall, type ToolSpec } from "./provider";
+import {
+  LlmError,
+  type ModelProvider,
+  type ModelReply,
+  RelayNeeded,
+  type ToolCall,
+  type ToolSpec,
+} from "./provider";
 
 /**
  * Round 22 — the providers behind one interface (provider.ts). Anthropic through its SDK, OpenAI / OpenRouter and
@@ -56,6 +63,18 @@ function asLlmError(e: unknown): LlmError {
       : tx("ai.providers.the_model_request_failed");
   const status = (e as { status?: number }).status;
   return new LlmError(msg.slice(0, 300), typeof status === "number" && status >= 400 ? status : 502);
+}
+
+/** key-shaped tokens a provider may quote back (OpenAI and Anthropic `sk-…`, Google `AIza…`, a bearer header) */
+const KEY_SHAPES = /\b(?:sk-[A-Za-z0-9_*.-]{6,}|AIza[0-9A-Za-z_-]{16,}|Bearer\s+[A-Za-z0-9._~+/=-]{8,})/g;
+/**
+ * A provider's error text as the caller sees it, without the key that was used: the shared key is the organiser's
+ * and must never reach a DJ, and no key belongs in a log line either.
+ */
+export function scrubKey(message: string, key?: string): string {
+  let out = message;
+  if (key && key.length >= 8) out = out.split(key).join("[key]");
+  return out.replace(KEY_SHAPES, "[key]");
 }
 
 const jsonInstruction = "\nRespond with a single JSON object and nothing else.";
@@ -283,8 +302,22 @@ function acp(c: ProviderCreds, e: ProviderEnv): ModelProvider {
   };
 }
 
-/** the provider for a set of credentials: every generation in TDJ goes through here */
+/** the provider for a set of credentials: every generation in TDJ goes through here (errors never carry the key) */
 export function providerFor(c: ProviderCreds, e: ProviderEnv = {}): ModelProvider {
+  const p = inner(c, e);
+  return {
+    ...p,
+    complete: (req) =>
+      p.complete(req).catch((err: unknown) => {
+        // each provider already turns its failures into an LlmError; anything else (a relay) passes untouched
+        if (!(err instanceof LlmError) || err instanceof RelayNeeded) throw err;
+        const clean = scrubKey(err.message, c.key);
+        throw clean === err.message ? err : new LlmError(clean, err.status);
+      }),
+  };
+}
+
+function inner(c: ProviderCreds, e: ProviderEnv): ModelProvider {
   switch (c.provider) {
     case "anthropic":
       return anthropic(c, e);

@@ -27,7 +27,8 @@ export async function PUT(req: Request) {
       { status: r.errors.length && !r.saved.length ? 400 : 200 },
     );
   } catch (e) {
-    console.error("admin config save failed", e);
+    // the error's name only: an SDK validation message can quote the value that was being saved (a secret)
+    console.error("admin config save failed:", (e as { name?: string })?.name || "Error");
     return NextResponse.json(
       {
         error:

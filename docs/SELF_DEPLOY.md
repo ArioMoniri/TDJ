@@ -130,6 +130,22 @@ Without AWS the settings live in memory (`/admin` works, but forgets on restart)
    redirect URIs in the Spotify dashboard, and each DJ under *User Management* (5 seats in Development Mode).
 3. Optional: in the T-DJ app for Mac or iPad, Settings → Connections → Link a TDJ server → your URL.
 
+## Nothing of the author's comes with it
+
+A copy of T-DJ starts empty and only ever uses what you give it:
+
+- **No keys in the code.** The repository holds no API key, client secret, certificate or AWS account; every
+  connector key is entered by you at `/admin` (or as your fork's own GitHub secrets). `pnpm security:check` (run in CI)
+  fails if a key, a `.env` file or the author's identifiers ever land on the deploy path.
+- **Your own owner.** A fresh deployment has no passphrase: `/admin` opens only with the one-time setup code your
+  own deploy wrote to *your* Parameter Store, and then with the passphrase you choose. No e-mail or account of the
+  author is trusted.
+- **Your own AWS and GitHub.** The deploy role trusts only the repository you name (`GitHubOrg` has no default);
+  `tdj` refuses to use the upstream repository as "your fork". The Deploy, Release, Apple setup and Store workflows
+  stop with an error in a fork that has not set its own role and keys, and never fall back to the author's account.
+- **Owner contributions** land in your own table and are merged into your own repository, committed as your
+  repository's owner.
+
 ## What it costs
 
 A small club's T-DJ fits in AWS's free tiers; expect **about $0–1 a month** idle and a few dollars at most when busy.

@@ -441,6 +441,25 @@ describe("deploy --github", () => {
     expect(o.text()).toMatch(/runs\/42[\s\S]*Owner setup/);
   });
 
+  it("refuses the upstream repository for anyone but its owner (no role trusting it, no secrets set there)", async () => {
+    const sys = fakeSys({
+      "gh api user": { stdout: "dj" },
+      "gh variable list": { stdout: "AWS_DEPLOY_ROLE_ARN\n" },
+    });
+    const o = output();
+    expect(
+      await main(["deploy", "--github", "--repo", "ArioMoniri/TDJ", "-y"], {
+        ...sys,
+        cwd: checkout(),
+        log: o.log,
+        env: {},
+        ...base,
+      }),
+    ).toBe(1);
+    expect(o.text()).toMatch(/upstream repository, not your fork/);
+    expect(sys.lines().some((l) => l.startsWith("gh workflow run"))).toBe(false);
+  });
+
   it("tells you to run init --github when the fork has no deploy role", async () => {
     const sys = fakeSys({ "gh api user": { stdout: "dj" } });
     const o = output();

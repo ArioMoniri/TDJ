@@ -83,6 +83,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # fail closed: uploads go only to THIS repository's own App Store Connect account and app
+      - name: Require this repository's own App Store Connect key and bundle ID
+        env:
+          HAS_ASC: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID != '' && secrets.APP_STORE_CONNECT_KEY_ID != '' && secrets.APP_STORE_CONNECT_PRIVATE_KEY != '' }}
+          HAS_BUNDLE: ${{ vars.TDJ_APP_BUNDLE_ID != '' || github.repository == 'ArioMoniri/TDJ' }}
+        run: |
+          if [ "$HAS_ASC" != true ] || [ "$HAS_BUNDLE" != true ]; then
+            echo "::error::Set your own APP_STORE_CONNECT_* secrets and the TDJ_APP_BUNDLE_ID variable on ${GITHUB_REPOSITORY} (docs/APPLE_SETUP.md)."
+            exit 1
+          fi
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
         # every file sits under apps/desktop/fastlane/, which the artifact keeps as its root
@@ -95,7 +105,7 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || 'com.ariomoniri.tdj' }}
+          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || (github.repository == 'ArioMoniri/TDJ' && 'com.ariomoniri.tdj' || '') }}
         run: |
           bundle exec fastlane ios metadata
           bundle exec fastlane mac metadata
@@ -107,7 +117,7 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || 'com.ariomoniri.tdj' }}
+          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || (github.repository == 'ArioMoniri/TDJ' && 'com.ariomoniri.tdj' || '') }}
         run: |
           node apps/desktop/scripts/asset-library.mjs --platform IOS
           node apps/desktop/scripts/asset-library.mjs --platform MAC_OS --only header
