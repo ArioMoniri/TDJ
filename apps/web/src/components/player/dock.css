@@ -1,0 +1,548 @@
+/* 2026-11 — the one player (PlayerDock.tsx): in the sidebar, the bottom bar, a floating card or the round gramophone.
+   Control layer: glass on the floating card and the quick controls, the sidebar's own material in the sidebar;
+   every target 44 px; light and dark from the tokens. */
+
+/* the bottom bar (a phone, an iPad portrait) and nothing playing: the shell lays nothing out, the bar keeps its own
+   place (mini.css, globals.css) */
+.dock[data-place="idle"],
+.dock[data-place="bar"],
+.dock[data-place="idle"] > .dock-panel,
+.dock[data-place="bar"] > .dock-panel,
+.dock-body {
+  display: contents;
+}
+
+/* ——— docked in the sidebar ——— */
+.side-player:empty {
+  display: none;
+}
+.dock[data-place="side"] {
+  display: block;
+  margin-bottom: 8px;
+  padding: 2px 4px 6px;
+  border-radius: 14px;
+  background: var(--fill-4);
+  box-shadow: inset 0 0 0 0.5px var(--separator);
+}
+.dock[data-place="side"] > .dock-panel,
+.dock[data-place="float"] > .dock-panel {
+  display: block;
+}
+
+/* the head: what plays (Tonight / Listening) and the place buttons; a drag on it moves the player */
+.dock-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 36px;
+  padding: 0 0 0 8px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.dock[data-dragging] .dock-head {
+  cursor: grabbing;
+}
+.dock-head-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label-2);
+}
+.dock-head-grab {
+  display: none;
+}
+.dock[data-place="float"] .dock-head-grab,
+.dock[data-place="disc"] .dock-head-grab {
+  display: block;
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  width: 36px;
+  height: 5px;
+  margin-left: -18px;
+  border-radius: 3px;
+  background: var(--label-3);
+  opacity: 0.6;
+}
+.dock-head-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  color: var(--label-2);
+  touch-action: manipulation;
+}
+/* a 44 px target around a 36 px glyph */
+.dock-head-btn::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+@media (hover: hover) {
+  .dock-head-btn:hover {
+    background: var(--fill-3);
+    color: var(--label);
+  }
+}
+
+/* ——— floating: the card and the gramophone ——— */
+.dock[data-place="float"],
+.dock[data-place="disc"] {
+  position: fixed;
+  z-index: 46;
+  transition:
+    left 280ms var(--ease-settle, cubic-bezier(0.2, 0.8, 0.2, 1)),
+    top 280ms var(--ease-settle, cubic-bezier(0.2, 0.8, 0.2, 1)),
+    width 220ms var(--ease-settle, cubic-bezier(0.2, 0.8, 0.2, 1)),
+    height 220ms var(--ease-settle, cubic-bezier(0.2, 0.8, 0.2, 1));
+}
+.dock[data-live] {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dock[data-place="float"],
+  .dock[data-place="disc"] {
+    transition: none;
+  }
+}
+.dock[data-place="float"] {
+  border-radius: 22px;
+  padding: 4px 6px 8px;
+  touch-action: none;
+}
+/* a floating player is moved, not read: no text selection (a drag over selected text became the browser's own
+   drag-and-drop and lost the player) */
+.dock[data-place="float"],
+.dock[data-place="disc"],
+.dock[data-dragging] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.dock.glass::after,
+.dock-panel.glass::after {
+  background: rgb(var(--surface) / 0.86);
+}
+:root.reduce-glass .dock.glass::after,
+:root.reduce-glass .dock-panel.glass::after {
+  background: rgb(var(--surface));
+}
+.dock[data-dragging] .dock-body {
+  pointer-events: none;
+}
+.dock[data-dragging] {
+  cursor: grabbing;
+}
+
+/* the handle on the card's inner bottom corner (away from its edge) */
+.dock-resize {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: end;
+  padding: 8px;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+.dock[data-edge="right"] .dock-resize {
+  right: auto;
+  left: 0;
+  place-items: end start;
+  cursor: nesw-resize;
+}
+.dock-resize > span {
+  width: 12px;
+  height: 12px;
+  border-right: 2.5px solid var(--label-3);
+  border-bottom: 2.5px solid var(--label-3);
+  border-bottom-right-radius: 5px;
+}
+.dock[data-edge="right"] .dock-resize > span {
+  border-right: 0;
+  border-left: 2.5px solid var(--label-3);
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 5px;
+}
+
+/* ——— the gramophone ——— */
+.dock-disc {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: grab;
+  filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.28)) drop-shadow(0 1px 2px rgb(0 0 0 / 0.2));
+}
+.dock[data-dragging] .dock-disc {
+  cursor: grabbing;
+  transform: scale(1.06);
+}
+.dock-disc:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 3px;
+}
+.dock-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+.dock-ring-track {
+  fill: rgb(var(--surface));
+  stroke: var(--fill-2);
+  stroke-width: 6;
+}
+.dock-ring-fill {
+  fill: none;
+  stroke: var(--room, var(--tint));
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 260ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dock-ring-fill {
+    transition: none;
+  }
+}
+/* the record: grooves, a sheen that stays put while the vinyl turns, the cover as its label */
+.dock-record {
+  position: absolute;
+  inset: 11%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 0 30%, rgb(255 255 255 / 0.05) 31%, transparent 33%),
+    repeating-radial-gradient(circle, #121214 0 1.2px, #1f1f23 1.2px 2.6px);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.08),
+    inset 0 0 6px rgb(0 0 0 / 0.6);
+  animation: dock-spin 3.33s linear infinite;
+  animation-play-state: paused;
+}
+.dock-disc[data-spin] .dock-record {
+  animation-play-state: running;
+}
+.dock-record::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 30deg,
+    transparent 0 8%,
+    rgb(255 255 255 / 0.14) 12%,
+    transparent 18% 50%,
+    rgb(255 255 255 / 0.1) 62%,
+    transparent 68%
+  );
+  pointer-events: none;
+}
+.dock-label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.5);
+}
+.dock-label > *,
+.dock-label img {
+  border-radius: 50% !important;
+}
+.dock-spindle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f4f4f5, #a1a1aa);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.45);
+}
+/* the tone arm, resting on the record's edge */
+.dock-arm {
+  position: absolute;
+  top: 2%;
+  right: 4%;
+  width: 7%;
+  height: 44%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #d4d4d8, #8e8e93);
+  transform: rotate(24deg);
+  transform-origin: 50% 6%;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  pointer-events: none;
+}
+.dock-arm::before {
+  content: "";
+  position: absolute;
+  top: -10%;
+  left: 50%;
+  width: 170%;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #f4f4f5, #71717a);
+}
+.dock-arm::after {
+  content: "";
+  position: absolute;
+  bottom: -8%;
+  left: -30%;
+  width: 160%;
+  height: 18%;
+  border-radius: 2px;
+  background: #3f3f46;
+}
+@keyframes dock-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* still: Reduce Motion, Battery saver */
+@media (prefers-reduced-motion: reduce) {
+  .dock-record {
+    animation: none;
+  }
+}
+html[data-power="saver"] .dock-record {
+  animation: none;
+}
+
+/* the gramophone's quick controls (a long press): the player itself, beside the record, on its edge's side */
+.dock[data-place="disc"] > .dock-panel {
+  position: absolute;
+  display: block;
+  width: min(320px, calc(100vw - 24px));
+  padding: 4px 6px 8px;
+  border-radius: 22px;
+  z-index: 1;
+}
+.dock[data-place="disc"] > .dock-panel[hidden] {
+  display: none;
+}
+.dock[data-place="disc"][data-edge="left"] > .dock-panel {
+  left: 0;
+}
+.dock[data-place="disc"][data-edge="right"] > .dock-panel {
+  right: 0;
+}
+.dock[data-place="disc"][data-open="up"] > .dock-panel {
+  bottom: calc(100% + 10px);
+}
+.dock[data-place="disc"][data-open="down"] > .dock-panel {
+  top: calc(100% + 10px);
+}
+
+/* ——— the bar's grabber (a phone, an iPad portrait): drag it off into the gramophone ——— */
+.dock-grip {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  width: 72px;
+  height: 44px;
+  margin-left: -36px;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  cursor: grab;
+  z-index: 2;
+}
+.dock-grip-bar {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--label-3);
+  box-shadow: 0 0 0 1px rgb(var(--surface) / 0.6);
+}
+
+/* ——— the night (BoothMini) in the sidebar, the card and the quick controls: one stacked column ——— */
+.dock:not([data-place="bar"]) .booth-mini {
+  position: relative;
+  inset: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+  min-height: 0;
+  padding: 2px 4px 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "cue cue"
+    "cover text"
+    "chip chip"
+    "seek seek"
+    "btns btns"
+    "more more";
+  column-gap: 10px;
+  row-gap: 4px;
+}
+.dock:not([data-place="bar"]) .booth-mini.glass::after,
+.dock:not([data-place="bar"]) .booth-mini.glass::before,
+.dock:not([data-place="bar"]) [data-testid="mini-player"].glass::after,
+.dock:not([data-place="bar"]) [data-testid="mini-player"].glass::before {
+  display: none;
+}
+.dock:not([data-place="bar"]) .booth-mini-chip {
+  grid-area: chip;
+  position: static;
+  justify-self: start;
+}
+.dock:not([data-place="bar"]) .booth-mini-btns {
+  justify-content: center;
+}
+.dock:not([data-place="bar"]) .booth-mini-cue {
+  margin: 0 0 2px;
+}
+.booth-mini-dance {
+  font-size: 12px;
+  color: var(--label-2);
+}
+/* in the sidebar's narrow column the night's lines wrap rather than cut "next in …" and the next tanda */
+.dock:not([data-place="bar"]) .booth-mini-text > .booth-mini-when,
+.dock:not([data-place="bar"]) .booth-mini-text > .booth-mini-dance {
+  white-space: normal;
+  overflow: visible;
+}
+.booth-mini-more {
+  grid-area: more;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 4px;
+  margin-top: 2px;
+  padding-top: 2px;
+  border-top: 0.5px solid var(--separator);
+}
+.booth-mini-vol {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 6px;
+  color: var(--label-2);
+}
+.booth-mini-vol > input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  accent-color: var(--room, var(--tint));
+  cursor: pointer;
+}
+.booth-mini-out {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--label);
+}
+.booth-mini-out[data-out="room"] > svg,
+.booth-mini-out[data-out="room"] > .booth-mini-out-word {
+  color: var(--room, var(--tint));
+}
+.booth-mini-out[data-out="headphones"] > svg,
+.booth-mini-out[data-out="headphones"] > .booth-mini-out-word {
+  color: var(--cue, var(--tint));
+}
+.booth-mini-out-word {
+  font-weight: 700;
+}
+.booth-mini-out-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--label-2);
+}
+@media (hover: hover) {
+  button.booth-mini-out:hover {
+    background: var(--fill-3);
+  }
+}
+.booth-mini-nowbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 100%;
+  min-height: 44px;
+  margin-top: 2px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--label);
+  background: var(--fill-3);
+}
+@media (hover: hover) {
+  .booth-mini-nowbtn:hover {
+    background: var(--fill-2);
+  }
+}
+
+/* ——— a preview (MiniPlayerCard) in the sidebar, the card and the quick controls ——— */
+.dock:not([data-place="bar"]) [data-testid="mini-player"] {
+  /* biome-ignore lint/complexity/noImportantStyles: the bar's place is set by utility classes and an inline style */
+  position: relative !important;
+  /* biome-ignore lint/complexity/noImportantStyles: as above */
+  inset: auto !important;
+  /* biome-ignore lint/complexity/noImportantStyles: as above */
+  width: auto !important;
+  /* biome-ignore lint/complexity/noImportantStyles: as above */
+  max-width: none !important;
+  margin: 0;
+  padding: 2px 0 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.dock:not([data-place="bar"]) .mini-row1 {
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 2px;
+}
+.dock:not([data-place="bar"]) .mini-row1 > .mini-cover {
+  order: 0;
+}
+.dock:not([data-place="bar"]) .mini-row1 > .mini-meta {
+  order: 1;
+  flex: 1 1 calc(100% - 112px);
+}
+.dock:not([data-place="bar"]) .mini-row1 > .mini-close {
+  order: 2;
+}
+.dock:not([data-place="bar"]) .mini-row1 > .mini-ctl {
+  order: 3;
+}

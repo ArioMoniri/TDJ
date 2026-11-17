@@ -5,7 +5,6 @@ import { NavTrail } from "@/components/NavTrail";
 import "./globals.css";
 import { UpdateWatch } from "@/components/About";
 import { Boot } from "@/components/Boot";
-import { BoothMini } from "@/components/booth/BoothMini";
 import { DeleteNights } from "@/components/DeleteNights";
 import { EditGuide } from "@/components/EditGuide";
 import { EditKeys } from "@/components/EditKeys";
@@ -21,6 +20,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { PlaylistSync } from "@/components/PlaylistSync";
 import { PowerSync } from "@/components/PowerSaver";
 import { PrelistenSheet } from "@/components/PrelistenSheet";
+import { PlayerDock } from "@/components/player/PlayerDock";
 import { RoomSync } from "@/components/RoomSync";
 import { RuleConfirmSheet } from "@/components/RuleConfirmSheet";
 import { SongHosts } from "@/components/song/SongHosts";
@@ -95,7 +95,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </main>
             <MiniPlayer />
-            <BoothMini />
+            <PlayerDock />
             <PlaylistSync />
             <GlobalToast />
             <PrelistenSheet />

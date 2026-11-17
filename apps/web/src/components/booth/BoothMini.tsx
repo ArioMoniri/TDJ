@@ -1,14 +1,31 @@
 "use client";
-import { Headphones, Laptop, Pause, Play, SkipForward, Square, Volume2, VolumeX } from "lucide-react";
+import {
+  Headphones,
+  Laptop,
+  Maximize2,
+  Pause,
+  Play,
+  SkipForward,
+  Speaker,
+  Square,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { type CSSProperties, type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { guard, useArmed } from "@/lib/booth/confirm";
+import { CUE_ON_ROOM } from "@/lib/booth/cue";
 import { placeSeekBubble } from "@/lib/booth/seekBubble";
 import type { useBooth as UseBooth } from "@/lib/booth/store";
+import { useDock } from "@/lib/dock/store";
 import { t } from "@/lib/i18n";
+import { orchestraName } from "@/lib/orchestraName";
 import { usePlayer } from "@/lib/player";
+import { DockGrip } from "../player/DockGrip";
+import { openNowPlaying, openRoomOutput } from "../player/open";
 import { Artwork } from "../ui/Artwork";
 import { Marquee } from "../ui/Marquee";
+import { rhythmWord } from "../ui/TandaTypeBadge";
 import { ConfirmHint, ConfirmRing, useHoldConfirm } from "./Confirm";
 import "./mini.css";
 
@@ -17,16 +34,16 @@ type BoothState = ReturnType<BoothStore["getState"]>;
 type EngineLike = { currentLength: () => number } | null;
 
 /** the Booth's store, once the Booth page made it (read through `window`, so this bar adds no engine to the pages) */
-const boothStore = (): BoothStore | null =>
+export const boothStore = (): BoothStore | null =>
   typeof window === "undefined"
     ? null
     : ((window as unknown as { __tdjBooth?: BoothStore }).__tdjBooth ?? null);
-const boothEngine = (): EngineLike =>
+export const boothEngine = (): EngineLike =>
   typeof window === "undefined"
     ? null
     : ((window as unknown as { __tdjBoothEngine?: () => EngineLike }).__tdjBoothEngine?.() ?? null);
 
-const clock = (sec: number) => {
+export const clock = (sec: number) => {
   const n = Math.max(0, Math.round(sec));
   const h = Math.floor(n / 3600);
   const m = Math.floor((n % 3600) / 60);
@@ -39,7 +56,7 @@ export function nightOn(s: Pick<BoothState, "started" | "state"> | null): boolea
   return !!s?.started && s.state !== "idle" && s.state !== "stopped";
 }
 
-function useBoothSnapshot(path: string | null) {
+export function useBoothSnapshot(path: string | null) {
   const [snap, setSnap] = useState<BoothState | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new page may be the first to see the Booth's store
   useEffect(() => {
@@ -94,7 +111,10 @@ export function BoothMini() {
   const onBooth = path === "/booth" || path?.startsWith("/booth/");
   const show = !onBooth && nightOn(s);
   const box = useRef<HTMLElement>(null);
+  const place = useDock((d) => d.place);
+  const roomy = place !== null && place !== "bar";
   // the pages clear the bar (globals: --booth-mini-h), and the preview mini player steps aside while it shows
+  // (2026-11: only the bottom bar takes room from the page; in the sidebar, floating or round it takes none)
   useEffect(() => {
     const root = document.documentElement;
     const el = box.current;
@@ -104,6 +124,13 @@ export function BoothMini() {
       return;
     }
     root.dataset.boothMini = "1";
+    if (place !== "bar") {
+      root.style.setProperty("--booth-mini-h", "0px");
+      return () => {
+        delete root.dataset.boothMini;
+        root.style.removeProperty("--booth-mini-h");
+      };
+    }
     const put = () => root.style.setProperty("--booth-mini-h", `${Math.ceil(el.offsetHeight)}px`);
     put();
     const ro = typeof ResizeObserver === "function" ? new ResizeObserver(put) : null;
@@ -113,7 +140,7 @@ export function BoothMini() {
       delete root.dataset.boothMini;
       root.style.removeProperty("--booth-mini-h");
     };
-  }, [show]);
+  }, [show, place]);
   const next = useHoldConfirm("next", () => void boothStore()?.getState().nextNow());
   // QA 2026-11: Pause cut the room in one tap, 2 px from Next — mid-night it asks like Next (a second tap or a hold);
   // Resume never waits (no confirmation is needed while paused)
@@ -133,7 +160,8 @@ export function BoothMini() {
     if (!bar || !b || seekTo === null || !seekArmed) return setBubble(null);
     const len0 = Number(seekRef.current?.dataset.len) || 1;
     const btns = btnsRef.current?.getBoundingClientRect();
-    setBubble(placeSeekBubble(bar, b.width, seekTo / len0, btns));
+    // (in the sidebar and the floating card the buttons stand under the bar: the bubble keeps the bar's width)
+    setBubble(placeSeekBubble(bar, b.width, seekTo / len0, btns && btns.top < bar.top ? btns : null));
   }, [seekTo, seekArmed]);
   if (!show || !s?.plan) return null;
   const st = boothStore()!;
@@ -146,7 +174,14 @@ export function BoothMini() {
   const pos = Math.max(0, Math.min(len, s.position));
   const held = s.holding || (s.holdBefore !== null && s.holdBefore !== undefined);
   const entity = s.entities[s.planIndex] ?? null;
-  const orchestra = (entity as { orchestra?: string } | null)?.orchestra ?? it.artist;
+  const ent = entity as { orchestra?: string; orchestraId?: string | null; singer?: string | null } | null;
+  const orchestra = ent?.orchestra ?? it.artist;
+  // never a raw accompanists' credit ("J.ricardo-G.barbieri"), never the "Guitarras (solo singer)" label
+  const orchestraShown = orchestraName({
+    orchestra,
+    orchestraId: ent?.orchestraId,
+    singer: ent?.singer ?? it.singer,
+  });
   const status = s.starting
     ? t("booth.ui2.mini_starting")
     : !live && s.state === "paused"
@@ -163,6 +198,25 @@ export function BoothMini() {
   ]
     .filter(Boolean)
     .join(" · ");
+  // 2026-11 (the owner: dancer-useful info, compact): which song of the tanda, and the next tanda's rhythm
+  const tandaList = s.playlist?.tandas ?? [];
+  const inTanda = it.kind === "track" ? items.filter((x) => x.kind === "track" && x.tanda === it.tanda) : [];
+  const songN = inTanda.indexOf(it) + 1;
+  const nextTanda = it.kind === "closing" ? undefined : tandaList[it.tanda];
+  const dance = [
+    songN > 0
+      ? t("dock.song_of", { n: songN, count: inTanda.length })
+      : it.kind === "cortina"
+        ? t("dock.cortina")
+        : "",
+    nextTanda ? t("dock.next_tanda", { rhythm: rhythmWord(nextTanda.rhythm) }) : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const outLabel = (id: string | null) =>
+    id === CUE_ON_ROOM
+      ? t("dock.with_room")
+      : (s.outputs.devices.find((d) => d.id === id)?.label ?? t("booth.playerToolbar.this_device"));
   const back = () => router.push("/booth");
   const onSeek = (e: PointerEvent<HTMLDivElement>) => {
     if (!live || len <= 0) return;
@@ -191,7 +245,9 @@ export function BoothMini() {
       data-testid="booth-mini"
       data-state={s.state}
       data-cue={cue ? cue.where : undefined}
+      data-place={place ?? undefined}
     >
+      <DockGrip />
       {cue && (
         <div className="booth-mini-cue" data-testid="booth-mini-cue" data-where={cue.where}>
           {cue.where === "headphones" ? (
@@ -236,11 +292,16 @@ export function BoothMini() {
           </Marquee>
         </span>
         <span className="booth-mini-sub">
-          <Marquee text={orchestra}>{orchestra}</Marquee>
+          <Marquee text={orchestraShown}>{orchestraShown}</Marquee>
         </span>
         <span className="booth-mini-when" data-testid="booth-mini-when">
           {when}
         </span>
+        {dance && (
+          <span className="booth-mini-dance" data-testid="booth-mini-dance">
+            {dance}
+          </span>
+        )}
       </button>
       {status && (
         <span className="booth-mini-chip" data-testid="booth-mini-status" role="status">
@@ -330,6 +391,55 @@ export function BoothMini() {
           </span>
         )}
       </div>
+      {/* 2026-11 (the owner: "the player settings … all on the left in the side bar"): the room's volume, where the
+          night and the pre-listen sound, and the way to the Booth's Now playing — in the sidebar and the floating
+          card (the phone's bar keeps its one compact row) */}
+      {roomy && (
+        <div className="booth-mini-more" data-testid="booth-mini-more">
+          <label className="booth-mini-vol">
+            <span className="sr-only">{t("booth.controlStrip.master_volume")}</span>
+            <Volume2 size={14} strokeWidth={2} aria-hidden />
+            <input
+              type="range"
+              min={-30}
+              max={6}
+              step={1}
+              value={s.master}
+              onChange={(e) => st.getState().setMaster(Number(e.currentTarget.value))}
+              aria-valuetext={t("booth.controlStrip.db", { p1: s.master > 0 ? "+" : "", master: s.master })}
+              data-testid="booth-mini-volume"
+            />
+          </label>
+          <button
+            type="button"
+            className="booth-mini-out"
+            data-out="room"
+            onClick={() => openRoomOutput((h) => router.push(h))}
+            aria-label={t("booth.playerToolbar.room_output_2", { p1: outLabel(s.outputs.room) })}
+            data-testid="booth-mini-out-room"
+          >
+            <Speaker size={14} strokeWidth={2} aria-hidden />
+            <span className="booth-mini-out-word">{t("dock.room")}</span>
+            <span className="booth-mini-out-name">{outLabel(s.outputs.room)}</span>
+          </button>
+          {s.outputs.cue && (
+            <span className="booth-mini-out" data-out="headphones" data-testid="booth-mini-out-cue">
+              <Headphones size={14} strokeWidth={2} aria-hidden />
+              <span className="booth-mini-out-word">{t("dock.headphones")}</span>
+              <span className="booth-mini-out-name">{outLabel(s.outputs.cue)}</span>
+            </span>
+          )}
+          <button
+            type="button"
+            className="booth-mini-nowbtn"
+            onClick={() => openNowPlaying((h) => router.push(h))}
+            data-testid="booth-mini-now"
+          >
+            <Maximize2 size={14} strokeWidth={2} aria-hidden />
+            {t("song.now_playing")}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

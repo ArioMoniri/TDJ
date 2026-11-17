@@ -1,5 +1,5 @@
 "use client";
-import { ChevronRight, Clock, Disc3, PanelLeft, Pause, Play, Trash2, Volume2, X } from "lucide-react";
+import { ChevronRight, Clock, PanelLeft, Trash2, Volume2, X } from "lucide-react";
 import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -10,15 +10,14 @@ import { nightMusicSec } from "@/lib/lengths";
 import { spring } from "@/lib/motion";
 import { askDeleteNights, deleteLabel, protectedReason } from "@/lib/nightDelete";
 import { lengthText } from "@/lib/nightName";
+import { orchestraName } from "@/lib/orchestraName";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { Logo } from "./Logo";
 import { NAV_MAIN, NAV_MAIN_TITLE, NAV_PINNED } from "./navItems";
 import { SwipeRow } from "./SwipeRow";
-import { Artwork } from "./ui/Artwork";
-import { Marquee } from "./ui/Marquee";
-import { TandaArt, usePlayingEntity } from "./ui/TandaArt";
+import { TandaArt } from "./ui/TandaArt";
 import { tandaTypeWords } from "./ui/TandaTypeBadge";
 import { Tip } from "./ui/Tip";
 
@@ -196,8 +195,8 @@ function SideLink({
 
 /**
  * macOS / iPadOS sidebar (Music, Finder, Notes): sections with headers (Library; Tonight, the current night's tandas
- * to jump to with the one now playing marked; Recent nights), Guide and Settings pinned at the foot with a compact
- * now-playing card above them. It collapses (the toolbar button or ⌃⌘S) and resizes from its trailing edge; both
+ * to jump to with the one now playing marked; Recent nights), Guide and Settings pinned at the foot with the one
+ * player docked above them (components/player/PlayerDock.tsx). It collapses (the toolbar button or ⌃⌘S) and resizes from its trailing edge; both
  * are remembered. Material on the control layer only; rows are 44 pt where the pointer is a finger.
  */
 export function Sidebar() {
@@ -206,8 +205,6 @@ export function Sidebar() {
   const playlist = useStore((s) => s.playlist);
   const history = useStore((s) => s.history);
   const track = usePlayer((s) => s.track);
-  const playing = usePlayer((s) => s.playing);
-  const toggle = usePlayer((s) => s.toggle);
   const [state, setState] = useState<Saved>({ w: DEFAULT_W, collapsed: false });
   const [hash, setHash] = useState("");
   const drag = useRef<{ x: number; w: number; now: number } | null>(null);
@@ -458,7 +455,7 @@ export function Sidebar() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate">
                             <span className="sr-only">{tx("sidebar.tanda", { p1: i + 1 })} </span>
-                            {t.orchestra}
+                            {orchestraName({ orchestra: t.orchestra, singer: t.singer })}
                           </span>
                           {/* 2026-11: the tanda's type in words (rhythm, vocal or instrumental) */}
                           <span className="side-tanda-type block truncate" data-rhythm={t.rhythm}>
@@ -573,38 +570,10 @@ export function Sidebar() {
         </div>
 
         <div className="shrink-0 border-t border-[var(--separator)] px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-          {track && (
-            <section
-              className="side-now mb-2"
-              aria-label={tx("sidebar.now_playing")}
-              data-testid="sidebar-now"
-            >
-              {track.source.kind === "preview" ? (
-                <button
-                  type="button"
-                  className="icon-btn shrink-0"
-                  aria-label={playing ? tx("sidebar.pause") : tx("sidebar.play")}
-                  onClick={() => toggle()}
-                >
-                  {playing ? (
-                    <Pause size={18} fill="currentColor" strokeWidth={0} />
-                  ) : (
-                    <Play size={18} fill="currentColor" strokeWidth={0} />
-                  )}
-                </button>
-              ) : (
-                <SideNowArt orchestra={track.orchestra} />
-              )}
-              <span className="min-w-0 flex-1">
-                <Marquee text={track.title} className="text-subhead font-semibold" testId="side-now-title">
-                  {track.title}
-                </Marquee>
-                <Marquee text={track.orchestra} className="text-caption1 text-[var(--label-2)]">
-                  {track.orchestra}
-                </Marquee>
-              </span>
-            </section>
-          )}
+          {/* 2026-11 (the owner: "the player … all on the left in the side bar"): the one player docks here
+              (components/player/PlayerDock.tsx portals into this slot); it was a now-playing card here and a
+              second player at the page's foot */}
+          <div id="sidebar-player" className="side-player" data-testid="sidebar-player" />
           <LayoutGroup id="sidebar-foot">
             <div className="flex flex-col gap-0.5">
               {pinned.map((it) => (
@@ -655,18 +624,5 @@ export function Sidebar() {
         </Tip>
       )}
     </>
-  );
-}
-
-/** 2026-11: the playing side's cover in the sidebar's now-playing card (the disc tile when artwork is off) */
-function SideNowArt({ orchestra }: { orchestra: string }) {
-  const entity = usePlayingEntity();
-  return (
-    <span className="side-now-art shrink-0" data-testid="side-now-art">
-      <Artwork entity={entity} orchestra={orchestra} size={36} />
-      <span className="tile-art side-now-ph" data-rhythm="tango" aria-hidden>
-        <Disc3 size={18} strokeWidth={1.75} />
-      </span>
-    </span>
   );
 }
