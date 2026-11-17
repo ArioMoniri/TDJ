@@ -47,7 +47,7 @@ export function EditKeys() {
           return;
         }
         e.preventDefault();
-        void runHistory(kind);
+        void runHistory(kind, { source: "key" });
         return;
       }
       if (isAction("edit.swap", e) && !isTextTarget(active) && !e.repeat) {
@@ -66,7 +66,7 @@ export function EditKeys() {
         document.execCommand(id === "edit.undo" ? "undo" : "redo");
         return;
       }
-      void runHistory(id === "edit.undo" ? "undo" : "redo");
+      void runHistory(id === "edit.undo" ? "undo" : "redo", { source: "menu" });
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("tdj:command", onCommand);

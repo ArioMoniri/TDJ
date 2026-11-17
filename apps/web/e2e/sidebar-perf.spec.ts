@@ -19,7 +19,14 @@ const CASES: Array<[string, BrowserContextOptions]> = [
 ];
 const BUDGET = Number(process.env.TDJ_FRAME_BUDGET ?? 20);
 
-type W = { __rec: boolean; __frames: number[]; __long: number[]; __sizes: number };
+type W = {
+  __rec: boolean;
+  __frames: number[];
+  __long: number[];
+  __sizes: number;
+  /** this recording's observers, disconnected when it ends */
+  __obs: Array<{ disconnect: () => void }>;
+};
 
 async function record(page: Page, run: () => Promise<void>) {
   await page.evaluate(() => {
@@ -28,18 +35,21 @@ async function record(page: Page, run: () => Promise<void>) {
     w.__long = [];
     w.__sizes = 0;
     w.__rec = true;
-    new PerformanceObserver((l) => {
+    const po = new PerformanceObserver((l) => {
       for (const e of l.getEntries()) w.__long.push(Math.round(e.duration));
-    }).observe({ type: "longtask" });
+    });
+    po.observe({ type: "longtask" });
     // the page's column: every size change is a layout of the night
     const col = document.querySelector("main > div");
     let first = true;
     const ro = new ResizeObserver(() => {
       if (first) first = false;
       else if (w.__rec) w.__sizes++;
-      else ro.disconnect();
     });
     if (col) ro.observe(col);
+    // (each recording's own, disconnected when it ends: an observer left connected from a recording before counted
+    // this one's size changes again — the drag's one layout read as 2 here and as 3 on CI)
+    w.__obs = [ro, po];
     let last = performance.now();
     const f = (t: number) => {
       w.__frames.push(t - last);
@@ -55,6 +65,7 @@ async function record(page: Page, run: () => Promise<void>) {
   return page.evaluate(() => {
     const w = window as unknown as W;
     w.__rec = false;
+    for (const o of w.__obs) o.disconnect();
     // (the first frames hold the click and the one layout at the new width, before anything moves)
     const fr = w.__frames.slice(3);
     const q = (p: number) =>

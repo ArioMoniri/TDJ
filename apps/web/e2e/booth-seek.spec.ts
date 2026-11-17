@@ -405,26 +405,45 @@ for (const [name, opts] of DEVICES) {
     const page = await ctx.newPage();
     await openBooth(page);
     const panel = page.getByTestId("booth-controls");
-    const toggle = page.getByTestId("booth-controls-toggle");
+    const strip = page.getByTestId("booth-strip");
+    // (2026-11, the phone bar: a phone keeps the Controls toggle in •••, a wider screen in the transport row)
+    const toggle = strip.getByTestId("booth-controls-toggle");
+    const isOpen = async (open: boolean) => {
+      if (!phone) await expect(toggle).toHaveAttribute("aria-expanded", String(open));
+      if (open) await expect(panel).toBeVisible();
+      else await expect(panel).toHaveCount(0);
+    };
+    /**
+     * QA 2026-11 (the panel never repeats the transport): a control the transport shows at this width (the master
+     * volume, Fade on a desktop) steps out of the panel. The one on screen, the other hidden: never both, never none.
+     */
+    const shown = async (inStrip: string, inPanel: string) => {
+      const a = strip.getByTestId(inStrip);
+      const b = panel.getByTestId(inPanel);
+      await expect
+        .poll(async () => [await a.isVisible(), await b.isVisible()].filter(Boolean).length)
+        .toBe(1);
+      return (await a.isVisible()) ? a : b;
+    };
     // collapsed: only its toggle, in the transport row (Previous / Play / Next are the transport's own, never twice)
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await expect(page.getByTestId("booth-strip").getByTestId("booth-controls-toggle")).toBeVisible();
-    await expect(panel).toHaveCount(0);
+    if (phone) await expect(toggle).toHaveCount(0);
+    else await expect(toggle).toBeVisible();
+    await isOpen(false);
     await expect(page.getByTestId("ctl-next")).toHaveCount(0);
-    await expect(page.getByTestId("booth-strip").getByTestId("booth-next-now")).toHaveCount(1);
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-expanded", "true");
-    await expect(panel.getByTestId("ctl-master")).toBeVisible();
+    await expect(strip.getByTestId("booth-next-now")).toHaveCount(1);
+    await boothAction(page, "booth-controls-toggle");
+    await isOpen(true);
+    await expect(await shown("booth-master", "ctl-master")).toBeVisible();
     // it stays clear of the transport and the tab bar
     const p = (await panel.boundingBox())!;
-    const strip = (await page.getByTestId("booth-strip").boundingBox())!;
-    expect(p.y + p.height).toBeLessThanOrEqual(strip.y + 1);
+    const bar = (await strip.boundingBox())!;
+    expect(p.y + p.height).toBeLessThanOrEqual(bar.y + 1);
     await page.reload();
     await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 30000 });
     await expect(page.getByTestId("booth-ttc")).not.toHaveAttribute("data-resolving", "1", {
       timeout: 30000,
     });
-    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await isOpen(true);
     // every control is ≥ 44 px
     const small = await page.evaluate(
       () =>
@@ -458,7 +477,7 @@ for (const [name, opts] of DEVICES) {
     await hold(page, page.getByTestId("booth-next-now"));
     await expect.poll(async () => (await snap(page)).cur, { timeout: 15000 }).toBe(second);
     // the master volume
-    await panel.getByTestId("ctl-master").locator("input").fill("-6");
+    await (await shown("booth-master", "ctl-master")).locator("input").fill("-6");
     await expect
       .poll(() =>
         page.evaluate(
@@ -471,8 +490,9 @@ for (const [name, opts] of DEVICES) {
       .toBe(-6);
     // Fade out now (once the song sounds: Next starts it after the short fade)
     await expect.poll(async () => (await snap(page)).position, { timeout: 15000 }).toBeGreaterThan(1);
-    await panel.getByTestId("ctl-fade").scrollIntoViewIfNeeded();
-    await armAndConfirm(panel.getByTestId("ctl-fade"));
+    const fade = await shown("booth-strip-fade", "ctl-fade");
+    await fade.scrollIntoViewIfNeeded();
+    await armAndConfirm(fade);
     await expect
       .poll(() =>
         page.evaluate(() =>
@@ -483,11 +503,11 @@ for (const [name, opts] of DEVICES) {
       )
       .toBe(true);
     // collapse: remembered too
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await boothAction(page, "booth-controls-toggle");
+    await isOpen(false);
     await page.reload();
     await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 30000 });
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await isOpen(false);
     await ctx.close();
   });
 }

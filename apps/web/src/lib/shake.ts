@@ -214,6 +214,26 @@ export const shakeWanted = (s: ShakePrefState = useShakePref.getState()) =>
 export const shakeOn = (s: ShakePrefState = useShakePref.getState()) =>
   shakeWanted(s) && (nativeShake() || (hasMotion() && (!needsMotionPermission() || s.granted)));
 
+/**
+ * A browser with DeviceMotionEvent.requestPermission() that already grants motion: the method is in the Device
+ * Orientation spec now and Chrome has it too (it was iOS only), but Chrome grants the motion sensors by default and
+ * says so through the Permissions API — no prompt, no tap. Without this a phone's Chrome waited for a grant it never
+ * had to ask for (Shake to Undo stayed off). Safari has no "accelerometer" permission to query (it throws): it still
+ * asks from a tap. Remembered like a grant.
+ */
+export async function adoptMotionGrant(): Promise<boolean> {
+  if (!needsMotionPermission() || useShakePref.getState().granted) return useShakePref.getState().granted;
+  try {
+    const st = await navigator.permissions?.query({ name: "accelerometer" as PermissionName });
+    if (st?.state !== "granted") return false;
+  } catch {
+    return false;
+  }
+  useShakePref.setState({ granted: true });
+  write(GRANTED, "1");
+  return true;
+}
+
 /** iOS: ask for motion (from a tap); true when granted */
 export async function requestMotion(): Promise<boolean> {
   const ask = motionCtor()?.requestPermission;
