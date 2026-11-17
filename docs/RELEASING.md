@@ -162,7 +162,7 @@ the Mac (they are normally uploaded from Linux, below).
 | Workflow | Runner | When | What |
 |---|---|---|---|
 | **Native check** (`native-check.yml`) | Linux | PRs touching the apps, CLI, release scripts or workflows | `cargo fmt/clippy/test`, macOS + iPadOS type-check from Linux, release-script tests (mocked API), CLI tests, metadata limits, shellcheck, actionlint |
-| **Store assets** (`store-assets.yml`) | Linux | PRs touching metadata, store pipeline, `apps/web/src` or `apps/video/src`; manual | `pnpm store:creative` on a runner: screenshot sets (iPhone 6.9"/6.5", iPad 13"/12.9", Mac 2880/2560, iPhone Duo outer/inner), Header and Search Results images, app previews, en-US + tr, banners, review page artifact; with `upload`: `fastlane deliver` metadata + screenshots + app previews (iOS, then Mac) |
+| **Store assets** (`store-assets.yml`) | Linux | PRs touching metadata, store pipeline, `apps/web/src` or `apps/video/src`; manual | `pnpm store:creative` on a runner: screenshot sets (iPhone 6.9"/6.5", iPad 13"/12.9", Mac 2880/2560, iPhone Duo outer/inner), Header and Search Results images, app previews, en-US + tr, banners, review page artifact; with `upload`: `fastlane deliver` metadata + screenshots + app previews (iOS, then Mac), then `scripts/asset-library.mjs` (iPhone Duo, Header and Search Results) |
 | **Apple setup** (`apple-setup.yml`) | Linux | manual | the same idempotent signing setup through the API; stores `.p12` + passwords + profiles in AWS SSM `/tdj/apple/*` with the deploy OIDC role |
 | **Release apps** (`release-apps.yml`) | **one macOS job** | `v*` tag or manual | checks the tag against `package.json`, runs `scripts/release/mac-build.sh` (signing from SSM, else the repository secrets), publishes the release, deploys the web from the same commit, then uploads metadata and submits for App Review |
 | **Check secrets** (`check-secrets.yml`) | Linux | manual, or when that file changes | prints only `true/false` per expected secret/variable name |
@@ -216,31 +216,66 @@ server (`PORT`, default 3986), Remotion at concurrency 1. Parts: `--sets=iphone6
 | `app_previews/<locale>/` | iPhone 886×1920 (`IPHONE_67`, the 6.9" slot; 6.5" falls back to it), iPad 1200×1600 (`IPAD_PRO_3GEN_129`, 13") | `fastlane ios metadata` (`app_previews_path`, poster frame at 5 s, previous previews replaced) |
 | `app_previews_mac/<locale>/` | Mac 1920×1080 (`DESKTOP`) | `fastlane mac metadata` |
 | `app_previews_posters/<locale>/` | the poster frames (5 s), for review | — |
-| `screenshots_duo/<locale>/` | iPhone Duo outer 1398×2034, inner 2853×2007 | **by hand** (below) |
-| `product_page/<locale>/` | Header 3840×1646 (21:9), Universal 5244×2950 (16:9 PNG, header and search results) | **by hand** (below) |
+| `screenshots_duo/<locale>/` | iPhone Duo outer 1398×2034, inner 2853×2007 | `scripts/asset-library.mjs` after deliver (below) |
+| `product_page/<locale>/` | Header 3840×1646 (21:9), Universal 5244×2950 (16:9 PNG, header and search results) | `scripts/asset-library.mjs` after deliver (below) |
 
-### By hand in App Store Connect (no API or fastlane support yet, checked 2026-11-16)
+### App Asset Library: iPhone Duo and Header and Search Results (API, checked 2026-11-17)
 
-fastlane 2.241's deliver detects screenshot slots from the image size and has no iPhone Duo display type, and the
-App Store Connect API has no Duo `ScreenshotDisplayType` (only the Asset Library's `IPHONE_DUO` display class) and no
-endpoint for the product page's Header and Search Results placements. Upload these from the
-`store-assets` artifact (or `apps/desktop/fastlane/` after `pnpm store:creative`):
+deliver's set-based screenshot API cannot place these, but App Store Connect API 4.5.1 added the **App Asset
+Library**, which can: an image is uploaded once into the app's library, then a *placement* puts it on the App Store
+version localization with a placement type (`APP_SCREENSHOT`, `APP_PREVIEW`, `PRODUCT_PAGE_HEADER_ASSET`,
+`APP_STORE_SEARCH_RESULTS_ASSET`) and a placement group (a device family; iPhone Duo is display class `IPHONE_DUO`).
+Group ids are not an enum: they come from `GET /v1/appAssetLibraryRefData` at run time. The set-based
+`appScreenshotSets`/`appPreviewSets` resources are deprecated since 4.5.1. Apple:
+[4.5.1 release notes](https://developer.apple.com/documentation/appstoreconnectapi/app-store-connect-api-4-5-1-release-notes),
+[Understanding the App Asset Library](https://developer.apple.com/documentation/appstoreconnectapi/understanding-the-app-asset-library),
+[Placing assets](https://developer.apple.com/documentation/appstoreconnectapi/placing-assets-on-your-app-store-surfaces),
+[Discovering asset specifications](https://developer.apple.com/documentation/appstoreconnectapi/discovering-asset-specifications).
 
-1. **iPhone Duo screenshots.** App Store Connect → Apps → T-DJ → the iOS version being prepared → Previews and
-   Screenshots → iPhone → **iPhone Duo**. For each language (English (U.S.), then Turkish in the language menu at the
-   top right): drag `screenshots_duo/<locale>/01_…_duoOuter.jpg` … `08_…_duoOuter.jpg` into the outer-display
-   well and the eight `…_duoInner.jpg` into the inner-display well, in file-name order. For the app preview, the
-   iPhone Duo slot takes the iPhone video: drag `app_previews/<locale>/IPHONE_67_tdj.mp4`, then **Set poster frame**
-   at 0:05. Save. (Submitting Duo screenshots adds the "made for iPhone Duo" badge; required for apps built with the
-   iOS 27.1 SDK from April 2027.)
-2. **Header and Search Results** (iOS 27 / iPadOS 27 App Store). App Store Connect → T-DJ → the version → Product
-   Page Information → **Header and Search Results** → Universal → Upload → `product_page/<locale>/universal-16x9.png`
-   (5244×2950 PNG, no alpha; fills the header and the search results); then the **Product page header** placement →
-   `product_page/<locale>/header-21x9.png` (3840×1646). Use Preview to check the iPhone, iPad and Mac crops and the
-   Turkish localisation, then Save. Apple reviews the asset with the next version, or on its own from the Asset
-   Library (a released app needs no new version to replace it).
-3. Keep the order: upload screenshots and previews with fastlane first (`overwrite_screenshots` would not touch the
-   hand-uploaded Duo set, which deliver does not know).
+`apps/desktop/scripts/asset-library.mjs` (no dependencies; the same API key as deliver, read by
+`scripts/release/asc.mjs`; needs the Admin or App Manager role) does it, and the **Store assets** workflow runs it
+after deliver when `upload` is set:
+
+```bash
+cd apps/desktop
+node scripts/asset-library.mjs --dry-run                       # read-only: the plan per locale and slot
+node scripts/asset-library.mjs                                 # iOS: Duo outer + inner, Duo preview, header images
+node scripts/asset-library.mjs --platform MAC_OS --only header # Mac: header images
+# --locales en-US,tr  --version 1.2.0  --dir <fastlane dir>  --timeout 900 (s per asset)
+```
+
+- **What goes where.** Each file's slot comes from Apple's catalog: the spec whose size matches the file, the group
+  whose mapping lists that spec, and (for Duo) the group whose display class is `IPHONE_DUO`. Outer and inner go
+  where the catalog says, in file-name order. Header: the 21:9 file takes every header slot it fits; the universal
+  file takes search results and the header slots left over (a size-specific spec wins over a universal one). The iPhone
+  preview goes on the Duo `APP_PREVIEW` group with the poster at 5 s only if Apple matches it to a spec that group
+  takes; otherwise the script says so and the preview stays a manual step (below).
+- **Checks first.** Every locale is planned before anything is written: a file no spec takes, an alpha channel the
+  spec forbids, no Duo group (or two) for a size, or more files than the version allows per group (10 screenshots,
+  3 previews, 1 header) stops the run with the reason. If the catalog ever puts outer and inner in **one** group of
+  10, the run stops instead of cutting the 16 files: make fewer panels (`store/creative/spec.ts`) and rerun.
+- **Idempotent.** Each asset's `referenceName` is `tdj:<sha256 prefix>:<file name>`. A slot that already shows the
+  same files in the same order is left alone; a file already in the library is reused, not uploaded again.
+  Otherwise the new files are reserved, uploaded to Apple's upload URLs (no token sent there), committed and polled
+  until processed (`PREPARE_FOR_SUBMISSION`/`COMPLETE`; `FAILED` stops with Apple's `stateDetails`), and the
+  processed `specId` is checked; only then are the slot's old placements deleted, the new ones created and ordered
+  (`appAssetLibraryPlacementOrderingRequests`), and our old assets that no placement uses any more deleted.
+- **Needs an editable version** (`PREPARE_FOR_SUBMISSION`, rejected, `READY_FOR_REVIEW`) with the locale; deliver
+  creates both. A released app's header changes therefore go with the next version through the API; from the web
+  UI's Asset Library it can be submitted on its own.
+- **Order.** Run it after deliver: `overwrite_screenshots` clears the version's screenshot sets, and since fastlane
+  2.241.1 deliver knows an `APP_IPHONE_DUO` set, so the Duo placements may go with them; the script then puts them
+  back from the library without uploading again. Tests: `apps/desktop/test/asset-library.test.ts` (mocked API).
+
+The first run against the real account: `--dry-run`, read the groups it names, then the real run, then look at
+App Store Connect → the version → Previews and Screenshots → iPhone Duo, and Product Page Information → Header and
+Search Results → Preview (iPhone, iPad and Mac crops, both languages).
+
+### Still by hand (only if the script says so)
+
+- **iPhone Duo app preview**, when the script prints "not placed (set it by hand)" or "which this group does not
+  take": App Store Connect → T-DJ → the iOS version → Previews and Screenshots → iPhone → iPhone Duo → drag
+  `app_previews/<locale>/IPHONE_67_tdj.mp4` → **Set poster frame** at 0:05 → Save; repeat for Turkish.
 
 ### iPhone Duo: what the iOS app needs
 
@@ -329,7 +364,10 @@ render cheap and the GIF small.
 | `openssl pkcs12 failed: No certificate matches private key` on `--devid-cer` | the `.cer` was made from an older CSR. Since 2026-11-14 the pending key + CSR are kept until a `.cer` is imported; make the certificate from `DEVELOPER_ID_APPLICATION_CERT_CSR` in the store |
 | Developer ID identity listed as `CSSMERR_TP_NOT_TRUSTED` | the Developer ID G2 intermediate CA is missing; `mac-build.sh` now imports it (and WWDR G3) into the signing keychain |
 | App Store Connect asks for iPhone screenshots | expected since the app is universal: `pnpm store:creative` makes them (6.9" and 6.5"), `fastlane ios metadata` uploads them |
-| deliver: "unsupported screenshot size" or a Duo image in an iPhone slot | the Duo sets live in `screenshots_duo/`, never in `screenshots/`: upload them by hand (Store texts and screenshots → By hand) |
+| deliver: "unsupported screenshot size" or a Duo image in an iPhone slot | the Duo sets live in `screenshots_duo/`, never in `screenshots/`: `scripts/asset-library.mjs` places them (Store texts and screenshots → App Asset Library) |
+| asset-library: "expected one iPhone Duo screenshot group … found none" / "no … spec is WxH" | Apple's catalog has no group or spec for that size and nothing was changed: check the sizes in `store/creative/spec.ts` against App Store Connect Help → Screenshot specifications |
+| asset-library: "No editable IOS App Store version" | create the version first (`fastlane ios metadata` does), or pass `--version` |
+| asset-library: 409 "placementType and placementGroup combination is not supported" | the group belongs to another platform: rerun with the right `--platform` |
 | A committed `gen/apple/project.yml` still says `TARGETED_DEVICE_FAMILY: "2"` | `mac-build.sh` rewrites it to `"1,2"` on every run (`TDJ_IOS_DEVICE_FAMILY=2` for an iPad-only build) |
 | `version.mjs --check` fails | a copy drifted or the tag differs: `pnpm release:version <x.y.z>`, commit, tag again |
 | `tauri ios build` cannot sign | rerun: every run re-checks the profile against the current certificate and replaces a stale one |

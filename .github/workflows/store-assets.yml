@@ -4,7 +4,9 @@ name: Store assets
 # the product page Header and Search Results images; app previews for iPhone, iPad and Mac (Remotion, H.264 + AAC);
 # metadata checks and a review page. Linux only, no macOS minutes. Uploading to App Store Connect (fastlane deliver
 # with the API key: metadata, screenshots and app previews, iOS then Mac) runs only when the upload input is set.
-# iPhone Duo and the Header and Search Results images go up by hand (docs/RELEASING.md → Store creative).
+# After deliver, apps/desktop/scripts/asset-library.mjs puts what deliver cannot place (the iPhone Duo sets and the
+# product page Header and Search Results images) into the App Asset Library with the same key (API 4.5.1+;
+# docs/RELEASING.md → Store creative → App Asset Library).
 on:
   pull_request:
     paths:
@@ -71,7 +73,7 @@ jobs:
           {
             echo "## Store assets"
             echo "Download the **store-assets** artifact and open \`fastlane/store-creative.html\` (keep the folder layout)."
-            echo "By hand in App Store Connect: \`screenshots_duo/\` (iPhone Duo) and \`product_page/\` (Header and Search Results)."
+            echo "With upload: deliver, then the App Asset Library step (\`screenshots_duo/\`, \`product_page/\`)."
             cd apps/desktop/fastlane && find screenshots* app_previews* product_page -type f | sort | sed 's/^/- /'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -97,3 +99,15 @@ jobs:
         run: |
           bundle exec fastlane ios metadata
           bundle exec fastlane mac metadata
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      # after deliver: its overwrite_screenshots may clear Duo placements; this puts them back (reusing the assets)
+      - name: App Asset Library — iPhone Duo screenshots and preview, Header and Search Results (iOS, then Mac)
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || 'com.ariomoniri.tdj' }}
+        run: |
+          node apps/desktop/scripts/asset-library.mjs --platform IOS
+          node apps/desktop/scripts/asset-library.mjs --platform MAC_OS --only header

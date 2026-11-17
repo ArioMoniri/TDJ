@@ -74,8 +74,8 @@ end
 
 # iOS screenshots (`pnpm store:creative`, apps/desktop/store/creative): screenshots/<locale>/ holds the iPhone 6.9" and
 # 6.5" sets and the iPad 13" set; deliver picks each slot from the image size. iPhone Duo (screenshots_duo/) and the
-# product page Header and Search Results images (product_page/) are not known to deliver yet: docs/RELEASING.md says
-# how they go up by hand. The iPad 12.9" set (2048x2732) shares the 13" slot
+# product page Header and Search Results images (product_page/) go up after deliver through the App Asset Library
+# (scripts/asset-library.mjs; docs/RELEASING.md). The iPad 12.9" set (2048x2732) shares the 13" slot
 # in App Store Connect, so it lives in screenshots_ipad129/ and goes up instead of the 13" set only with ipad:129.
 def ios_screenshots(o)
   base = File.expand_path("screenshots", __dir__)

@@ -37,7 +37,7 @@ export function sheet(out: string, locales: Locale[] = LOCALES): string {
       const files = PANELS.map((p) => shotFile(id, locale, p.id));
       if (!files.some((f) => existsSync(join(out, f)))) continue;
       parts.push(
-        `<h3>${set.label} · ${set.out.width}×${set.out.height} · <code>${set.dir}/</code>${set.deliver ? "" : " · <em>upload by hand</em>"}</h3><div class="pano">${files
+        `<h3>${set.label} · ${set.out.width}×${set.out.height} · <code>${set.dir}/</code>${set.deliver ? "" : " · <em>App Asset Library (scripts/asset-library.mjs)</em>"}</h3><div class="pano">${files
           .map(
             (f) =>
               `<img src="${f}" loading="lazy" alt="${f}" style="aspect-ratio:${set.out.width}/${set.out.height}">`,
@@ -45,7 +45,9 @@ export function sheet(out: string, locales: Locale[] = LOCALES): string {
           .join("")}</div>`,
       );
     }
-    parts.push(`<h3>Product page: Header and Search Results (upload by hand)</h3><div class="heads">`);
+    parts.push(
+      `<h3>Product page: Header and Search Results (scripts/asset-library.mjs uploads them)</h3><div class="heads">`,
+    );
     for (const h of HEADERS) {
       const f = headerFile(h, locale);
       if (!existsSync(join(out, f))) continue;
