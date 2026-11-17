@@ -285,6 +285,19 @@ export function plan(local, cat, { platform = "IOS", only = ["duo", "preview", "
     limit: cat.limit(s.placementType, s.group),
   }));
   for (const s of out) {
+    // one iPhone Duo group for both postures with fewer places than files: keep every scene once (open book first),
+    // then the folded ones of the first scenes, in scene order (open before folded)
+    if (
+      s.placementType === "APP_SCREENSHOT" &&
+      s.files.length > s.limit &&
+      s.files.every((f) => /duo/i.test(f.fileName))
+    ) {
+      const picked = pickDuo(s.files, s.limit);
+      warnings.push(
+        `iPhone Duo: ${s.files.length} screenshots for ${s.limit} places in ${s.group}; placing ${picked.map((f) => f.fileName).join(", ")}`,
+      );
+      s.files = picked;
+    }
     if (!cat.accepts(s.placementType).includes(s.category) && cat.accepts(s.placementType).length)
       throw new Error(`${s.placementType} does not accept ${s.category} assets`);
     if (s.files.length > s.limit)
@@ -293,6 +306,23 @@ export function plan(local, cat, { platform = "IOS", only = ["duo", "preview", "
       );
   }
   return { slots: out, warnings };
+}
+
+/** The Duo screenshots that fit `limit` places: each scene's open-book (inner) shot, then folded (outer) shots in scene
+ * order until full; listed by scene, open before folded. */
+export function pickDuo(files, limit) {
+  const scene = (f) => f.fileName.match(/^(\d+)/)?.[1] ?? f.fileName;
+  const inner = (f) => /inner/i.test(f.fileName);
+  const sorted = [...files].sort((a, b) => a.fileName.localeCompare(b.fileName));
+  const scenes = [...new Set(sorted.map(scene))];
+  const first = scenes.map(
+    (sc) => sorted.find((f) => scene(f) === sc && inner(f)) ?? sorted.find((f) => scene(f) === sc),
+  );
+  const chosen = new Set(first.slice(0, limit));
+  for (const f of sorted) if (chosen.size < limit) chosen.add(f);
+  return sorted
+    .filter((f) => chosen.has(f))
+    .sort((a, b) => scene(a).localeCompare(scene(b)) || Number(inner(b)) - Number(inner(a)));
 }
 
 /* ------------------------------------------------------------------ App Store Connect */

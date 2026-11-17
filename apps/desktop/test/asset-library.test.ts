@@ -478,10 +478,18 @@ describe("asset library: plan (Apple's catalog → slots, before anything change
     );
   });
 
-  it("refuses 16 Duo screenshots in one group of 10 instead of cutting the set", () => {
-    expect(() => plan(readLocal(fixtureDir(), "en-US"), catalog(refData({ oneDuoGroup: true })))).toThrow(
-      /16 files, Apple allows 10/,
+  it("fits 16 Duo screenshots into one group of 10: every scene once (open book), then folded ones, with a warning", () => {
+    const { slots, warnings } = plan(
+      readLocal(fixtureDir(), "en-US"),
+      catalog(refData({ oneDuoGroup: true })),
     );
+    const duo = slots.find((s) => s.files.some((f) => /duo/i.test(f.fileName)))!;
+    expect(duo.files).toHaveLength(10);
+    const names = duo.files.map((f) => f.fileName);
+    for (const n of ["01", "02", "03", "04", "05", "06", "07", "08"])
+      expect(names.some((f) => f.startsWith(n))).toBe(true);
+    expect(names.filter((f) => /inner/i.test(f))).toHaveLength(8);
+    expect(warnings.some((w) => /iPhone Duo: 16 screenshots for 10 places/.test(w))).toBe(true);
   });
 
   it("refuses a file no spec takes, and an alpha channel where the spec forbids it", () => {
