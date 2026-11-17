@@ -466,6 +466,19 @@ describe("asset library: plan (Apple's catalog → slots, before anything change
     expect(slots.find((s) => s.group === "HEADER_WIDE_PROFILE")?.category).toBe("CREATIVE_ASSETS");
   });
 
+  it("Search Results takes the universal file even where Apple's catalog also maps the 21:9 spec there (run 44194306904)", () => {
+    const data = refData();
+    const header = data.imageSpecs.find((s: { specId: string }) => s.specId === "s-header");
+    header!.compatiblePlacementTypes.push("APP_STORE_SEARCH_RESULTS_ASSET");
+    const search = data.placementTypes.find(
+      (t: { placementTypeId: string }) => t.placementTypeId === "APP_STORE_SEARCH_RESULTS_ASSET",
+    );
+    search!.specMappings[0]!.specs.push("s-header");
+    const { slots } = plan(readLocal(fixtureDir(), "en-US"), catalog(data));
+    const search1 = slots.find((s) => s.placementType === "APP_STORE_SEARCH_RESULTS_ASSET");
+    expect(search1?.files.map((f) => f.fileName)).toEqual(["universal-16x9.png"]);
+  });
+
   it("on a Mac version places only the header images, in the Mac and any-platform groups", () => {
     const { slots } = plan(readLocal(fixtureDir(), "en-US"), catalog(refData()), { platform: "MAC_OS" });
     expect(slots.map((s) => s.group).sort()).toEqual(

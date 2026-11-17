@@ -271,7 +271,14 @@ export function plan(local, cat, { platform = "IOS", only = ["duo", "preview", "
     for (const c of cands) {
       const key = `${c.type} ${c.group}`;
       const cur = best.get(key);
-      if (!cur || (cur.spec.universalAsset && !c.spec.universalAsset)) best.set(key, c);
+      // the header takes the size-specific (21:9) file; Search Results takes the universal one (Apple processes the
+      // 21:9 file as a header spec, which the Search Results placement refuses: 409, run 44194306904)
+      const wantUniversal = c.type === "APP_STORE_SEARCH_RESULTS_ASSET";
+      const better = (a, b) =>
+        wantUniversal
+          ? a.spec.universalAsset && !b.spec.universalAsset
+          : b.spec.universalAsset && !a.spec.universalAsset;
+      if (!cur || better(c, cur)) best.set(key, c);
     }
     for (const c of best.values()) add(c.type, c.group, c.file, [c.spec.specId], "CREATIVE_ASSETS", "image");
     for (const f of local.header)
@@ -553,10 +560,12 @@ export function createSync(deps) {
         }
         // an image can fit more than one spec (a size-specific and a universal one): Apple picks; the placement
         // itself is the judge, and refuses an asset its group does not take
-        if (!(slot.accepted ?? []).includes(specId))
+        if (slot.accepted?.length && !slot.accepted.includes(specId)) {
           log(
-            `  ${label}: Apple matched ${f.fileName} to spec ${specId} (expected ${slot.specs.join(", ")}); placing it, Apple decides`,
+            `  ${label}: Apple matched ${f.fileName} to spec ${specId}, which this placement does not take; skipped`,
           );
+          return "skipped";
+        }
       }
       assets.push(a);
     }
