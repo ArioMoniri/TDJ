@@ -84,7 +84,8 @@ for pair in "$RUSTUP_HOME:$HOME/.rustup" "$CARGO_HOME:$HOME/.cargo"; do
 done
 RUST_TARGETS=()
 { want dmg || want mas; } && RUST_TARGETS+=(aarch64-apple-darwin x86_64-apple-darwin)
-want ios && RUST_TARGETS+=(aarch64-apple-ios)
+# all three iOS targets: `tauri ios init` installs the simulator ones anyway (a slow, surprising step on a runner)
+want ios && RUST_TARGETS+=(aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios)
 [ ${#RUST_TARGETS[@]} -gt 0 ] && rustup target add "${RUST_TARGETS[@]}" >/dev/null
 if want ios && ! command -v xcodegen >/dev/null; then brew install xcodegen >/dev/null; fi
 
@@ -227,10 +228,15 @@ if want dmg; then
     "$VERSION" "$BUILD" "$DEVID" "$PUBKEY" "$REPO" "$DMG_BG" > "$WORK/dmg.json"
   # Tauri's DMG bundler skips the Finder layout step (background, icon positions) when CI=true, as on GitHub runners;
   # keep it unless the caller sets TAURI_BUNDLER_DMG_IGNORE_CI=false (e.g. a runner without a Finder session)
+  # a restored build cache (rust-cache keeps target/) may hold an older version's DMG: start from an empty bundle dir
+  B="$CARGO_TARGET_DIR/universal-apple-darwin/release/bundle"
+  rm -rf "$B"
   TAURI_BUNDLER_DMG_IGNORE_CI="${TAURI_BUNDLER_DMG_IGNORE_CI:-true}" \
     tauri build --target universal-apple-darwin --bundles app,dmg --features updater --config "$WORK/dmg.json" --ci
-  B="$CARGO_TARGET_DIR/universal-apple-darwin/release/bundle"
-  DMG=$(ls "$B"/dmg/*.dmg | head -1); APP="$B/macos/TDJ.app"
+  DMG="$B/dmg/TDJ_${VERSION}_universal.dmg"; APP="$B/macos/TDJ.app"
+  [ -f "$DMG" ] || DMG=$(find "$B/dmg" -name '*.dmg' -newer "$WORK" | head -1)
+  [ -n "$DMG" ] && [ -f "$DMG" ] || die "no DMG produced in $B/dmg"
+  [ -s "$B/macos/TDJ.app.tar.gz.sig" ] || die "no updater signature: TAURI_SIGNING_PRIVATE_KEY (and its password) must be set"
   codesign --verify --deep --strict "$APP"
   xcrun stapler validate "$APP"
   # the DMG itself: sign, notarise, staple (Gatekeeper checks the download, not only the app inside)
@@ -242,6 +248,10 @@ if want dmg; then
   cp "$B/macos/TDJ.app.tar.gz" "$OUT/TDJ-macOS.app.tar.gz"; cp "$B/macos/TDJ.app.tar.gz.sig" "$OUT/TDJ-macOS.app.tar.gz.sig"
   node scripts/release/latest-json.mjs --version "$VERSION" --sig "$OUT/TDJ-macOS.app.tar.gz.sig" \
     --notes-file "${TDJ_RELEASE_NOTES:-apps/desktop/fastlane/metadata/en-US/release_notes.txt}" --repo "$REPO" > "$OUT/latest.json"
+  # the auto-update path end to end: latest.json → this release's tarball, signature valid for the app's public key
+  node scripts/release/verify-updater.mjs --manifest "$OUT/latest.json" --tarball "$OUT/TDJ-macOS.app.tar.gz" \
+    --sig "$OUT/TDJ-macOS.app.tar.gz.sig" --version "$VERSION" --pubkey "$PUBKEY" --repo "$REPO" \
+    || die "the updater artifacts do not verify (see above): no release was touched"
   (cd "$OUT" && shasum -a 256 TDJ-macOS.dmg "TDJ-$VERSION-macOS.dmg" TDJ-macOS.app.tar.gz > SHA256SUMS)
   unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 fi
@@ -303,12 +313,22 @@ JSON
   IOS_CERTIFICATE_PASSWORD="$(cat "$SIGN/APPLE_DISTRIBUTION_CERT.password")"
   IOS_MOBILE_PROVISION="$(base64 < "$SIGN/IOS_APPSTORE_PROFILE.mobileprovision")"
   export IOS_CERTIFICATE IOS_CERTIFICATE_PASSWORD IOS_MOBILE_PROVISION APPLE_DEVELOPMENT_TEAM="$TEAM_ID"
+  # CFBundleVersion = the run's build number, as for the DMG and the pkg. Not `--build-number`: Tauri appends that
+  # to the version (CFBundleVersion "1.0.0.459871"), which then differs from the Mac builds and from submit-review
   ( export TDJ_APP_STORE=1
-    cd "$DESKTOP" && pnpm exec tauri ios build --export-method app-store-connect --build-number "$BUILD" \
-      --config "{\"version\":\"$VERSION\"}" --ci )
+    cd "$DESKTOP" && pnpm exec tauri ios build --export-method app-store-connect \
+      --config "{\"version\":\"$VERSION\",\"bundle\":{\"iOS\":{\"bundleVersion\":\"$BUILD\"}}}" --ci )
   unset IOS_CERTIFICATE IOS_CERTIFICATE_PASSWORD IOS_MOBILE_PROVISION
   IPA=$(find "$GEN/build" -name '*.ipa' -newer "$WORK" | head -1)
   [ -n "$IPA" ] || die "no .ipa produced (fallback: xcodebuild archive + -exportArchive, docs/RELEASING.md)"
+  IPA_PLIST="$WORK/ipa-Info.plist"
+  unzip -p "$IPA" 'Payload/*.app/Info.plist' > "$IPA_PLIST"
+  IPA_VER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$IPA_PLIST")
+  IPA_BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$IPA_PLIST")
+  IPA_FAMILY=$(/usr/libexec/PlistBuddy -c 'Print :UIDeviceFamily' "$IPA_PLIST" | tr -dc '0-9' | sed 's/./&,/g; s/,$//')
+  echo "ipa: version $IPA_VER build $IPA_BUILD device family $IPA_FAMILY"
+  [ "$IPA_VER" = "$VERSION" ] || die "the IPA says version $IPA_VER, expected $VERSION"
+  [ "$IPA_BUILD" = "$BUILD" ] || echo "::warning::the IPA's CFBundleVersion is $IPA_BUILD, not $BUILD (App Review submission must use $IPA_BUILD)"
   cp "$IPA" "$OUT/TDJ-iOS.ipa"
   if [ "$UPLOAD" = 1 ]; then altool_upload "$OUT/TDJ-iOS.ipa" ios && UPLOADED+=("iOS ipa (iPhone + iPad) → TestFlight"); fi
 fi
@@ -318,9 +338,20 @@ if [ "$GH_RELEASE" = 1 ] && want dmg; then
   step "GitHub Release v$VERSION"
   command -v gh >/dev/null && gh auth status >/dev/null 2>&1 || die "gh is not logged in (gh auth login)"
   node scripts/release/release-notes.mjs --version "$VERSION" --build "$BUILD" --commit "$COMMIT" > "$OUT/release-notes.md"
-  gh release view "v$VERSION" -R "$REPO" >/dev/null 2>&1 \
-    || gh release create "v$VERSION" -R "$REPO" --draft --target "$(git rev-parse HEAD)" --title "T-DJ $VERSION" \
-         --notes-file "$OUT/release-notes.md"
+  HEAD_SHA=$(git rev-parse HEAD)
+  # idempotent and one version = one commit: reuse a draft (re-pointed at this commit, notes refreshed); refuse a
+  # published release whose tag is another commit (bump the version instead of moving a shipped tag)
+  if IS_DRAFT=$(gh release view "v$VERSION" -R "$REPO" --json isDraft --jq .isDraft 2>/dev/null); then
+    if [ "$IS_DRAFT" = true ]; then
+      gh release edit "v$VERSION" -R "$REPO" --target "$HEAD_SHA" --title "T-DJ $VERSION" --notes-file "$OUT/release-notes.md" >/dev/null
+    else
+      TAG_SHA=$(gh api "repos/$REPO/commits/v$VERSION" --jq .sha 2>/dev/null || true)
+      [ "$TAG_SHA" = "$HEAD_SHA" ] || die "v$VERSION is already published from ${TAG_SHA:-another commit}; this is $HEAD_SHA (pnpm release:version <next>)"
+    fi
+  else
+    gh release create "v$VERSION" -R "$REPO" --draft --target "$HEAD_SHA" --title "T-DJ $VERSION" \
+      --notes-file "$OUT/release-notes.md"
+  fi
   gh release upload "v$VERSION" -R "$REPO" --clobber "$OUT/TDJ-macOS.dmg" "$OUT/TDJ-$VERSION-macOS.dmg" \
     "$OUT/TDJ-macOS.app.tar.gz" "$OUT/TDJ-macOS.app.tar.gz.sig" "$OUT/latest.json" "$OUT/SHA256SUMS"
   echo "draft release ready: publish it at https://github.com/$REPO/releases (the README button serves the newest published one)"

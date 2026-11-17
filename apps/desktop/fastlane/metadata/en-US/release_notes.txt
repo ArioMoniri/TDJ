@@ -1,6 +1,9 @@
-T-DJ now runs on iPhone as well as iPad and Mac. It is one app, and the web app carries the same version number.
+T-DJ 1.0: compose a whole milonga, play it from the Booth, and keep the floor informed.
 
-- The Booth plays through Spotify Connect on iPhone and iPad, and tells you in plain words when Spotify needs a device or a new login.
-- The gap between two songs follows the real silence at the end of each track.
-- Build by hand keeps a checklist next to your night and suggests whole tandas for the next slot.
-- Settings has an About section with the version you are running and where updates come from.
+- Now playing and the Floor screen show dancers the song number in the tanda, what comes next and when La Cumparsita plays; the Floor screen mirrors to a second display.
+- One player in the sidebar, or a floating gramophone with a ring that shows how much of the song is left.
+- Pre-listen any song in your headphones while the room keeps playing.
+- Right-click or long-press any song for Song DNA, its other recordings and a chart of its recordings over the years.
+- Change any shortcut by clicking its key; ⌘Z / ⌘Y or a shake undo and redo.
+- Build by hand with undo, reset and fill; Rooms start empty and mend their cortinas on their own.
+- Spotify songs are evened out by their known loudness; battery saver; iPhone Duo support.

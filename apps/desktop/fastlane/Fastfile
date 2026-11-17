@@ -104,7 +104,7 @@ platform :ios do
           changelog: File.read(File.join(META, "en-US", "release_notes.txt")))
   end
 
-  desc "Submit the iOS (iPhone + iPad) version for App Review (build_number: as App Store Connect shows it, e.g. 1.0.0.457765; app_version:), phased release, manual release"
+  desc "Submit the iOS (iPhone + iPad) version for App Review (build_number: the run's build number, e.g. 459871, the same for the Mac; app_version:), phased release, manual release"
   lane :submit do |o|
     deliver(**deliver_common("ios", File.expand_path("screenshots", __dir__)),
             skip_binary_upload: true, submit_for_review: true, build_number: o[:build_number], app_version: o[:app_version],

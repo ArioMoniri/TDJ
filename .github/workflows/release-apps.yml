@@ -12,6 +12,7 @@ on:
     inputs:
       targets:
         description: "dmg, mas, ios (comma list; ipad = ios)"
+        type: string
         default: "dmg,mas,ios"
       channel:
         description: "testflight = upload only · appstore-review = also submit for review (after approval)"
@@ -42,6 +43,8 @@ jobs:
       - uses: actions/setup-node@v5
         with: { node-version: 22 }
       - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # one version for web + Mac + iOS: the root package.json; a v* tag must match it (fails otherwise)
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
@@ -50,6 +53,12 @@ jobs:
             node scripts/release/version.mjs --check
           fi
           v=$(node scripts/release/version.mjs)
+          # one version, one commit: a published v$v from another commit stops here, before any macOS minute
+          # (a draft is fine: mac-build.sh re-points it at this commit)
+          if [ "$(gh release view "v$v" -R "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null)" = false ]; then
+            t=$(gh api "repos/$GITHUB_REPOSITORY/commits/v$v" --jq .sha)
+            [ "$t" = "$GITHUB_SHA" ] || { echo "::error::v$v is already published from $t (this run: $GITHUB_SHA); pnpm release:version <next>"; exit 1; }
+          fi
           # same formula as mac-build.sh: UTC minutes since 2026-01-01, monotonic, one number for every platform
           b=$(( ($(date -u +%s) - 1767225600) / 60 ))
           c="${GITHUB_SHA::12}"
@@ -80,12 +89,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-      # (no pnpm cache here: mac-build.sh keeps its own store under TDJ_DRIVE, so setup-node's post step found no
-      # pnpm store to save and failed the job after a successful build)
+      # no package-manager cache here: mac-build.sh keeps its own pnpm store under TDJ_DRIVE, so setup-node's post
+      # step found no store to save and failed the job after a successful build (run 43772268596)
       - uses: actions/setup-node@v5
-        with: { node-version: 22 }
+        with: { node-version: 22, package-manager-cache: false }
+      # every target mac-build.sh and `tauri ios init` add, so neither installs one mid-build
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: "aarch64-apple-darwin,x86_64-apple-darwin,aarch64-apple-ios" }
+        with: { targets: "aarch64-apple-darwin,x86_64-apple-darwin,aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios" }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: "apps/desktop/src-tauri -> target" }
       - name: AWS (signing store in SSM)
@@ -126,16 +136,37 @@ jobs:
           name: apple-builds
           path: ${{ github.workspace }}/.release/out
           retention-days: 14
+          if-no-files-found: ignore
+      - name: Remove the signing keychain and API key from the runner
+        if: always()
+        run: |
+          security delete-keychain "$TDJ_DRIVE/tdj-signing/tdj.keychain-db" 2>/dev/null || true
+          rm -rf "$TDJ_DRIVE/tdj-signing" "$HOME/.appstoreconnect/private_keys"
 
   publish:
     needs: [version, apple]
     if: contains(inputs.targets || 'dmg', 'dmg')
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      V: ${{ needs.version.outputs.version }}
     steps:
-      - name: Publish the draft release
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      # what the installed DMG will fetch: latest.json, the tarball and its .sig as uploaded to the draft, checked
+      # against the public key the app was built with, before the release becomes "latest"
+      - name: Verify the auto-update assets on the draft release
         env:
-          GH_TOKEN: ${{ github.token }}
-          V: ${{ needs.version.outputs.version }}
+          TAURI_UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+        run: |
+          d="$RUNNER_TEMP/release"; rm -rf "$d"; mkdir -p "$d"
+          gh release download "v$V" -R "$GITHUB_REPOSITORY" -D "$d" \
+            -p latest.json -p TDJ-macOS.app.tar.gz -p TDJ-macOS.app.tar.gz.sig -p SHA256SUMS -p TDJ-macOS.dmg -p "TDJ-$V-macOS.dmg"
+          (cd "$d" && sha256sum -c SHA256SUMS)
+          node scripts/release/verify-updater.mjs --manifest "$d/latest.json" --tarball "$d/TDJ-macOS.app.tar.gz" \
+            --sig "$d/TDJ-macOS.app.tar.gz.sig" --version "$V" --repo "$GITHUB_REPOSITORY" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Publish the draft release
         run: |
           gh release edit "v$V" -R "$GITHUB_REPOSITORY" --draft=false --latest
           {
@@ -166,8 +197,21 @@ jobs:
     needs: [version, apple]
     if: inputs.channel == 'appstore-review'
     runs-on: ubuntu-latest
+    timeout-minutes: 100
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      # the uploads need 5-30 min of App Store Connect processing before deliver can pick the build
+      - name: Wait for App Store Connect to process build ${{ needs.version.outputs.build }}
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          APPLE_APP_ID: ${{ vars.APPLE_APP_ID }}
+          BUILD: ${{ needs.version.outputs.build }}
+          PLATFORMS: ${{ contains(inputs.targets, 'mas') && 'IOS,MAC_OS' || 'IOS' }}
+        run: node scripts/release/wait-build.mjs --build "$BUILD" --platforms "$PLATFORMS"
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.3", bundler-cache: true, working-directory: apps/desktop }
       - name: Submit iOS (iPhone + iPad) and Mac for App Review (phased, manual release)
@@ -178,6 +222,8 @@ jobs:
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
           TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || 'com.ariomoniri.tdj' }}
           BUILD: ${{ needs.version.outputs.build }}
+          V: ${{ needs.version.outputs.version }}
+          MAS: ${{ contains(inputs.targets, 'mas') }}
         run: |
-          bundle exec fastlane ios submit build_number:"$BUILD"
-          bundle exec fastlane mac submit build_number:"$BUILD"
+          bundle exec fastlane ios submit build_number:"$BUILD" app_version:"$V"
+          if [ "$MAS" = true ]; then bundle exec fastlane mac submit build_number:"$BUILD" app_version:"$V"; fi

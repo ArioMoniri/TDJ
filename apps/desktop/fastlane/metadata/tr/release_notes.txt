@@ -1,6 +1,9 @@
-T-DJ artık iPad ve Mac'in yanında iPhone'da da çalışıyor. Hepsi tek uygulama; web uygulaması da aynı sürüm numarasını taşıyor.
+T-DJ 1.0: bütün bir milongayı oluşturun, Kabin'den çalın ve pistteki dansçıları bilgilendirin.
 
-- Kabin iPhone ve iPad'de Spotify Connect üzerinden çalar. Spotify bir cihaz ya da yeniden giriş istediğinde bunu açıkça söyler.
-- İki şarkı arasındaki boşluk, her kaydın sonundaki gerçek sessizliğe göre ayarlanır.
-- Kendin oluştur, gecenizin yanında bir kontrol listesi tutar ve sıradaki yer için bütün tandalar önerir.
-- Ayarlar'da yeni bir Hakkında bölümü var: hangi sürümü kullandığınızı ve güncellemelerin nereden geldiğini gösterir.
+- Şimdi çalıyor ve Pist ekranı dansçılara tandadaki şarkı sırasını, sırada ne olduğunu ve La Cumparsita'nın ne zaman çalacağını gösterir; Pist ekranı ikinci bir ekrana yansıtılabilir.
+- Kenar çubuğunda tek bir çalar ya da şarkının ne kadarının kaldığını gösteren halkalı, yüzen bir gramofon.
+- Salon çalmaya devam ederken herhangi bir şarkıyı kulaklıkta önceden dinleyin.
+- Herhangi bir şarkıya sağ tıklayın ya da basılı tutun: Şarkı DNA'sı, diğer kayıtları ve yıllara göre kayıt grafiği.
+- Bir kısayolu tuşuna tıklayarak değiştirin; ⌘Z / ⌘Y ya da telefonu sallamak geri alır ve yineler.
+- Kendin oluştur'da geri al, sıfırla ve doldur; Odalar boş başlayabilir ve kortinalarını kendileri düzenler.
+- Spotify şarkıları bilinen ses seviyelerine göre dengelenir; pil tasarrufu; iPhone Duo desteği.

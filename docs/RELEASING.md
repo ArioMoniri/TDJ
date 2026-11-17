@@ -179,7 +179,19 @@ git tag v1.0.0 && git push origin HEAD v1.0.0   # or Actions → Release apps �
 When App Review approves the iOS and Mac App Store build, `node scripts/release/readme-store-badge.mjs` (above).
 
 Build number = UTC minutes since 2026-01-01 (monotonic, the same for the DMG, pkg and IPA of one run);
-marketing version = the root `package.json` (a tag must match it).
+marketing version = the root `package.json` (a tag must match it). The IPA gets it through
+`bundle.iOS.bundleVersion`, not `tauri ios build --build-number` (that appends it to the version: `1.0.0.459871`).
+
+What each run checks before anything is public, so a rerun is always safe:
+- `mac-build.sh` builds into an empty bundle folder (a cached `target/` can hold an older DMG), refuses a DMG
+  without an updater signature, and runs `scripts/release/verify-updater.mjs`: `latest.json` names this version
+  and this release's tarball, carries its `.sig`, and the signature verifies against `TAURI_UPDATER_PUBKEY`
+  (a `TAURI_SIGNING_PRIVATE_KEY` that is not its pair fails here, not on users' Macs).
+- The GitHub Release stays a draft until `publish`: a rerun re-points the draft at the new commit and replaces its
+  assets; a published `v<version>` from another commit stops the run (bump the version).
+- `publish` downloads the draft's assets, checks `SHA256SUMS` and runs the same updater check, then marks it latest.
+- `submit-review` (channel `appstore-review`) waits for App Store Connect to process the build
+  (`scripts/release/wait-build.mjs`, up to 75 min) before `fastlane … submit build_number:<build> app_version:<version>`.
 
 ## Store texts and screenshots
 
@@ -374,3 +386,7 @@ render cheap and the GIF small.
 | altool upload: "No suitable application records" | owner step 2 (app record) missing or bundle ID differs |
 | Notarisation "Invalid" | `xcrun notarytool log <id> --key … --key-id … --issuer …` prints the reason |
 | Certificate expires within 30 days | the release job warns; rerun Apple setup (or the Mac script) to renew |
+| Release apps: job failed after "Done" with "Path Validation Error … for caching" | a package-manager cache on the Mac job (its pnpm store lives under `TDJ_DRIVE`): keep `package-manager-cache: false` on setup-node |
+| Release apps: no jobs, run failed at once | the workflow file is invalid, e.g. `runner.*` in a job-level `env` (not available there): `actionlint` |
+| upload-artifact: "Relative pathing '.' and '..' is not allowed" | outputs live under `${{ github.workspace }}/.release/` |
+| `verify-updater`: "not a pair" | `TAURI_SIGNING_PRIVATE_KEY` (secret) and `TAURI_UPDATER_PUBKEY` (variable) are from different keys; installed DMGs trust the public key, so restore the matching private key |
