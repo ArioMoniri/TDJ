@@ -9,6 +9,7 @@ import {
   cortinaBeforeClosing,
   cumparsitaPlacement,
   isCumparsita,
+  OPENING_YEAR_WINDOW,
   openingCumparsita,
 } from "./cumparsita";
 import { isDanceableSong, normTitle } from "./energy";
@@ -1207,6 +1208,8 @@ export function mendNightCortinas(
     np = withCumparsitas(np, deps, { open: true, close: true });
   else if (n && o.cumparsitas && typeof o.cumparsitas === "object")
     np = withCumparsitas(np, deps, o.cumparsitas);
+  // (a room's night: its opening follows tanda 1, whichever edit made it tanda 1)
+  if (n && o.cumparsitas) np = openingFollowsFirst(np, deps);
   if (!n) return np;
   const none = np.options.cortinaStyle === "none";
   const pool = nightCortinaPool(np, deps);
@@ -1257,15 +1260,56 @@ function withCumparsitas(
   const place = cumparsitaPlacement(p.options);
   const fmt = closingFormatOf(p.options);
   let np = p;
+  // (the opening first: it is tanda 1's promise; the closing then is another version than the opening)
+  if (want.open && place.open && !p.opening) {
+    const r = openingCumparsita(deps.catalog, o, first, p.closing ?? null);
+    if (r.song) np = withOpeningNote({ ...np, opening: r.song }, r.fallback);
+  }
   if (want.close && fmt !== "none" && place.close && !p.closing) {
-    const s = closingFor(deps.catalog, o, last, p.opening ?? null).song;
+    const s = closingFor(deps.catalog, o, last, np.opening ?? null).song;
     if (s) np = { ...np, closing: s };
   }
-  if (want.open && place.open && !p.opening) {
-    const s = openingCumparsita(deps.catalog, o, first, np.closing ?? null).song;
-    if (s) np = { ...np, opening: s };
-  }
   return np;
+}
+
+/** the night's "opening: …" notes: only the one about this opening (none when it is tanda 1's own, near its years) */
+function withOpeningNote(p: Playlist, note: string | undefined): Playlist {
+  const was = p.stats?.settingFallbacks ?? [];
+  const keep = was.filter((x) => !x.startsWith("opening:"));
+  const next = note ? [...keep, note] : keep;
+  if (next.length === was.length && next.every((x, i) => x === was[i])) return p;
+  const stats = { ...p.stats } as Playlist["stats"];
+  if (next.length) stats.settingFallbacks = next;
+  else delete stats.settingFallbacks;
+  return { ...p, stats };
+}
+
+/**
+ * 2026-11 final QA (rooms): the opening La Cumparsita follows tanda 1 — "before the first tanda; from that tanda's
+ * orchestra and years when it recorded one". After any edit that made another tanda first (an insert before it, its
+ * removal, a move), the opening is re-picked by the same ladder as Compose's (cumparsita.ts openingCumparsita), and a
+ * fallback says why in stats.settingFallbacks ("opening: …"). An opening that already is tanda 1's orchestra within
+ * OPENING_YEAR_WINDOW of its years stays (a DJ's or an imported night's own choice keeps the promise). The same
+ * night comes back when nothing changes.
+ */
+function openingFollowsFirst(p: Playlist, deps: ComposeDeps): Playlist {
+  const first = p.tandas[0];
+  if (!first || !p.opening || !cumparsitaPlacement(p.options).open) return p;
+  const r = openingCumparsita(deps.catalog, nightOptions(p.options), first, p.closing ?? null);
+  const cur = p.opening;
+  if (r.song && cur.id === r.song.id) return withOpeningNote(p, r.fallback);
+  const ys = first.songs.map((s) => s.year).filter((y): y is number => !!y);
+  const yr = first.yearRange ?? (ys.length ? [Math.min(...ys), Math.max(...ys)] : null);
+  const dist = yr && cur.year ? Math.max(0, yr[0] - cur.year, cur.year - yr[1]) : Number.POSITIVE_INFINITY;
+  if (cur.orchestraId === first.orchestraId && dist <= OPENING_YEAR_WINDOW) {
+    // (the DJ's own version of tanda 1's orchestra: no note about another tanda 1 stays)
+    const notes = (p.stats?.settingFallbacks ?? []).filter(
+      (x) => x.startsWith("opening:") && x.includes(first.orchestra),
+    );
+    return withOpeningNote(p, notes[0]);
+  }
+  if (!r.song) return p;
+  return withOpeningNote(withTandas({ ...p, opening: r.song }, p.tandas), r.fallback);
 }
 
 /** the DJ picks the cortina after tanda `i` (marked theirs: re-picks and mending keep it) */

@@ -3394,6 +3394,14 @@ html.i18n-pending body {
     max-width: 42%;
   }
 }
+/* final QA: a value that is a phrase ("Son tandanın hemen ardından") wraps, right-aligned, instead of ending in "…" */
+.cell-value.cell-value-wrap {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
 /* the inline status row a toast becomes while a sheet is open: under the title, inside the sheet, never over it */
 .sheet-status {
   display: flex;

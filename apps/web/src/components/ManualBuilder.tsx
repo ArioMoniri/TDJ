@@ -1782,21 +1782,25 @@ function GuideRow({ line, onFix, busy }: { line: GuideLine; onFix: (f: GuideFix)
           ? tx("builder.g_bigfour_ok")
           : tx("builder.g_bigfour", { have: v.have ?? 0, of: v.of ?? 4, missing: v.missing ?? "" })
         : line.key === "energy"
-          ? line.ok
-            ? tx("builder.g_energy_ok")
-            : tx(v.dir === "hot" ? "builder.g_energy_hot" : "builder.g_energy_calm", {
-                n: v.n ?? 0,
-                energy: v.energy ?? 0,
-                target: v.target ?? 0,
-              })
-          : line.key === "cycle"
-            ? line.ok
-              ? tx("builder.g_cycle_ok", { have: v.have ?? "", want: v.want ?? "" })
-              : tx("builder.g_cycle", {
+          ? line.pending
+            ? tx("builder.g_energy_pending")
+            : line.ok
+              ? tx("builder.g_energy_ok")
+              : tx(v.dir === "hot" ? "builder.g_energy_hot" : "builder.g_energy_calm", {
                   n: v.n ?? 0,
-                  rhythm: rhythmWord(String(v.rhythm ?? "")),
-                  want: v.want ?? "",
+                  energy: v.energy ?? 0,
+                  target: v.target ?? 0,
                 })
+          : line.key === "cycle"
+            ? line.pending
+              ? tx("builder.g_cycle_pending", { want: v.want ?? "" })
+              : line.ok
+                ? tx("builder.g_cycle_ok", { have: v.have ?? "", want: v.want ?? "" })
+                : tx("builder.g_cycle", {
+                    n: v.n ?? 0,
+                    rhythm: rhythmWord(String(v.rhythm ?? "")),
+                    want: v.want ?? "",
+                  })
             : tx("builder.g_cortinas", { picked: v.picked ?? 0, auto: v.auto ?? 0 });
   const f = line.fix;
   const fixLabel = !f
@@ -1818,12 +1822,14 @@ function GuideRow({ line, onFix, busy }: { line: GuideLine; onFix: (f: GuideFix)
       data-testid="build-guide-line"
       data-key={line.key}
       data-ok={line.ok || undefined}
+      data-pending={line.pending || undefined}
     >
+      {/* final QA: ✓ passed, ! to look at, ○ not checked yet (a night with no tandas) */}
       <span
         className={`text-subhead w-5 shrink-0 text-center ${line.ok ? "text-[var(--tint-text,var(--tint))]" : "text-[var(--label-2)]"}`}
         aria-hidden
       >
-        {line.ok ? "✓" : "!"}
+        {line.pending ? "○" : line.ok ? "✓" : "!"}
       </span>
       <span className="text-subhead min-w-[12rem] flex-1">{text}</span>
       {f && fixLabel && (

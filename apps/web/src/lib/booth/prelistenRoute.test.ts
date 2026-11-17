@@ -120,6 +120,33 @@ describe("pre-listen while the Booth plays a night", () => {
     ).toBeNull();
   });
 
+  it("built-in speakers are never headphones: they are listed once, as the speaker option", () => {
+    const o = out({ room: "default", devices: DESK });
+    expect(headphoneChoices(o).map((d) => d.id)).toEqual(["pods"]);
+    expect(speakerFor(o)?.id).toBe("mac");
+    // the system default when it is the built-in speakers (Chrome: "Default - MacBook Pro Speakers"), room on the DDJ
+    const d = out({
+      room: "ddj",
+      devices: [
+        { id: "default", label: "Default - MacBook Pro Speakers", groupId: "g-mac" },
+        { id: "mac", label: "MacBook Pro Speakers", groupId: "g-mac" },
+        { id: "ddj", label: "DDJ-400", groupId: "g-ddj" },
+        { id: "pods", label: "AirPods Pro", groupId: "g-pods" },
+      ],
+    });
+    expect(headphoneChoices(d).map((x) => x.id)).toEqual(["pods"]);
+    expect(speakerFor(d)).not.toBeNull();
+    for (const devices of [DESK, LAPTOP])
+      for (const room of devices.map((x) => x.id)) {
+        const oo = out({ room, devices });
+        const sp = speakerFor(oo);
+        for (const c of headphoneChoices(oo)) {
+          expect(c.label).not.toMatch(/speaker/i);
+          if (sp) expect(c.id).not.toBe(sp.id);
+        }
+      }
+  });
+
   it("invariant: no route and no choice ever names the room's output", () => {
     const cases: PrelistenOutputs[] = [];
     for (const devices of [DESK, LAPTOP])

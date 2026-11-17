@@ -53,11 +53,27 @@ export function speakerFor(o: PrelistenOutputs): OutputDevice | null {
   return o.devices.find((d) => kindFromLabel(d.label) === "built-in" && safe(d)) ?? null;
 }
 
-/** the outputs a DJ may pick for the headphones: every one but the room's (and its other names) */
+/**
+ * the outputs a DJ may pick for the headphones: every one but the room's (and its other names), and never this
+ * device's built-in speakers (nor the system default when it is them): those are offered once, as "Play on this
+ * device's speaker anyway" (`speakerFor`), not as headphones
+ */
 export function headphoneChoices(o: PrelistenOutputs): OutputDevice[] {
   const room = o.room ?? "default";
   const roomGroup = groupOf(o.devices, room);
-  return o.devices.filter((d) => d.id !== room && !(roomGroup && d.groupId && d.groupId === roomGroup));
+  const builtInGroups = new Set(
+    o.devices
+      .filter((d) => kindFromLabel(d.label) === "built-in")
+      .map((d) => d.groupId)
+      .filter((g): g is string => !!g),
+  );
+  return o.devices.filter(
+    (d) =>
+      d.id !== room &&
+      !(roomGroup && d.groupId && d.groupId === roomGroup) &&
+      kindFromLabel(d.label) !== "built-in" &&
+      !(d.groupId && builtInGroups.has(d.groupId)),
+  );
 }
 
 export function prelistenRoute(b: {

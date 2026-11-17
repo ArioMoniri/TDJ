@@ -262,13 +262,19 @@ export function Sheet({
             {isPhone && (
               <span className="mx-auto mt-2 block h-[5px] w-9 rounded-full bg-[var(--label-3)]" aria-hidden />
             )}
-            <div className="relative flex h-11 shrink-0 items-center justify-center px-4">
+            <div className="relative flex min-h-11 shrink-0 items-center justify-center px-4">
               {!isPhone && !hideCancel && (
                 <button type="button" className="btn-plain absolute left-2" onClick={onClose}>
                   {tx("sheet.cancel")}
                 </button>
               )}
-              <h2 id={titleId} className="text-headline truncate px-16 outline-none" tabIndex={-1}>
+              {/* final QA: a long title wraps (two balanced lines) instead of ending in "…" */}
+              <h2
+                id={titleId}
+                className="text-headline min-w-0 px-16 py-1 text-center break-words outline-none [text-wrap:balance]"
+                data-testid="sheet-title"
+                tabIndex={-1}
+              >
                 {title}
               </h2>
               <div className="absolute right-2 flex items-center gap-1">

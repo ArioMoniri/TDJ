@@ -83,6 +83,15 @@ for (const [name, opts] of DEVICES) {
     }) => {
       test.setTimeout(240_000);
       await fresh(page);
+      // 0. (final QA) a night with no tandas: the energy arc and the rhythm cycle are not checked yet (no ✓, no "–")
+      const guide = page.getByTestId("build-guide");
+      for (const key of ["energy", "cycle"]) {
+        const line = guide.locator(`[data-testid="build-guide-line"][data-key="${key}"]`);
+        await expect(line).toHaveAttribute("data-pending", "true");
+        await expect(line).not.toHaveAttribute("data-ok", /.*/);
+        await expect(line).toContainText("checked from the first tanda");
+        await expect(line).not.toContainText("–,");
+      }
       // 1. search "di sarli" with the Tango and Instrumental chips → select 4 → a new tanda
       let panel = await addPanel(page, phone);
       await panel.getByRole("button", { name: "Tango", exact: true }).click();

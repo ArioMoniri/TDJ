@@ -378,6 +378,39 @@ test("the Floor screen: opened from the Booth, it follows the night (Song k of n
   await expect(screen.getByTestId("floor-screen")).toBeVisible();
   await expect(screen.getByTestId("floor-song-of")).toHaveText("Song 1 of 4", { timeout: 15000 });
   await expect(screen.getByTestId("floor-strip")).toHaveAttribute("data-stage", "invite");
+  // (final QA) every stage pill's word meets WCAG AA on its own pill; the song playing now stands out (solid fill)
+  await screen.waitForTimeout(800);
+  const pills = await screen.getByTestId("floor-strip").evaluate((strip) => {
+    const rgb = (c: string) => {
+      const m = c.match(/color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)/);
+      if (m) return [1, 2, 3].map((i) => Number(m[i]) * 255);
+      return (c.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+    };
+    const lum = (c: number[]) => {
+      const [r, g, b] = c.map((v) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    return [...strip.children].map((el) => {
+      const cs = getComputedStyle(el);
+      const a = lum(rgb(cs.color));
+      const b = lum(rgb(cs.backgroundColor));
+      return {
+        on: el.hasAttribute("data-on"),
+        ratio: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05),
+        opacity: Number(cs.opacity),
+        bgL: b,
+      };
+    });
+  });
+  for (const p of pills) {
+    expect(p.ratio, JSON.stringify(p)).toBeGreaterThanOrEqual(4.5);
+    expect(p.opacity).toBe(1);
+  }
+  const on = pills.find((p) => p.on)!;
+  for (const p of pills.filter((x) => !x.on)) expect(on.bgL).toBeGreaterThan(p.bgL * 4);
   // Next in the Booth: the screen follows within a second
   await booth(page, (b) => b.getState().nextNow());
   await expect(screen.getByTestId("floor-song-of")).toHaveText("Song 2 of 4", { timeout: 5000 });

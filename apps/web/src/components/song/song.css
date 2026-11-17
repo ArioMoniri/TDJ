@@ -138,6 +138,12 @@ body:has(.dna-overlay) .z-50:has(> [data-testid="sides-sheet"]) {
     --label-w: 6.5rem;
   }
 }
+/* final QA: a desktop gives the lane names room for two whole lines ("J. Libertella, O. Berlinghieri, K. Díaz") */
+@media (min-width: 1000px) {
+  .dna-chart {
+    --label-w: 13rem;
+  }
+}
 .dna-chart-frame {
   max-width: 100%;
   overflow-x: auto;
@@ -179,6 +185,17 @@ body:has(.dna-overlay) .z-50:has(> [data-testid="sides-sheet"]) {
 }
 .dna-chart-label:empty {
   display: block;
+}
+/* final QA: a long lane name wraps onto a second line (the lane is ≥ 44 px), never cut mid-word with "…" */
+.dna-chart-label-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  min-width: 0;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 .dna-chart-plot {
   position: relative;
