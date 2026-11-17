@@ -381,3 +381,47 @@ test("the Booth: the menu on a set-list row; Song info → Song DNA → Back kee
   await overlay.getByTestId("dna-overlay-close").click();
   expect(await state()).toBe("playing");
 });
+
+test("a real finger (touch through the browser, as an iPhone sends it): the menu stays open when it lifts, and nothing under it runs", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({
+    viewport: { width: 393, height: 852 },
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
+  });
+  const page = await ctx.newPage();
+  await mocks(page);
+  await page.goto("/library");
+  await page.locator("#library-search").first().fill("malena demare");
+  const row = page.getByTestId("library-row").filter({ hasText: "Malena" }).first();
+  await expect(row).toBeVisible({ timeout: 30000 });
+  await page.waitForTimeout(500);
+  const box = (await row.boundingBox())!;
+  const at = { x: box.x + box.width * 0.45, y: box.y + box.height / 2 };
+  const cdp = await ctx.newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [at] });
+  const sheet = page.getByTestId("song-menu-sheet");
+  // the menu opens under the finger while it is still down
+  await expect(sheet).toBeVisible({ timeout: 3000 });
+  await page.waitForTimeout(500);
+  const under = await page.evaluate(
+    ({ x, y }) =>
+      document.elementFromPoint(x, y)?.closest("[role=menuitem]")?.getAttribute("data-testid") ?? null,
+    at,
+  );
+  const url = page.url();
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await page.waitForTimeout(800);
+  // the lift was no tap: the sheet is still up and the item that was under the finger did not run
+  expect(under).not.toBeNull();
+  await expect(sheet).toBeVisible();
+  expect(page.url()).toBe(url);
+  await expect(page.getByTestId("song-details-sheet")).toHaveCount(0);
+  // the DJ's own tap on an item does run
+  await sheet.getByTestId("song-menu-details").tap();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByTestId("song-details-sheet")).toBeVisible();
+  await ctx.close();
+});

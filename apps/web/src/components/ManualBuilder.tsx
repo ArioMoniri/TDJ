@@ -65,7 +65,7 @@ import { lazy, t as tx } from "@/lib/i18n";
 import { bindingsOf, formatCombo } from "@/lib/keymap";
 import { fmtLen, tandaTotal, totalText } from "@/lib/lengths";
 import { DUR, EASE } from "@/lib/motion";
-import { isGuitarsLabel, orchestraName } from "@/lib/orchestraName";
+import { creditName, isGuitarsLabel, orchestraName } from "@/lib/orchestraName";
 import { PlayListContext } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { requestFavourites } from "@/lib/popularity";
@@ -1100,7 +1100,7 @@ export function ManualBuilder() {
             )}
             {facets.orchestras.map((o) => (
               <option key={o.id} value={o.id}>
-                {o.name} ({o.n})
+                {creditName(o.name)} ({o.n})
               </option>
             ))}
           </select>

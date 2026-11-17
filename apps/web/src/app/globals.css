@@ -3634,6 +3634,19 @@ html[data-capture] [role="tooltip"] {
     bottom: calc(var(--mini-h, 120px) + 1.5rem + 12px);
   }
 }
+/* QA 2026-11: a phone's page header row holds its actions (Build's Undo / Redo / Reset, the Library's add, Rooms'
+   Invite): the toast comes in under that row, never over it (a second Undo landed on the toast). Now playing covers
+   the page: the toast comes in under its bar — never over its close button (a phone) nor over its Previous / Pause /
+   Next, where the Booth's own place for it (above the transport) fell on an iPhone Duo open or a short window. */
+@media (max-width: 639.98px) {
+  html:has([data-testid="page-toolbar"]) .app-toast {
+    top: calc(var(--chrome-top) + 4.25rem);
+  }
+}
+html:has([data-testid="now-view"]) .app-toast {
+  top: calc(var(--chrome-top) + 4.25rem);
+  bottom: auto;
+}
 
 /* 2026-11: Build's floating Add button (components/ManualBuilder.tsx, below 1024 px where the Add panel is a sheet)
    sits at the content column's trailing edge: a phone's 16 px margin; the centred 720 px column of the nav pill

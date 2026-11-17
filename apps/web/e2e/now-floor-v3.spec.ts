@@ -220,10 +220,13 @@ for (const [name, use] of DEVICES) {
       await expect(tab).toHaveAttribute("aria-selected", "true");
       const look = await tab.evaluate((e) => {
         const c = getComputedStyle(e);
-        return { outline: c.outlineStyle, width: c.outlineWidth, bg: c.backgroundColor };
+        return { outline: c.outlineStyle, width: c.outlineWidth };
       });
       expect(look.outline === "none" || look.width === "0px").toBe(true);
-      expect(look.bg).not.toBe("rgba(0, 0, 0, 0)");
+      // (the pill's fill fades in: read it once the selection has settled, not in the click's first frame)
+      await expect
+        .poll(() => tab.evaluate((e) => getComputedStyle(e).backgroundColor), { timeout: 3000 })
+        .not.toBe("rgba(0, 0, 0, 0)");
       // the Beat glow switch turns it off
       await view.getByTestId("now-beat-glow-row").getByRole("switch").click();
       await expect(wrap).toHaveAttribute("data-beat", "off");
@@ -421,4 +424,107 @@ test("Library: a raw guitarists' credit reads as names in the suggestions and ch
   await page.waitForTimeout(800);
   const text = await page.locator("main").innerText();
   expect(text).not.toMatch(/[A-Z]\.[a-z]+-[A-Z]\.[a-z]+/);
+});
+
+test("no raw credit anywhere: the Library's orchestra lists, a tap on one, the completion, the Database's orchestras", async ({
+  page,
+}) => {
+  const RAW = /\b[A-Z]\.[a-z]+(\.[a-z]+)?-[A-Z]\.[a-z]+/;
+  await page.goto("/library");
+  const field = page.locator("#library-search").first();
+  const home = page.getByText("José Ricardo, Guillermo Barbieri (guitars)", { exact: true }).first();
+  await expect(home).toBeVisible({ timeout: 30_000 });
+  expect(await page.locator("main").innerText()).not.toMatch(RAW);
+  // a tap searches by the names, which find the sides
+  await home.click();
+  await expect(field).toHaveValue("José Ricardo Guillermo Barbieri");
+  await expect(page.getByTestId("library-row").first()).toContainText("Guillermo Barbieri", {
+    timeout: 20_000,
+  });
+  // All orchestras
+  await field.fill("");
+  await page.getByTestId("library-all-orchestras").click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet.getByText("Aníbal Troilo, Roberto Grela", { exact: true })).toBeVisible();
+  expect(await sheet.innerText()).not.toMatch(RAW);
+  await page.keyboard.press("Escape");
+  // the completion fills in the names
+  await field.fill("barbieri");
+  const completion = page.getByTestId("library-completion").filter({ hasText: "Guillermo Barbieri" }).first();
+  await expect(completion).toBeVisible({ timeout: 20_000 });
+  await completion.click();
+  await expect(field).not.toHaveValue(RAW);
+  // the Database's Orchestras tab: the card, the mark, the detail's title; the full name finds it
+  await page.goto("/database");
+  await page.getByRole("radio", { name: "Orchestras" }).click();
+  const dbField = page.locator("input[type=search]:visible").first();
+  await dbField.fill("guillermo barbieri");
+  const card = page.locator('[data-orchestra="j-ricardo-g-barbieri"]').first();
+  await expect(card).toContainText("José Ricardo, Guillermo Barbieri (guitars)", { timeout: 20_000 });
+  expect(await page.locator("main").innerText()).not.toMatch(RAW);
+  await card.getByRole("button").first().click();
+  await expect(page.getByTestId("orchestra-detail").getByRole("heading").first()).toHaveText(
+    "José Ricardo, Guillermo Barbieri (guitars)",
+  );
+});
+
+/* QA 2026-11: a toast never covers the controls under it — a phone page's header actions, Now playing's bar and its
+   transport (an iPhone Duo open: 951 × 669) */
+const raise = (page: Page, text: string) =>
+  page.evaluate(
+    (s) => (window as unknown as { __tdjToast: (t: string, u?: () => void) => void }).__tdjToast(s, () => {}),
+    text,
+  );
+const overlaps = (a: { x: number; y: number; width: number; height: number }, b: typeof a) =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+test("a phone: a toast comes in under the page's header row, never over Undo / Redo", async ({ browser }) => {
+  const ctx = await browser.newContext({
+    viewport: { width: 393, height: 852 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  const page = await ctx.newPage();
+  await page.goto("/build");
+  await expect(page.getByTestId("build-guide")).toBeVisible({ timeout: 30_000 });
+  await page.waitForFunction(() => !!(window as unknown as { __tdjToast?: unknown }).__tdjToast);
+  await raise(page, "Undone: your hand-built night changed");
+  const toast = page.getByTestId("toast");
+  await expect(toast).toBeVisible();
+  await page.waitForTimeout(400);
+  const t = (await toast.boundingBox())!;
+  for (const id of ["build-undo", "build-redo", "build-reset"]) {
+    const b = (await page.getByTestId("page-toolbar").getByTestId(id).boundingBox())!;
+    expect(overlaps(t, b), `toast over ${id}`).toBe(false);
+  }
+  await ctx.close();
+});
+
+test("Now playing on an iPhone Duo open: a toast comes in under the bar, never over Previous / Pause / Next", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({
+    viewport: { width: 951, height: 669 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  const page = await ctx.newPage();
+  await toBooth(page);
+  await page.getByTestId("booth-now-full").click();
+  const view = page.getByTestId("now-view");
+  await expect(view).toBeVisible();
+  await raise(page, "Rehearsal: the opening plays on the night (no clip)");
+  const toast = page.getByTestId("toast");
+  await expect(toast).toBeVisible();
+  await page.waitForTimeout(400);
+  const t = (await toast.boundingBox())!;
+  const play = (await view.getByTestId("now-play").boundingBox())!;
+  const close = (await view.getByTestId("now-view-close").boundingBox())!;
+  expect(overlaps(t, play), "toast over the transport").toBe(false);
+  expect(overlaps(t, close), "toast over the close button").toBe(false);
+  expect(
+    overlaps(t, { ...play, x: play.x - 120, width: play.width + 240 }),
+    "toast over Previous / Next",
+  ).toBe(false);
+  await ctx.close();
 });

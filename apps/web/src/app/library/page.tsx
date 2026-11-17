@@ -15,6 +15,7 @@ import { SmartSearchField, SmartSearchResults } from "@/components/ui/SmartSearc
 import { favouritesOf } from "@/lib/favourites";
 import { useMediaQuery } from "@/lib/hooks";
 import { fmtNumber, t as tx } from "@/lib/i18n";
+import { orchestraQuery } from "@/lib/orchestraName";
 import { PlayListContext, tapPlay } from "@/lib/playback";
 import type { Version } from "@/lib/smartSearch";
 import { useStore } from "@/lib/store";
@@ -109,7 +110,13 @@ export default function Library() {
       byCount
         .slice(0, 30)
         .map((o) => (
-          <Row key={o.id} label={o.name} value={fmtNumber(o.count)} chevron onClick={() => setQ(o.name)} />
+          <Row
+            key={o.id}
+            label={orchestraLabel(o.name)}
+            value={fmtNumber(o.count)}
+            chevron
+            onClick={() => setQ(orchestraQuery(o.name))}
+          />
         )),
     [byCount, setQ],
   );
@@ -118,11 +125,11 @@ export default function Library() {
       byCount.map((o) => (
         <Row
           key={o.id}
-          label={o.name}
+          label={orchestraLabel(o.name)}
           value={fmtNumber(o.count)}
           chevron
           onClick={() => {
-            setQ(o.name);
+            setQ(orchestraQuery(o.name));
             setShowAll(false);
           }}
         />

@@ -10,7 +10,7 @@ import {
 import { useMemo, useState } from "react";
 import { recordSnapshot, undoEdit } from "@/lib/editHistory";
 import { haptic } from "@/lib/haptics";
-import { lazy, t } from "@/lib/i18n";
+import { fmtNumber, lazy, t } from "@/lib/i18n";
 import type { MsgKey } from "@/lib/i18n/en";
 import { spotCall } from "@/lib/spot";
 import { useStore } from "@/lib/store";
@@ -181,13 +181,15 @@ export function RoomNightSettings({
               label={t("roomSettings.length")}
               ariaLabel={t("roomSettings.length")}
               value={String(len)}
-              items={LENGTHS.map((s) => [String(s), t("roomSettings.seconds", { n: s })] as [string, string])}
+              items={LENGTHS.map(
+                (s) => [String(s), t("roomSettings.seconds", { n: fmtNumber(s) })] as [string, string],
+              )}
               disabled={!canEdit || busy}
               onChange={(v) =>
                 v &&
                 void change(
                   { cortinaLengthSec: Number(v) },
-                  said(t("roomSettings.length"), t("roomSettings.seconds", { n: Number(v) })),
+                  said(t("roomSettings.length"), t("roomSettings.seconds", { n: fmtNumber(Number(v)) })),
                 )
               }
             />
@@ -195,13 +197,15 @@ export function RoomNightSettings({
               label={t("roomSettings.fade")}
               ariaLabel={t("roomSettings.fade")}
               value={String(fade)}
-              items={FADES.map((s) => [String(s), t("roomSettings.seconds", { n: s })] as [string, string])}
+              items={FADES.map(
+                (s) => [String(s), t("roomSettings.seconds", { n: fmtNumber(s) })] as [string, string],
+              )}
               disabled={!canEdit || busy}
               onChange={(v) =>
                 v &&
                 void change(
                   { cortinaFadeOutSec: Number(v) },
-                  said(t("roomSettings.fade"), t("roomSettings.seconds", { n: Number(v) })),
+                  said(t("roomSettings.fade"), t("roomSettings.seconds", { n: fmtNumber(Number(v)) })),
                 )
               }
             />

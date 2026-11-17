@@ -46,6 +46,16 @@ export function creditName(name: string): string {
 }
 
 /**
+ * What a search box says for an orchestra (QA 2026-11: a tap on "José Ricardo, Guillermo Barbieri (guitars)" in the
+ * Library's list filled the field with "J.ricardo-G.barbieri"): a credit's people by name, which find the same sides;
+ * any other name as it is.
+ */
+export function orchestraQuery(name: string): string {
+  const names = creditPeople(name);
+  return names.length ? names.join(" ") : name;
+}
+
+/**
  * The search's marks on the raw credit, carried over to the name `creditName` shows: each marked piece ("barbi")
  * is found again, accents and case aside, in the shown text ("Guillermo Barbieri"). A piece not found is dropped.
  */

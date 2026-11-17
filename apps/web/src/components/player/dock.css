@@ -396,6 +396,7 @@ html[data-power="saver"] .dock-record {
   grid-template-areas:
     "cue cue"
     "cover text"
+    "meta meta"
     "chip chip"
     "seek seek"
     "btns btns"
@@ -424,11 +425,28 @@ html[data-power="saver"] .dock-record {
   font-size: 12px;
   color: var(--label-2);
 }
-/* in the sidebar's narrow column the night's lines wrap rather than cut "next in …" and the next tanda */
-.dock:not([data-place="bar"]) .booth-mini-text > .booth-mini-when,
-.dock:not([data-place="bar"]) .booth-mini-text > .booth-mini-dance {
-  white-space: normal;
-  overflow: visible;
+/* QA 2026-11 (the sidebar's player: "the meta lines wrap into four cramped lines"): under the cover, across the card,
+   one fact per line — "Tanda 1 of 25 · next in 0:28", "La Cumparsita in 40:36", "Song 1 of 4 · Next tanda: Tango" —
+   each on one line (an ellipsis only in a card narrower than any sidebar) */
+.dock:not([data-place="bar"]) .booth-mini-text {
+  align-self: center;
+}
+.dock:not([data-place="bar"]) .booth-mini-meta {
+  margin: 2px 0 0;
+  padding: 0 2px;
+  align-self: auto;
+}
+.dock:not([data-place="bar"]) .booth-mini-when {
+  display: grid;
+}
+.dock:not([data-place="bar"]) .booth-mini-when > .booth-mini-sep {
+  display: none;
+}
+.dock:not([data-place="bar"]) .booth-mini-when > .booth-mini-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .booth-mini-more {
   grid-area: more;

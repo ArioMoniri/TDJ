@@ -214,6 +214,25 @@ for (const v of VIEWS) {
         await expect(mini.getByTestId("booth-mini-volume")).toBeVisible();
         await expect(mini.getByTestId("booth-mini-out-room")).toContainText("Room");
         await expect(mini.getByTestId("booth-mini-now")).toBeVisible();
+        // QA 2026-11 ("the meta lines wrap into four cramped lines"): under the cover, across the card, one fact per
+        // line, each on one line and whole — where and next, La Cumparsita, the song of the tanda
+        await expect(mini.getByTestId("booth-mini-cumparsita")).toContainText(/La Cumparsita in \d+:\d\d/);
+        const lines = await mini.evaluate((el) => {
+          const cover = el.querySelector('[data-testid="booth-mini-back"]')!.getBoundingClientRect();
+          return [...el.querySelectorAll<HTMLElement>(".booth-mini-line, .booth-mini-dance")].map((l) => {
+            const r = l.getBoundingClientRect();
+            const lh = Number.parseFloat(getComputedStyle(l).lineHeight) || 16;
+            return {
+              text: l.textContent,
+              oneLine: r.height <= lh + 1,
+              whole: l.scrollWidth <= l.clientWidth + 1,
+              underCover: r.top >= cover.bottom - 1,
+            };
+          });
+        });
+        expect(lines).toHaveLength(3);
+        for (const l of lines)
+          expect(l, l.text ?? "").toMatchObject({ oneLine: true, whole: true, underCover: true });
       } else {
         await expect(page.getByTestId("player-grip")).toBeVisible();
       }

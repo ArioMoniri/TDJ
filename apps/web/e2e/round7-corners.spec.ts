@@ -218,9 +218,18 @@ test("bars, mini player, menu and sheets with a composed set", async ({ page }) 
   const player = page.getByTestId("mini-player");
   await expect(player).toBeVisible();
   await page.waitForTimeout(900);
-  // phones: the player docks onto the tab bar (round8-ux.md §1.12): only its top corners are rounded
-  await corners(page, player, "mini player", k === "phone" ? TOP : ALL);
-  await hasMaterial(player, "mini player");
+  // 2026-11 (the one player, PlayerDock): beside a sidebar the player docks IN it — a rounded card on the sidebar's
+  // own material, the preview player its content (no glass, no corners of its own). The card's corners must show the
+  // sidebar beside it; everywhere else the player is the floating glass capsule, as before.
+  const dock = page.getByTestId("player-dock");
+  if ((await dock.getAttribute("data-place")) === "side") {
+    await expect(page.getByTestId("sidebar").getByTestId("mini-player")).toBeVisible();
+    await corners(page, dock, "mini player (docked in the sidebar)", ALL);
+  } else {
+    // phones: the player docks onto the tab bar (round8-ux.md §1.12): only its top corners are rounded
+    await corners(page, player, "mini player", k === "phone" ? TOP : ALL);
+    await hasMaterial(player, "mini player");
+  }
   await page.getByRole("button", { name: "Close player" }).click();
   await expect(player).toBeHidden();
 
