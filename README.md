@@ -2,7 +2,7 @@
 <h1 align="center">T-DJ</h1>
 <p align="center">Build a milonga the way a tango DJ does: tandas, cortinas and the shape of the night.</p>
 
-<p align="center"><a href="media/readme/compose.mp4"><img src="media/readme/compose.gif" width="840" alt="Composing a four-hour night in T-DJ: one tap, then the energy arc and the tandas"/></a></p>
+<p align="center"><a href="media/readme/hero.mp4"><img src="media/readme/hero.gif" width="840" alt="T-DJ on a laptop: the lid opens, one tap composes a four-hour night, the Booth opens and a transition between two songs is set to Fade"/></a></p>
 
 I play milongas in Istanbul. For years I built every night by hand, checking that no orchestra came back too
 soon and that each cortina fit the tanda after it. T-DJ is the tool I wanted for that job. It drafts a whole night
@@ -27,9 +27,11 @@ commit ([docs/RELEASING.md](docs/RELEASING.md)).
 - **Mac download**: one DMG for Apple silicon and Intel, signed and notarised, and it updates itself (it asks
   first). Each [release](https://github.com/ArioMoniri/TDJ/releases) carries a `SHA256SUMS` file:
   `shasum -a 256 -c SHA256SUMS`.
-- **Web**: there is no public web instance. Deploy your own in one click to your AWS account, or run it on your own
-  computer ([docs/SELF_DEPLOY.md](docs/SELF_DEPLOY.md)); any key you add stays in your browser or on your server.
+- **Web**: deploy your own in one click to your AWS account, or run it on your own computer
+  ([docs/SELF_DEPLOY.md](docs/SELF_DEPLOY.md)); any key you add stays in your browser or on your server.
   Settings → About says when a newer version is live; reload when the night is over.
+- **iPhone Duo**: folded it is the phone layout, open it is the sidebar layout; the night keeps playing through
+  a fold.
 - **Languages**: English and Turkish, in the apps, on the web and on the store listing.
 
 ## What it does
@@ -37,9 +39,9 @@ commit ([docs/RELEASING.md](docs/RELEASING.md)).
 **Composes a night.** Choose the length and the era, press Compose. You get tandas in a TTVTTM cycle, a cortina
 picked for the tanda that follows it, an energy arc with a breather between two peaks, and a score that tells you
 what it checked. Each night gets its own cover, drawn from its arc, with an era label that follows what is
-actually in it. The featured night is mine: 25 tandas, 4 h 35 min of the golden age with Turkish cortinas.
+actually in it. The featured night is mine: 25 tandas, 4 h 37 min of the golden age with Turkish cortinas.
 
-<p align="center"><img src="media/readme/compose-light.webp" width="840" alt="A composed night: the energy arc, the score and the first tandas"/></p>
+<p align="center"><a href="media/readme/compose.mp4"><img src="media/readme/compose.gif" width="840" alt="Composing a four-hour night in T-DJ: one tap, then the energy arc and the tandas"/></a></p>
 
 **Plays it in the Booth.** The Booth plays the night from your own files, from Spotify, or as 30-second
 rehearsal clips, with real gaps, level matching and a fade at the end of each cortina. Cortinas start at their
@@ -53,17 +55,57 @@ own column, and one row of transport buttons at the bottom. What I use during a 
 - Tap any song or cortina to play it. Before the night it plays in the room; once the night has started it goes
   to your headphones first, and Play now in the room needs a confirmation. Previous, Next, Fade and Crossfade are
   press-and-hold mid-night, so a stray tap never cuts a song. You can switch that off in Settings.
+- Every Booth action can be undone: ⌘Z / Ctrl+Z, ⌘Y / Ctrl+Y to redo, or shake the phone (it asks first).
 - A seek bar, a start point per song, and drag (or Move up / down) to change the order inside a tanda.
 - Controls opens one panel with everything else: transport, loudness trim, cue, mixer, timing, the floor.
 - Find songs searches tonight's tandas or the whole catalogue, and Swap replaces a song while the room dances.
 - The marker between two songs opens the transition editor: Auto, Fade, Rise, Blend or Gap, with the overlap,
   curves and EQ, and a play button to hear it.
-- Pick your headphones as a second output to pre-listen without the room hearing it.
+- Spotify and YouTube sides get a level estimate from data (the catalogue, Deezer, Spotify), shown in plain
+  words and applied to the night's loudness matching.
+- Battery saver (Off, Auto or On) makes a long night last longer on a laptop or an iPad: the screen updates less
+  often, and the sound and its timing stay exact.
 
 <p align="center">
 <img src="media/readme/transitions.webp" height="330" alt="The transition editor between two songs, with Fade picked"/>
 <img src="media/readme/booth-phone.webp" height="330" alt="The Booth on an iPhone, playing"/>
 </p>
+
+**Now playing and the Floor screen.** Now playing is one screen for the song in the room: the artwork, the
+lyrics, a rhythm lane with its beats and phrases, the video, and a card for the dancers. The card shows the song's
+place in the tanda (song 2 of 4: a good time to start dancing), the time left in the tanda, the next tanda and the
+time to La Cumparsita. Floor screen puts that card on a projector or a TV, large and with no controls, in this
+browser's second window or on any device that has the room's code.
+
+<p align="center"><img src="media/readme/now-playing.webp" width="840" alt="Now playing: the artwork, the dancers' card with song 2 of 4 and the next tanda, and the rhythm lane"/></p>
+
+<p align="center"><img src="media/readme/floor.webp" width="840" alt="The Floor screen for the dancers: the orchestra, song 2 of 4 and the time left in the tanda"/></p>
+
+**One player, on every page.** The night keeps playing while you look for something else. Its player sits in the
+sidebar: what plays, the tanda and the song, the time to La Cumparsita, volume, the outputs and Now playing. Fold
+the sidebar away and the player becomes a gramophone, its ring showing what is left of the song. You can drag it to
+any edge or pull it out into a floating card. Without a sidebar it is the bar at the bottom.
+
+<p align="center"><img src="media/readme/player.webp" width="840" alt="The Library while the night plays: the player in the sidebar and the song menu open on a row"/></p>
+
+**Pre-listen while the room plays.** With headphones set as the second output, play any song from the Library,
+the search or the set list and it plays in your headphones only. The player shows what is in your ears, with a
+Stop. Without headphones, T-DJ asks where to play it and never sends it to the room.
+
+<p align="center">
+<img src="media/readme/prelisten.webp" height="330" alt="Pre-listen: the night plays in the room while a Library song plays in the AirPods"/>
+<img src="media/readme/gramophone.webp" height="330" alt="The sidebar folded on an iPad: the night's player is a gramophone in the corner"/>
+</p>
+
+**A song menu on every row.** Right-click a song (or long-press it on a touch screen) in Compose, the Library, the
+Database or the Booth: pre-listen, song details, Song DNA, add to tonight, find it on your services. The details
+show the work's credits, the tempo and every other version, playable. Song DNA charts every recording of the work
+over the years, with the one you picked marked.
+
+<p align="center"><img src="media/readme/song-dna.webp" width="840" alt="Song DNA for Malena: 37 recordings by 30 orchestras charted from 1942 to 2003"/></p>
+
+**Your keys.** Click any key shown in the Keyboard sheet or in Settings, then press the new one. T-DJ warns when a
+key is taken and offers to swap it, and refuses keys the browser keeps for itself.
 
 **Spotify on the iPad and the iPhone.** Safari and the iPhone and iPad apps can't play Spotify inside the page, so
 the Booth plays through the Spotify app instead (Spotify Connect, Premium needed). The ROOM menu lists your Spotify devices;
@@ -73,7 +115,9 @@ skips the rest of the night because one start failed.
 
 **Build by hand.** If you'd rather pick every tanda yourself, Build by hand keeps a checklist next to your night:
 the length against the target, the big four, the energy arc, the rhythm cycle and the cortinas, each with a
-one-tap fix. On the right it suggests whole tandas for the next slot and says why each one fits.
+one-tap fix. On the right it suggests whole tandas for the next slot and says why each one fits. Undo and Redo sit
+in the header, and Fill completes the next tanda, one cycle or the rest of the night, previewed before it is
+added.
 
 <p align="center"><a href="media/readme/build.mp4"><img src="media/readme/build.gif" width="840" alt="Build by hand: adding the suggested tango tanda, then the next one"/></a></p>
 
@@ -107,8 +151,10 @@ which covers most of what I ask for in the middle of a night.
 <p align="center"><a href="media/readme/ai-edit.mp4"><img src="media/readme/ai-edit.gif" width="840" alt="Edit with AI: typing make tanda 7 calmer and getting a checked change with Undo"/></a></p>
 
 **Rooms.** Two DJs can work on one night. I make a room and show the code, the other DJ joins from a phone, and
-each edit shows up on both sides, with who made it in the log. On the web, rooms are kept in the deployment's
-database for 90 days after the last change; the iPhone, iPad and Mac apps use rooms through a linked T-DJ server.
+each edit shows up on both sides, with who made it in the log. The room has the whole night, with Compose's editing
+and undo, or starts empty to be built together; the cortinas are mended after every edit, so each one still fits
+the tanda after it. On the web, rooms are kept in the deployment's database; the iPhone, iPad and Mac apps use
+rooms through a linked T-DJ server.
 
 <p align="center"><a href="media/readme/rooms.mp4"><img src="media/readme/rooms.gif" width="840" alt="Two DJs in one room: a laptop and a phone showing the same night, edits arriving on both"/></a></p>
 
@@ -143,13 +189,14 @@ and the set list opens from it.
 </p>
 
 More screens: [Booth on iPad](media/readme/booth.webp) · [Build by hand](media/readme/build.webp) ·
-[search](media/readme/search.webp) · [Guide](media/readme/guide.webp) · [dark Compose](media/readme/compose-dark.webp)
+[search](media/readme/search.webp) · [keys](media/readme/keys.webp) · [Guide](media/readme/guide.webp) ·
+[Compose](media/readme/compose-light.webp) · [dark Compose](media/readme/compose-dark.webp)
 
 ## Self-host
 
-There is no public T-DJ server: the author's own deployment is private. Run your own copy on your own AWS account,
-with your own Spotify app and settings (about $0–1 a month when idle), run it on your own computer with `pnpm dev`,
-or use the iPhone, iPad and Mac apps, which work on their own. One line on macOS, Linux or WSL:
+Run your own copy on your own AWS account, with your own Spotify app and settings (about $0–1 a month when idle),
+run it on your own computer with `pnpm dev`, or use the iPhone, iPad and Mac apps, which work on their own. One line
+on macOS, Linux or WSL:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ArioMoniri/TDJ/claude/admiring-curie-npzd0m/scripts/install.sh | bash
@@ -162,7 +209,8 @@ Or deploy in one click from GitHub, with nothing running on your computer afterw
 **[1. Fork T-DJ](https://github.com/ArioMoniri/TDJ/fork)** → 2. add the AWS deploy role (`pnpm tdj init --github`
 once, or [by hand](docs/SELF_DEPLOY.md#c-one-click-on-github)) →
 **[3. Run "Deploy to AWS"](https://github.com/ArioMoniri/TDJ/actions/workflows/deploy-aws.yml)** on your fork. Every
-way, costs on the AWS free tier, updating and removing: [docs/SELF_DEPLOY.md](docs/SELF_DEPLOY.md).
+way, costs on the AWS free tier, updating and removing: [docs/SELF_DEPLOY.md](docs/SELF_DEPLOY.md). A copy starts
+empty: no key or account comes with the code, and every key is one you add yourself.
 
 ## Develop
 

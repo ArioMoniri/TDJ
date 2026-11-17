@@ -53,6 +53,13 @@ const CAPTURE = `(() => {
   const mark = () => document.documentElement && document.documentElement.setAttribute("data-capture", "");
   mark();
   document.addEventListener("DOMContentLoaded", mark);
+  // no passing note in a capture: the floating toasts ("Rehearsal: the opening plays on the night", the floor's
+  // "No better tanda…") would sit over the controls the clip is showing; a sheet's own status line stays
+  document.addEventListener("DOMContentLoaded", () => {
+    const s = document.createElement("style");
+    s.textContent = '[data-testid="toast"]:not([data-inline]){display:none!important}';
+    document.head.append(s);
+  });
 })();`;
 
 export async function newCtx(
@@ -346,8 +353,9 @@ export const CLIPS: Record<string, Clip> = {
     await rb.fast(() => ben.waitForTimeout(1500), 400, [ra]);
     await ra.wait(500);
     await ra.click(ana.getByRole("radio", { name: /Log/ }), { zoom: false, settle: 1600 });
-    await rb.stop();
+    // the laptop's track ends first: the phone's runs to the clip's last frame (it went black before)
     await ra.stop();
+    await rb.stop();
     await a.close();
     await b.close();
   },

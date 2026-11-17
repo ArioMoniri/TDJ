@@ -43,9 +43,46 @@ async function quiet() {
   }
 }
 
+/**
+ * A raw capture no wider than 2048 px (a 2560 px desktop or 2360 px iPad frame comes down; the 1179 px phone stays).
+ * OffthreadVideo hands each decoded frame to Chromium as an uncompressed bitmap; one over Chromium's 10 MB
+ * shared-memory blob size goes through a file instead, which Chromium refuses on a nearly full disk ("Failed to
+ * fetch"). 2048 × 1280 is 7.9 MB, and the clip's stage is 1600 px wide, so nothing is lost.
+ */
+function fitRaw(raw: string) {
+  const w = Number(
+    execFileSync("ffprobe", [
+      "-v",
+      "error",
+      "-select_streams",
+      "v:0",
+      "-show_entries",
+      "stream=width",
+      "-of",
+      "csv=p=0",
+      raw,
+    ])
+      .toString()
+      .trim(),
+  );
+  if (!(w > 2048)) return;
+  const tmp = raw.replace(/\.mp4$/, ".fit.mp4");
+  ffmpeg(
+    ["-i", raw, "-vf", "scale=2048:-2:flags=lanczos", "-c:v", "libx264", "-crf", "15", "-g", "30"].concat([
+      "-pix_fmt",
+      "yuv420p",
+      "-threads",
+      "2",
+      tmp,
+    ]),
+  );
+  renameSync(tmp, raw);
+}
+
 /** the Remotion composite, then a README GIF (two-pass palette, 25 fps, ≤ 4 MB by stepping the width down) */
 function render(name: string) {
   const mp4 = `${OUT}/${name}.mp4`;
+  for (const raw of [`${RAW}/${name}.mp4`, `${RAW}/${name}-phone.mp4`]) if (existsSync(raw)) fitRaw(raw);
   execFileSync(
     "pnpm",
     [
@@ -95,6 +132,8 @@ const GIF_LADDER: Array<[fps: number, width: number, dither: string]> = [
   [20, 840, "bayer:bayer_scale=3"],
   [15, 840, "bayer:bayer_scale=3"],
   [12, 840, "none"],
+  [10, 840, "none"],
+  [8, 840, "none"],
 ];
 function gif(name: string) {
   const mp4 = `${OUT}/${name}.mp4`;
