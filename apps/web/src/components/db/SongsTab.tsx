@@ -13,6 +13,7 @@ import { fillMissing } from "@/lib/fill/client";
 import { lazy, lower, t as tx } from "@/lib/i18n";
 import { rise, spring } from "@/lib/motion";
 import { youtubeVideoUrl } from "@/lib/openLink";
+import { creditName, creditSpans } from "@/lib/orchestraName";
 import { tapPlay } from "@/lib/playback";
 import type { Version } from "@/lib/smartSearch";
 import { bpmChoice } from "@/lib/songData";
@@ -303,7 +304,10 @@ export function SongsTab() {
           }
           sub={
             <>
-              <Highlight text={s.orchestra} spans={hl.orchestra} />
+              <Highlight
+                text={creditName(s.orchestra)}
+                spans={creditSpans(s.orchestra, creditName(s.orchestra), hl.orchestra)}
+              />
               {s.singer ? (
                 <>
                   {" · "}

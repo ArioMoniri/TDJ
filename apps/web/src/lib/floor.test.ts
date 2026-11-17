@@ -8,6 +8,7 @@ import {
   floorPosition,
   floorRemaining,
   floorStage,
+  floorTimes,
   tapTempo,
 } from "./floor";
 
@@ -113,6 +114,54 @@ describe("floorOf: the Booth's plan and clock as the screen's state", () => {
     expect(cleanFloor(JSON.parse(JSON.stringify(f)))).toEqual(f);
     expect(cleanFloor({ kind: "hack" })).toBeNull();
     expect(cleanFloor({ ...f, title: "x".repeat(500) })!.title).toHaveLength(120);
+  });
+});
+
+describe("dancer info: what follows, the tanda's time left, La Cumparsita, the night's place", () => {
+  it("song 2 of 4: a song follows; the tanda's time left; La Cumparsita after the vals tanda", () => {
+    const f = floorOf(booth(2), 0);
+    expect(f.follows).toBe("song");
+    // songs 2..4 of tanda 1 (180 s each), 30 s into song 2: 150 + 180 + 180 left
+    expect(floorTimes(f, 0).tandaLeftSec).toBe(510);
+    // the closing starts after the opening, four songs, a cortina and three valses
+    expect(floorTimes(f, 0).cumparsitaInSec).toBe(180 * 8 + 45 - (180 * 2 + 30));
+    expect(f.arc).toEqual(["tango", "vals"]);
+    const t = floorTimes(f, 0);
+    expect(t.nightAt).toBeGreaterThan(0);
+    expect(t.nightAt).toBeLessThan(1);
+  });
+  it("the last song of a tanda: the cortina follows; the cortina: the next tanda follows", () => {
+    expect(floorOf(booth(4), 0).follows).toBe("cortina");
+    const c = floorOf(booth(5, { state: "cortina", position: 0 }), 0);
+    expect(c.follows).toBe("song");
+    expect(floorTimes(c, 0).tandaLeftSec).toBeNull();
+  });
+  it("the last vals: La Cumparsita follows; during it nothing is left to wait for", () => {
+    expect(floorOf(booth(8), 0).follows).toBe("closing");
+    const z = floorOf(booth(9), 0);
+    expect(z.follows).toBe("end");
+    expect(floorTimes(z, 0).cumparsitaInSec).toBeNull();
+  });
+  it("the time left counts down on a viewer while playing, and holds while paused", () => {
+    const f = floorOf(booth(2), 0);
+    expect(floorTimes(f, 10_000).tandaLeftSec).toBe(500);
+    const p = floorOf(booth(2, { paused: true, state: "paused" }), 0);
+    expect(floorTimes(p, 10_000).tandaLeftSec).toBe(510);
+  });
+  it("the planned start times win over summed lengths (gaps between items)", () => {
+    const timed = { items: plan.items.map((x, i) => ({ ...x, startSec: i * 200 })) };
+    const f = floorOf({ ...booth(2), plan: timed }, 0);
+    // tanda 1 ends at item 4's start (800) + 180; song 2 starts at 400, 30 s in
+    expect(floorTimes(f, 0).tandaLeftSec).toBe(800 + 180 - 430);
+    expect(floorTimes(f, 0).cumparsitaInSec).toBe(9 * 200 - 430);
+  });
+  it("another device's state keeps the dancer fields, bounded", () => {
+    const f = floorOf(booth(2), 0);
+    const c = cleanFloor(JSON.parse(JSON.stringify(f)))!;
+    expect(c.follows).toBe("song");
+    expect(c.arc).toEqual(["tango", "vals"]);
+    expect(cleanFloor({ ...f, arc: Array.from({ length: 500 }, () => "tango") })!.arc).toHaveLength(80);
+    expect(cleanFloor({ ...f, follows: "boom" })!.follows).toBeNull();
   });
 });
 

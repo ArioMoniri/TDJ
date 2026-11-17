@@ -16,6 +16,7 @@ import {
 import { haptic } from "@/lib/haptics";
 import { fmtNumber, plural, t } from "@/lib/i18n";
 import { fmtLen } from "@/lib/lengths";
+import { creditName, creditSpans } from "@/lib/orchestraName";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import { ERAS, type EraChip, eraOfFilters, type SourceId, type Version, withEra } from "@/lib/smartSearch";
@@ -241,8 +242,11 @@ export function VersionRow({
   const menuProps = useSongMenuProps({ ...menu, song: s });
   const bpm = bpmText(sd);
   const hl = v.hit?.highlights ?? {};
+  // a raw guitarists' credit reads as names, the search's marks carried over (lib/orchestraName.ts)
+  const orch = creditName(s.orchestra);
+  const orchSpans = creditSpans(s.orchestra, orch, hl.orchestra);
   const facts = [
-    s.orchestra,
+    orch,
     s.singer ?? t("tandaType.instrumental"),
     s.year ? `${yearText(eff.year)}${v.external && !v.hit ? "*" : ""}` : null,
   ];
@@ -271,7 +275,7 @@ export function VersionRow({
             <Fragment key={i}>
               {i > 0 && " · "}
               {i === 0 ? (
-                <Highlight text={f} spans={hl.orchestra} />
+                <Highlight text={f} spans={orchSpans} />
               ) : i === 1 && s.singer ? (
                 <Highlight text={f} spans={hl.singer} />
               ) : (
@@ -458,7 +462,13 @@ export function SmartSearchField({
               <span className="smart-assist-kind">
                 {t(`smartSearch.kind_${c.kind}` as "smartSearch.kind_title")}
               </span>
-              <span className="truncate">{c.kind === "singer" ? singerDisplay(c.label) : c.label}</span>
+              <span className="truncate">
+                {c.kind === "singer"
+                  ? singerDisplay(c.label)
+                  : c.kind === "orchestra"
+                    ? creditName(c.label)
+                    : c.label}
+              </span>
               {i === 0 && !s.correction && (
                 <kbd className="smart-kbd" aria-hidden>
                   Tab

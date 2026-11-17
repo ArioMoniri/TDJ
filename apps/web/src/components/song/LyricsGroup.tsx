@@ -1,6 +1,6 @@
 "use client";
 import { type Song, workCredit } from "@tdj/core";
-import { ClipboardPaste, ExternalLink, MicVocal, Search } from "lucide-react";
+import { ClipboardPaste, ExternalLink, Info, MicVocal, Search } from "lucide-react";
 import { type KeyboardEvent, memo, useCallback, useEffect, useRef, useState } from "react";
 import { t } from "@/lib/i18n";
 import {
@@ -94,6 +94,19 @@ export function LyricsGroup({
               title: l.match.title,
             })
           : null;
+  // 2026-11 (the owner: "the credit line is long") — the play view says the source in one line, the full credits
+  // behind an ⓘ; the sheets keep the full footer
+  const [credits, setCredits] = useState(false);
+  const sourceName = l?.source === "musixmatch" ? "Musixmatch" : l?.source === "paste" ? null : "LRCLIB";
+  const sourceLine = !l
+    ? null
+    : l.source === "paste"
+      ? t("song.lyrics_source_yours")
+      : l.match?.kind === "work"
+        ? t("song.lyrics_source_other", { source: sourceName ?? "" })
+        : sourceName
+          ? t("song.lyrics_source", { source: sourceName })
+          : null;
   const footer = (
     <>
       {credit && (
@@ -124,10 +137,33 @@ export function LyricsGroup({
       {l?.pixel && <img src={l.pixel} alt="" width={1} height={1} className="sr-only" />}
     </>
   );
+  const bigFooter =
+    l && l.state !== "none" && l.state !== "instrumental" ? (
+      <span className="now-lyrics-source" data-testid="song-lyrics-source">
+        <span className="min-w-0 truncate">{sourceLine}</span>
+        <button
+          type="button"
+          className="now-lyrics-info"
+          aria-label={t("song.lyrics_credits")}
+          aria-expanded={credits}
+          onClick={() => setCredits((c) => !c)}
+          data-testid="song-lyrics-credits-btn"
+        >
+          <Info size={16} strokeWidth={2} aria-hidden />
+        </button>
+        {credits && (
+          <span className="now-lyrics-credits" data-testid="song-lyrics-credits">
+            {footer}
+          </span>
+        )}
+        {l?.pixel && !credits && <img src={l.pixel} alt="" width={1} height={1} className="sr-only" />}
+      </span>
+    ) : null;
   return (
     <Group
-      header={t("song.lyrics")}
-      footer={footer}
+      header={big ? undefined : t("song.lyrics")}
+      footer={big ? bigFooter : footer}
+      className={big ? "now-lyrics" : ""}
       data-testid="song-lyrics"
       data-state={l?.state ?? (err ? "error" : want ? "loading" : "instrumental-side")}
     >
@@ -164,14 +200,17 @@ export function LyricsGroup({
       ) : (
         <>
           <div
-            className={`cell block overflow-y-auto ${big ? "max-h-[46vh]" : "max-h-72"}`}
+            className={big ? "now-lyrics-plain" : "cell block max-h-72 overflow-y-auto"}
             data-testid="song-lyrics-text"
             lang="es"
           >
-            <p className={`whitespace-pre-line ${big ? "text-title3" : "text-body"}`}>{l.plain}</p>
+            <p className="whitespace-pre-line text-body">{l.plain}</p>
           </div>
-          <div className="cell text-footnote text-[var(--label-2)]" data-testid="song-lyrics-unsynced">
-            {t("song.lyrics_not_synced")}
+          <div
+            className={big ? "now-lyrics-note" : "cell text-footnote text-[var(--label-2)]"}
+            data-testid="song-lyrics-unsynced"
+          >
+            {big ? t("song.lyrics_not_synced_short") : t("song.lyrics_not_synced")}
           </div>
         </>
       )}
@@ -317,7 +356,7 @@ function SyncedLyrics({
     <>
       <div
         ref={box}
-        className={`cell block overflow-y-auto ${big ? "max-h-[46vh]" : "max-h-72"}`}
+        className={big ? "now-lyrics-lines" : "cell block max-h-72 overflow-y-auto"}
         data-testid="song-lyrics-text"
         data-follow={follow}
         data-current-line={cur}
@@ -368,7 +407,7 @@ function SyncedLyrics({
           </button>
         </div>
       )}
-      <div className="cell" data-testid="song-lyrics-offset">
+      <div className={big ? "now-lyrics-tools" : "cell"} data-testid="song-lyrics-offset">
         <span className="min-w-0 flex-1 text-footnote text-[var(--label-2)]">
           <span className="block" data-testid="song-lyrics-follow" data-state={follow}>
             {status}
@@ -428,7 +467,11 @@ const Line = memo(function Line({
       aria-label={t("song.lyrics_line_play", { at: markText(at), text: text || "♪" })}
       aria-keyshortcuts="ArrowUp ArrowDown Enter"
       tabIndex={tabStop ? 0 : -1}
-      className={`lyric-line ${big ? "text-title3" : "text-body"} ${current ? "font-semibold text-[var(--label)]" : "text-[var(--label-2)]"}`}
+      className={
+        big
+          ? "lyric-line lyric-line-big"
+          : `lyric-line text-body ${current ? "font-semibold text-[var(--label)]" : "text-[var(--label-2)]"}`
+      }
       onClick={() => onJump(i)}
     >
       {text || "♪"}

@@ -5,6 +5,7 @@ import { ChevronRight, Heart, Info } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { fmtDate, plural, t } from "@/lib/i18n";
 import { nameVisit } from "@/lib/navTrail";
+import { orchestraName } from "@/lib/orchestraName";
 import { songHistory } from "@/lib/songHistory";
 import { type DnaTarget, openSongDetails, useSongOpen } from "@/lib/songOpen";
 import { useStore } from "@/lib/store";
@@ -146,7 +147,7 @@ export function SongDnaView({ id }: { id: string }) {
             <Info size={18} strokeWidth={2} className="text-[var(--tint)]" aria-hidden />
             <span className="min-w-0 flex-1">
               <span className="block" lang="es">
-                {me.orchestra} · {singerDisplay(me.singer) ?? t("song.instrumental")}
+                {orchestraName(me)} · {singerDisplay(me.singer) ?? t("song.instrumental")}
               </span>
               <span className="text-footnote block text-[var(--label-2)]">
                 {me.year ?? t("song.undated")} · {lengthText(me)} · {t("song.dna_details_sub")}

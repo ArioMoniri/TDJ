@@ -10,8 +10,8 @@ import { LibraryRow, libraryItem } from "@/components/library/LibraryRow";
 import { SEARCH_FOCUS_EVENT } from "@/components/Nav";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
+import { orchestraLabel } from "@/components/search/SearchChips";
 import { SmartSearchField, SmartSearchResults } from "@/components/ui/SmartSearch";
-
 import { favouritesOf } from "@/lib/favourites";
 import { useMediaQuery } from "@/lib/hooks";
 import { fmtNumber, t as tx } from "@/lib/i18n";
@@ -230,7 +230,7 @@ export default function Library() {
                     className="text-footnote px-4 pt-3 pb-1 font-semibold text-[var(--label-2)]"
                     data-testid="library-group-head"
                   >
-                    {g.orchestra} · {fmtNumber(g.count)}
+                    {orchestraLabel(g.orchestra)} · {fmtNumber(g.count)}
                   </div>
                 )}
                 <LibraryRow
