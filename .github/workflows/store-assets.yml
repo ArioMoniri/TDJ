@@ -110,7 +110,7 @@ jobs:
           bundle exec fastlane ios metadata
           bundle exec fastlane mac metadata
       - uses: actions/setup-node@v5
-        with: { node-version: 22 }
+        with: { node-version: 22, package-manager-cache: false }
       # after deliver: its overwrite_screenshots may clear Duo placements; this puts them back (reusing the assets)
       - name: App Asset Library — iPhone Duo screenshots and preview, Header and Search Results (iOS, then Mac)
         env:

@@ -60,7 +60,7 @@ jobs:
           fi
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
-        with: { node-version: 22 }
+        with: { node-version: 22, package-manager-cache: false }
       - id: v
         env:
           GH_TOKEN: ${{ github.token }}
@@ -173,7 +173,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
-        with: { node-version: 22 }
+        with: { node-version: 22, package-manager-cache: false }
       # what the installed DMG will fetch: latest.json, the tarball and its .sig as uploaded to the draft, checked
       # against the public key the app was built with, before the release becomes "latest"
       - name: Verify the auto-update assets on the draft release
@@ -221,7 +221,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
-        with: { node-version: 22 }
+        with: { node-version: 22, package-manager-cache: false }
       # the uploads need 5-30 min of App Store Connect processing before deliver can pick the build
       - name: Wait for App Store Connect to process build ${{ needs.version.outputs.build }}
         env:
