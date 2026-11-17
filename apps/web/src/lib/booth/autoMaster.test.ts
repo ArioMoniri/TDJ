@@ -104,6 +104,62 @@ describe("2026-11 room meter: the crowd's noise apart from the music", () => {
   });
 });
 
+/**
+ * The browser as it is: the microphone hears the speakers a moment late (`lag`), its 43 ms frame and the output's
+ * last rAF frame are not the same instant, and the clips carry a 4 Hz tremolo — the estimate under the music then
+ * sits well above the room (the subtraction's error). Returns the top boost and the baseline Auto master kept.
+ */
+function night(o: { songSec: number; musicDb: number; crowdDb: number; lag: number; secs?: number }) {
+  const out = (t: number) =>
+    t % (o.songSec + 2.5) > o.songSec
+      ? Number.NEGATIVE_INFINITY
+      : o.musicDb + 6 * Math.sin(2 * Math.PI * 4 * t);
+  const p = (t: number) => (Number.isFinite(out(t)) ? ms(out(t)) : 0);
+  const win = (a: number, b: number) => {
+    let s = 0;
+    for (let i = 0; i < 20; i++) s += p(a + ((b - a) * (i + 0.5)) / 20);
+    return s / 20;
+  };
+  const r = new RoomEstimator();
+  const a = new AutoMaster();
+  let boost = 0;
+  let top = 0;
+  for (let t = 0; t < (o.secs ?? 600); t += 0.1) {
+    if (Math.abs(t - 15) < 0.05) a.enable();
+    const g = ms(boost);
+    const micMs = win(t - o.lag - 0.043, t - o.lag) * g * ms(-15) + ms(t < 30 ? -80 : o.crowdDb);
+    const f = Math.floor(t / 0.0333) * 0.0333;
+    const outMs = win(f - 0.043, f) * g;
+    const rd = r.push(t, micMs, outMs);
+    boost = a.step(0.1, {
+      noiseDb: rd.room?.db ?? null,
+      noiseKind: rd.room?.kind,
+      hold: outMs > 1e-5 ? null : "gap",
+      masterDb: 0,
+      outPeakDb: -6,
+    });
+    top = Math.max(top, boost);
+  }
+  return { top, baseline: a.baseline };
+}
+
+describe("2026-11 Auto master: a reading against a baseline of its own kind (a gap's, or the music's estimate)", () => {
+  it("the crowd 45 dB louder lifts the boost although the estimate under the music read near it (e2e: 0 dB on CI)", () => {
+    for (const lag of [0.05, 0.12, 0.25]) {
+      // clips of 8 s and 2.5 s gaps; the music loud at the microphone (its estimate of the room near −40)
+      const r = night({ songSec: 8, musicDb: -10, crowdDb: -36, lag, secs: 120 });
+      expect(r.top, `lag ${lag}`).toBeGreaterThanOrEqual(2.5);
+      // the baseline is the room as a gap heard it when Auto master started (the fake room's −80 dB)
+      expect(r.baseline!, `lag ${lag}`).toBeLessThan(-75);
+    }
+  });
+  it("a quiet room never lifts it: 3-minute songs, the estimate under the music far above the room's gaps", () => {
+    // (a 250 ms lag drifts the music's estimate by itself, before and after this change: not judged here)
+    for (const lag of [0.05, 0.12])
+      expect(night({ songSec: 190, musicDb: -10, crowdDb: -80, lag }).top, `lag ${lag}`).toBeLessThan(1);
+  });
+});
+
 describe("2026-11 Auto master: slow, bounded, held during cortinas and talk", () => {
   const live = { hold: null, masterDb: 0, outPeakDb: -6 } as const;
 

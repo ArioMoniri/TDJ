@@ -128,7 +128,11 @@ test("iPhone: a shake asks “Undo …?”, Undo works, the next shake offers th
 }) => {
   test.setTimeout(240_000);
   const { defaultBrowserType: _, ...iphone } = devices["iPhone 15 Pro"];
-  const ctx = await browser.newContext(iphone);
+  // a phone's motion sensors are allowed, as on a real device (Chrome on Android: Site settings › Motion sensors,
+  // allowed by default). A fresh Playwright context does not grant them, and a Chromium with the Device Orientation
+  // spec's DeviceMotionEvent.requestPermission() then reads like iOS: Shake to Undo waits for the grant
+  // (lib/shake.ts adoptMotionGrant)
+  const ctx = await browser.newContext({ ...iphone, permissions: ["accelerometer", "gyroscope"] });
   const page = await ctx.newPage();
   try {
     await openFeatured(page);
@@ -146,7 +150,28 @@ test("iPhone: a shake asks “Undo …?”, Undo works, the next shake offers th
 
     await shake(page);
     const alert = page.getByTestId("shake-alert");
-    await expect(alert).toBeVisible();
+    // (what this browser offers the shake, said when it does not answer)
+    const motion = () =>
+      page.evaluate(async () => {
+        const dme = DeviceMotionEvent as unknown as { requestPermission?: unknown };
+        let sensor = "n/a";
+        try {
+          sensor = (await navigator.permissions.query({ name: "accelerometer" as PermissionName })).state;
+        } catch (e) {
+          sensor = `throws ${(e as Error).name}`;
+        }
+        return JSON.stringify({
+          ua: navigator.userAgent.slice(-40),
+          requestPermission: typeof dme.requestPermission,
+          sensor,
+          coarse: matchMedia("(pointer: coarse)").matches,
+          touchPoints: navigator.maxTouchPoints,
+          hidden: document.hidden,
+          pref: localStorage.getItem("tdj-shake-undo"),
+          granted: localStorage.getItem("tdj-shake-motion"),
+        });
+      });
+    await expect(alert, `Chromium ${browser.version()}: ${await motion()}`).toBeVisible();
     await expect(page.getByRole("alertdialog")).toBeVisible();
     await expect(page.getByTestId("shake-alert-title")).toHaveText(`Undo “Tanda ${n} was locked”?`);
     // it asked: nothing undone yet

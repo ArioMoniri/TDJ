@@ -12,6 +12,7 @@ import {
   autoHold,
   autoPath,
   calibrationOffset,
+  type NoiseKind,
   RoomEstimator,
 } from "./autoMaster";
 import type { BoothEngine } from "./engine";
@@ -176,6 +177,8 @@ const room = new RoomEstimator();
 const auto = new AutoMaster();
 const meter = new LevelMeter();
 let lastOutMs: number | null = null;
+/** the room as Auto master reads it (RoomReading.room), calibrated */
+let autoRoom: { db: number; kind: NoiseKind } | null = null;
 
 export async function startRoom(): Promise<RoomStatus> {
   if (mic) return "on";
@@ -216,6 +219,7 @@ export async function startRoom(): Promise<RoomStatus> {
   hp.connect(an);
   mic = { stream, ctx, own, nodes: [src, shelf, hp, an], an, buf: new Float32Array(2048) };
   room.reset();
+  autoRoom = null;
   setRoom({ status: "on" });
   ensureLoops();
   return "on";
@@ -229,6 +233,7 @@ export function stopRoom(): void {
   }
   mic = null;
   room.reset();
+  autoRoom = null;
   setRoom({ status: "off", levelDb: null, noiseDb: null });
 }
 function setRoom(p: Partial<LevelState["room"]>) {
@@ -406,6 +411,8 @@ function roomTick() {
     const outMs = external ? (sounding ? null : 0) : (lastOutMs ?? 0);
     const r = room.push(now, micMs, outMs);
     const cal = lv.room.calOffset ?? 0;
+    // Auto master's room: a gap's reading or the estimate under the music, each against its own baseline
+    autoRoom = r.room ? { db: r.room.db + cal, kind: r.room.kind } : null;
     noise = r.noiseDb === null ? null : r.noiseDb + cal;
     roomPatch = {
       levelDb: Number.isFinite(r.levelDb) ? Math.round((r.levelDb + cal) * 10) / 10 : null,
@@ -422,7 +429,8 @@ function roomTick() {
     sounding,
   });
   const db = auto.step(dt, {
-    noiseDb: noise,
+    noiseDb: autoRoom?.db ?? null,
+    noiseKind: autoRoom?.kind,
     hold: path === "none" ? (hold ?? "paused") : hold,
     masterDb: b.master,
     outPeakDb: external ? null : Number.isFinite(lv.reading.holdDb) ? lv.reading.holdDb : null,
@@ -446,4 +454,10 @@ export const levelDebug = () => ({
   baseline: auto.baseline,
   enabled: auto.enabled,
   mic: !!mic,
+  // why the boost waits (null: it follows the room) and the room's noise, as the loop last saw them
+  hold: useLevels.getState().auto.hold,
+  noiseDb: useLevels.getState().room.noiseDb,
+  // the room as Auto master reads it: a gap's reading or the estimate under the music (each its own baseline)
+  room: autoRoom,
+  loops: { raf: !!raf, timer: !!timer },
 });

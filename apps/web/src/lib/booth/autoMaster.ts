@@ -106,7 +106,16 @@ export interface RoomReading {
   noiseDb: number | null;
   /** the speakers-to-microphone coupling, dB; null until learned */
   couplingDb: number | null;
+  /**
+   * 2026-11: the room for Auto master, by the one kind of reading that stands now — a gap's (the room heard alone,
+   * within GAP_TRUST_SEC) or the estimate under the music — each smoothed on its own. Auto master compares a reading
+   * with a baseline of the same kind: the estimate under the music can sit far above the room (the subtraction's
+   * error: −45 dB for a −80 dB room under the clips' tremolo), so a baseline taken under the music hid a crowd that the
+   * next gap heard plainly, and a baseline from a gap set against the music's estimate would boost a quiet room.
+   */
+  room: { db: number; kind: NoiseKind } | null;
 }
+export type NoiseKind = "gap" | "music";
 
 export class RoomEstimator {
   private frames: Array<{ t: number; mic: number; out: number | null }> = [];
@@ -116,6 +125,11 @@ export class RoomEstimator {
   private silentSince: number | null = null;
   private lastSampleAt: number | null = null;
   private lastGapAt: number | null = null;
+  /** the two kinds on their own (RoomReading.room) */
+  private byKind: Record<NoiseKind, { db: number | null; at: number | null }> = {
+    gap: { db: null, at: null },
+    music: { db: null, at: null },
+  };
 
   /**
    * One frame: `micMs` the microphone's (K-weighted) mean square; `outMs` the booth's output (K-weighted, summed)
@@ -168,8 +182,24 @@ export class RoomEstimator {
           : this.noise + (sample - this.noise) * (1 - Math.exp(-Math.max(dt, since) / NOISE_TAU_SEC));
       this.lastSampleAt = t;
       if (fromGap) this.lastGapAt = t;
+      // the kind's own estimate: a gap's first reading after a while counts for a lot (the time since its kind's last)
+      const k = this.byKind[fromGap ? "gap" : "music"];
+      const sinceKind = k.at === null ? 0 : Math.min(GAP_TRUST_SEC, t - k.at);
+      k.db =
+        k.db === null
+          ? sample
+          : k.db + (sample - k.db) * (1 - Math.exp(-Math.max(dt, sinceKind) / NOISE_TAU_SEC));
+      k.at = t;
     }
-    return { levelDb: level, noiseDb: this.noise, couplingDb: this.coupling() };
+    const gapNow = this.lastGapAt !== null && t - this.lastGapAt < GAP_TRUST_SEC;
+    const kind: NoiseKind = gapNow ? "gap" : "music";
+    const kdb = this.byKind[kind].db;
+    return {
+      levelDb: level,
+      noiseDb: this.noise,
+      couplingDb: this.coupling(),
+      room: kdb === null ? null : { db: kdb, kind },
+    };
   }
   private coupling(): number | null {
     if (this.pairs.length < COUPLING_MIN_SAMPLES) return null;
@@ -186,6 +216,7 @@ export class RoomEstimator {
     this.silentSince = null;
     this.lastSampleAt = null;
     this.lastGapAt = null;
+    this.byKind = { gap: { db: null, at: null }, music: { db: null, at: null } };
   }
 }
 
@@ -197,16 +228,28 @@ export interface AutoInput {
   masterDb: number;
   /** the output's recent sample peak (dBFS) when the booth can see it (files / clips), else null */
   outPeakDb: number | null;
+  /** RoomReading.room's kind for `noiseDb` (each kind has its own baseline); unset: one kind */
+  noiseKind?: NoiseKind;
 }
+
+/** with no gap to hear the room alone (a gapless night), the estimate under the music is the baseline after this long */
+export const BASELINE_WAIT_SEC = 300;
 
 export class AutoMaster {
   cfg: AutoConfig;
   /** the boost on top of the DJ's master, dB (≥ 0) */
   db = 0;
   enabled = false;
-  /** the noise floor the DJ's level was set against */
-  baseline: number | null = null;
+  /** the noise floor the DJ's level was set against, by the kind of reading (RoomReading.room) */
+  private baselines: Record<NoiseKind, number | null> = { gap: null, music: null };
+  private kind: NoiseKind = "music";
   private moving = false;
+  /** the baseline for the kind of reading that stands now */
+  get baseline(): number | null {
+    return this.baselines.gap ?? this.baselines.music;
+  }
+  /** seconds of music since enabling with no gap heard yet (the music's own baseline waits for a gap first) */
+  private waited = 0;
 
   constructor(cfg?: Partial<AutoConfig>) {
     this.cfg = autoConfig(cfg);
@@ -217,25 +260,30 @@ export class AutoMaster {
   enable(): void {
     if (this.enabled) return;
     this.enabled = true;
-    this.baseline = null;
+    this.baselines = { gap: null, music: null };
+    this.waited = 0;
     this.moving = false;
   }
   /** Stop: the boost ramps back to 0 at the rate (never a jump). */
   disable(): void {
     this.enabled = false;
-    this.baseline = null;
+    this.baselines = { gap: null, music: null };
+    this.waited = 0;
   }
   /** The DJ moved the master: the level they chose is the one for the room as it is now. */
   rebase(): void {
-    this.baseline = null;
+    this.baselines = { gap: null, music: null };
+    this.waited = 0;
   }
   /** Where the boost wants to be (before the rate limit). */
   target(i: AutoInput): number {
     const room = AUTO_CEILING_DB - i.masterDb;
     if (!this.enabled) return 0;
     let t = this.db;
-    if (!i.hold && i.noiseDb !== null && this.baseline !== null) {
-      const want = Math.min(this.cfg.maxBoostDb, Math.max(0, AUTO_SLOPE * (i.noiseDb - this.baseline)));
+    // a reading against the baseline of its own kind (RoomReading.room)
+    const base = this.baselines[this.kind];
+    if (!i.hold && i.noiseDb !== null && base !== null) {
+      const want = Math.min(this.cfg.maxBoostDb, Math.max(0, AUTO_SLOPE * (i.noiseDb - base)));
       if (this.moving || Math.abs(want - this.db) >= AUTO_DEADBAND_DB) t = want;
     }
     if (i.outPeakDb !== null && i.outPeakDb >= AUTO_PEAK_STOP_DBFS) t = Math.min(t, this.db);
@@ -245,7 +293,16 @@ export class AutoMaster {
   /** Advance `dtSec`: returns the boost (dB) to apply. */
   step(dtSec: number, i: AutoInput): number {
     const dt = Math.max(0, Math.min(1, dtSec));
-    if (this.enabled && this.baseline === null && i.noiseDb !== null && !i.hold) this.baseline = i.noiseDb;
+    this.kind = i.noiseKind ?? "music";
+    if (this.enabled && this.baselines[this.kind] === null && i.noiseDb !== null && !i.hold) {
+      // the room as it is when Auto master starts is the first gap's reading; the estimate under the music becomes its
+      // own baseline once a gap has said what the room is, or after BASELINE_WAIT_SEC of a night with no gap
+      // (unkinded readings, a single source: at once)
+      const ready =
+        i.noiseKind !== "music" || this.baselines.gap !== null || this.waited >= BASELINE_WAIT_SEC;
+      if (ready) this.baselines[this.kind] = i.noiseDb;
+      else this.waited += dt;
+    }
     const t = this.target(i);
     const d = t - this.db;
     const max = Math.min(AUTO_MAX_RATE_DB_PER_SEC, this.cfg.rateDbPerSec) * dt;
