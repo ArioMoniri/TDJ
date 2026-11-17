@@ -1272,6 +1272,15 @@ test("design review, iPad portrait: the chips under the title take at most two r
   await page.waitForTimeout(400);
   const playing = await overlap(page);
   expect(playing.chipTops).toBe(1);
+  // (the room it takes: the status keeps "Playing · Rehearsal", its " · 30 s clips" steps aside on this narrow row —
+  // still in its text and read out)
+  await expect(page.getByTestId("booth-mode")).toHaveText("Playing · Rehearsal · 30 s clips");
+  expect(
+    await page
+      .getByTestId("booth-mode")
+      .locator(".booth-chip-detail")
+      .evaluate((e) => e.getBoundingClientRect().width),
+  ).toBeLessThanOrEqual(1);
   expect(playing.namesCut).toEqual([]);
   await expect(page.getByTestId("booth-show")).toHaveAccessibleName(/Show/);
   await ctx.close();
