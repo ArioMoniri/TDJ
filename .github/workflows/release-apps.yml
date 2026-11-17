@@ -39,6 +39,25 @@ jobs:
       build: ${{ steps.v.outputs.build }}
       commit: ${{ steps.v.outputs.commit }}
     steps:
+      # fail closed before any macOS minute: a release signs with THIS repository's own Apple account. The upstream
+      # author's team and bundle ID are used only in the upstream repository; a fork must set its own.
+      - name: Require this repository's own Apple credentials
+        env:
+          HAS_ASC: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID != '' && secrets.APP_STORE_CONNECT_KEY_ID != '' && secrets.APP_STORE_CONNECT_PRIVATE_KEY != '' }}
+          HAS_TEAM: ${{ secrets.APPLE_TEAM_ID != '' }}
+          HAS_BUNDLE: ${{ vars.TDJ_APP_BUNDLE_ID != '' }}
+          UPSTREAM: ${{ github.repository == 'ArioMoniri/TDJ' }}
+        run: |
+          missing=""
+          [ "$HAS_ASC" = true ] || missing="$missing APP_STORE_CONNECT_ISSUER_ID/KEY_ID/PRIVATE_KEY (secrets)"
+          if [ "$UPSTREAM" != true ]; then
+            [ "$HAS_TEAM" = true ] || missing="$missing APPLE_TEAM_ID (secret)"
+            [ "$HAS_BUNDLE" = true ] || missing="$missing TDJ_APP_BUNDLE_ID (variable)"
+          fi
+          if [ -n "$missing" ]; then
+            echo "::error::Missing on ${GITHUB_REPOSITORY}:${missing}. Set your own (docs/APPLE_SETUP.md); nothing is released."
+            exit 1
+          fi
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with: { node-version: 22 }
@@ -78,8 +97,9 @@ jobs:
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || 'FF68N39FU5' }}
-      TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || 'com.ariomoniri.tdj' }}
+      # the upstream author's public team / bundle IDs only in the upstream repository (the version job checks a fork)
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || (github.repository == 'ArioMoniri/TDJ' && 'FF68N39FU5' || '') }}
+      TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || (github.repository == 'ArioMoniri/TDJ' && 'com.ariomoniri.tdj' || '') }}
       # the apps are standalone: no server address is built in; the Spotify Client ID is public (PKCE)
       TDJ_SPOTIFY_CLIENT_ID: ${{ vars.TDJ_SPOTIFY_CLIENT_ID }}
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -220,7 +240,7 @@ jobs:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
-          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || 'com.ariomoniri.tdj' }}
+          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || (github.repository == 'ArioMoniri/TDJ' && 'com.ariomoniri.tdj' || '') }}
           BUILD: ${{ needs.version.outputs.build }}
           V: ${{ needs.version.outputs.version }}
           MAS: ${{ contains(inputs.targets, 'mas') }}

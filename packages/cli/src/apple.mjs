@@ -8,6 +8,11 @@ import { join } from "node:path";
 import { step, UPSTREAM } from "./deploy.mjs";
 import * as v from "./validate.mjs";
 
+/**
+ * The upstream author's public Apple team and bundle IDs: defaults ONLY when the target is the upstream repository
+ * itself. Anyone else (a fork) types their own, so a fork never signs, registers or uploads under the author's
+ * Apple account.
+ */
 export const DEFAULTS = {
   teamId: "FF68N39FU5",
   bundleId: "com.ariomoniri.tdj",
@@ -32,8 +37,12 @@ export async function apple(ctx, flags) {
   if (ctx.run("gh", ["auth", "status"], { allowFail: true }).status !== 0) {
     throw new Error("GitHub CLI is not logged in: run `gh auth login` first.");
   }
-  const repo = /** @type {string} */ (flags.repo || UPSTREAM);
+  // your own repository: --repo, else <your GitHub login>/TDJ (never the upstream one by default)
+  const repo = /** @type {string} */ (
+    flags.repo || `${ctx.run("gh", ["api", "user", "--jq", ".login"]).stdout.trim()}/TDJ`
+  );
   if (v.repo(repo)) throw new Error(/** @type {string} */ (v.repo(repo)));
+  const upstream = repo.toLowerCase() === UPSTREAM.toLowerCase();
   log(c.bold(`Apple release setup for ${repo}`));
   log(c.dim("You will paste three values from one Apple page. Everything else is set for you."));
   log();
@@ -68,8 +77,20 @@ export async function apple(ctx, flags) {
   if (!/BEGIN PRIVATE KEY/.test(p8)) throw new Error(`${p8Path} is not an App Store Connect .p8 key.`);
   const keyErr = v.ascIssuer(issuer) || v.ascKeyId(keyId);
   if (keyErr) throw new Error(keyErr);
-  const teamId = /** @type {string} */ (flags["team-id"] || DEFAULTS.teamId);
-  const bundleId = /** @type {string} */ (flags["bundle-id"] || DEFAULTS.bundleId);
+  const teamId = /** @type {string} */ (
+    flags["team-id"] ||
+      (upstream
+        ? DEFAULTS.teamId
+        : await ctx.ask("teamId", `Your Apple Team ID (${PAGES.membership})`, { validate: v.teamId }))
+  );
+  const bundleId = /** @type {string} */ (
+    flags["bundle-id"] ||
+      (upstream
+        ? DEFAULTS.bundleId
+        : await ctx.ask("bundleId", "Your bundle ID (reverse domain, e.g. com.yourname.tdj)", {
+            validate: v.bundleId,
+          }))
+  );
   if (v.teamId(teamId) || v.bundleId(bundleId))
     throw new Error(/** @type {string} */ (v.teamId(teamId) || v.bundleId(bundleId)));
 

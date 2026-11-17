@@ -8,7 +8,7 @@ Lessons from the first deploys: pass a full 40-character SHA to the `commit` inp
 1. **Once per AWS account** – create the OIDC role (CloudFormation):
    ```bash
    aws cloudformation deploy --stack-name tdj-github-oidc --template-file infra/github-oidc-role.yaml \
-     --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubOrg=ArioMoniri GitHubRepo=TDJ
+     --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubOrg=<your-github-user> GitHubRepo=<your-fork-name>
    aws cloudformation describe-stacks --stack-name tdj-github-oidc --query "Stacks[0].Outputs[0].OutputValue" --output text
    ```
    (or Console → CloudFormation → Create stack → upload `infra/github-oidc-role.yaml`).
@@ -65,7 +65,7 @@ Settings → Owner (owner devices only)            POST /api/owner/contributions
   pnpm data:apply-contributions <file>  ─────────▶   → data/sources/owner-overrides.json (keyed, provenance)
   (by hand, offline)                                 → pnpm index:build → data/index/owner.json
                                                      → data tests + pnpm quality (golden ≥ 85)
-                                                     → merge commit as ArioMoniri to the deploy branch
+                                                     → merge commit as the repo owner to the deploy branch
                                                      → mark merged → (optional) Deploy to AWS
 ```
 
@@ -89,13 +89,16 @@ Settings → Owner (owner devices only)            POST /api/owner/contributions
    those on the table.
 2. Repository variable **`TDJ_DB_TABLE`** = the table name (the deploy run's summary prints `table` from
    `.sst/outputs.json`). Without it the workflow looks the table up by its `sst:app=tdj` / `sst:stage` tags.
-3. Optional variables: `OWNER_CONTRIB_BRANCH` (default `claude/admiring-curie-npzd0m`), `OWNER_CONTRIB_DEPLOY=true`
+3. Optional variables: `OWNER_CONTRIB_BRANCH` (default: the branch the run starts on; `claude/admiring-curie-npzd0m`
+   in the upstream repository), `OWNER_CONTRIB_DEPLOY=true`
    to deploy after every merge, `OWNER_CONTRIB_ENABLED=false` to pause it.
 4. Scheduled runs only start from the **default branch**: keep `.github/workflows/merge-owner-contributions.yml` there
    too (the job itself checks out and pushes to the deploy branch). The push uses the run's `GITHUB_TOKEN`
    (`contents: write`); a branch protection that forbids it must allow GitHub Actions.
 
-Commits are authored as `ArioMoniri <92126657+ArioMoniri@users.noreply.github.com>`, carry no trailers, and land as
+Commits are authored as the repository owner (`<owner> <<owner id>+<owner>@users.noreply.github.com>`, from the
+run's `github.repository_owner`; override with the variables `OWNER_CONTRIB_GIT_NAME` / `OWNER_CONTRIB_GIT_EMAIL`),
+carry no trailers, and land as
 a merge commit (never a force push). When a data test or the quality gate fails nothing is pushed or marked: the
 contributions stay pending and the run summary says why. A contribution that fails validation is marked `rejected`
 with the reason. Merged ones expire from the table after 30 days; pending ones after 180.
@@ -125,7 +128,7 @@ Forgot the passphrase: delete `/tdj/<stage>/OWNER_PASSPHRASE_HASH` in Parameter 
 **One-time IAM change.** The deploy role now carries an explicit `tdj-owner-setup` policy (`ssm:PutParameter`/`GetParameter` on `arn:aws:ssm:*:*:parameter/tdj/*`, KMS via SSM) in `infra/github-oidc-role.yaml`. Re-deploy the stack once so the role matches the file:
 ```bash
 aws cloudformation deploy --stack-name tdj-github-oidc --template-file infra/github-oidc-role.yaml \
-  --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubOrg=ArioMoniri GitHubRepo=TDJ
+  --capabilities CAPABILITY_NAMED_IAM --parameter-overrides GitHubOrg=<your-github-user> GitHubRepo=<your-fork-name>
 ```
 (The role's `PowerUserAccess` already allows SSM, so a deploy made before this command still works; the explicit statement keeps the dependency visible when the managed policy is narrowed later.) The Next.js function gets `ssm:GetParameter`, `ssm:GetParametersByPath`, `ssm:PutParameter`, `ssm:DeleteParameter` on `/tdj/*` and `kms:Encrypt`/`kms:Decrypt` from `sst.config.ts`, and `TDJ_STAGE` / `TDJ_CONFIG_BACKEND=ssm` in its environment.
 

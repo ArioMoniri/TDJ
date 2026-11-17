@@ -21,16 +21,19 @@ concurrency:
   group: merge-owner-contributions
   cancel-in-progress: false
 env:
-  DEPLOY_BRANCH: ${{ vars.OWNER_CONTRIB_BRANCH || 'claude/admiring-curie-npzd0m' }}
+  # the upstream repository keeps its deploy branch; a fork merges into the branch the run starts on (its default)
+  DEPLOY_BRANCH: ${{ vars.OWNER_CONTRIB_BRANCH || (github.repository == 'ArioMoniri/TDJ' && 'claude/admiring-curie-npzd0m' || github.ref_name) }}
   STAGE: ${{ inputs.stage || 'production' }}
-  GIT_NAME: ArioMoniri
-  GIT_EMAIL: 92126657+ArioMoniri@users.noreply.github.com
+  # commits are authored as THIS repository's owner (a fork never commits under the upstream author's identity)
+  GIT_NAME: ${{ vars.OWNER_CONTRIB_GIT_NAME || github.repository_owner }}
+  GIT_EMAIL: ${{ vars.OWNER_CONTRIB_GIT_EMAIL || format('{0}+{1}@users.noreply.github.com', github.repository_owner_id, github.repository_owner) }}
 jobs:
   merge:
     runs-on: ubuntu-latest
     environment: ${{ inputs.stage || 'production' }}
-    # off switch without editing the file: repository variable OWNER_CONTRIB_ENABLED=false
-    if: ${{ vars.OWNER_CONTRIB_ENABLED != 'false' }}
+    # off switch without editing the file: repository variable OWNER_CONTRIB_ENABLED=false. A fork without its own
+    # deploy role (AWS_DEPLOY_ROLE_ARN) skips the job: it has no table of its own to read.
+    if: ${{ vars.OWNER_CONTRIB_ENABLED != 'false' && vars.AWS_DEPLOY_ROLE_ARN != '' }}
     steps:
       - uses: actions/checkout@v5
         with:

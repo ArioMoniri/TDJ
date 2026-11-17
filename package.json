@@ -37,6 +37,7 @@
     "media:hero": "pnpm --filter @tdj/web media:hero",
     "media:frames": "pnpm --filter @tdj/video frames",
     "readme:check": "node scripts/check-readme.mjs",
+    "security:check": "node --test scripts/security/leaks.test.mjs",
     "spotify:check": "pnpm --filter @tdj/web spotify:check",
     "video": "pnpm --filter @tdj/video render",
     "deploy": "sst deploy --stage production",
