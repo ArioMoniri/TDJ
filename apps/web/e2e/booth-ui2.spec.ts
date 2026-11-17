@@ -571,9 +571,11 @@ test("7. the night on other pages: the mini controller on Compose, Library, Data
     await expect(mini.getByTestId("booth-mini-title")).toHaveText((await snapTitle(page)) ?? title);
     await expect(mini.getByTestId("booth-mini-when")).toContainText(/Tanda \d+ of \d+ · next in \d+:\d\d/);
     expect(["playing", "cortina"]).toContain((await snap(page)).state);
-    // never over the sidebar; inside the viewport
+    // 2026-11: the one player, docked in the sidebar (never a second bar over the page); inside the viewport
     const b = (await mini.boundingBox())!;
-    expect(b.x).toBeGreaterThanOrEqual(240);
+    const side = (await page.getByTestId("sidebar").boundingBox())!;
+    expect(b.x).toBeGreaterThanOrEqual(side.x);
+    expect(b.x + b.width).toBeLessThanOrEqual(side.x + side.width);
     expect(b.y + b.height).toBeLessThanOrEqual(900);
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/mini${href.replace(/\//g, "-") || "-compose"}.png` });
   }

@@ -469,7 +469,9 @@ test("16: the preview mini player on a desktop — opaque, beside the sidebar, c
   await page.waitForTimeout(600);
   const m = (await box(page, '[data-testid="mini-player"]'))!;
   const side = (await box(page, '[data-testid="sidebar"]'))!;
-  expect(m.l).toBeGreaterThanOrEqual(side.r);
+  // 2026-11: the one player, docked in the sidebar (no card over the page)
+  expect(m.l).toBeGreaterThanOrEqual(side.l);
+  expect(m.r).toBeLessThanOrEqual(side.r);
   const insp = await box(page, '[data-testid="inspector"]');
   if (insp) expect(m.r <= insp.l || m.l >= insp.r || m.b <= insp.t || m.t >= insp.b).toBe(true);
   const bg = await mini.evaluate((e) => getComputedStyle(e, "::after").backgroundColor);

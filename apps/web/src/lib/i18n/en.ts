@@ -6079,6 +6079,26 @@ export const en = {
   "prelisten.mini_headphones": "In your headphones",
   "prelisten.mini_speaker": "On this device's speaker",
   "prelisten.mini_not_room": "the room doesn't hear it",
+  // 2026-11: the one player (components/player/PlayerDock.tsx)
+  "dock.song_of": "Song {n} of {count}",
+  "dock.cortina": "Cortina",
+  "dock.next_tanda": "Next tanda: {rhythm}",
+  "dock.with_room": "With the room",
+  "dock.room": "Room",
+  "dock.headphones": "Headphones",
+  "dock.float": "Float the player",
+  "dock.tonight": "Tonight",
+  "dock.listening": "Listening",
+  "dock.float_card": "Float as a card",
+  "dock.to_gramophone": "Shrink to the gramophone",
+  "dock.expand": "Expand to a card",
+  "dock.to_sidebar": "Dock in the sidebar",
+  "dock.to_bar": "Dock at the bottom",
+  "dock.close_quick": "Close the controls",
+  "dock.resize": "Resize the player",
+  "dock.gramophone_label": "{title}, {left} left",
+  "dock.gramophone_hint": "Tap for Now playing; press and hold for the controls",
+  "dock.gramophone_hint_preview": "Tap for the song's details; press and hold for the controls",
 } as const;
 
 export type MsgKey = keyof typeof en;
