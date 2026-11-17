@@ -7,6 +7,7 @@ import { I } from "@/components/Icons";
 import { surnameOf } from "@/lib/booth/songInfo";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
+import { orchestraName } from "@/lib/orchestraName";
 import { useTapPlay } from "@/lib/playback";
 import type { PlayItem } from "@/lib/player";
 import type { ServiceAnswer, SourceId } from "@/lib/smartSearch";
@@ -273,7 +274,7 @@ function VersionLine({
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-baseline gap-1.5">
           <span className="truncate" lang="es">
-            {song.orchestra}
+            {orchestraName(song)}
           </span>
           {/* (an album's year is not the recording's: it goes to the muted line below, said as such) */}
           {!albumYear && (

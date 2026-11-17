@@ -293,6 +293,23 @@ export function ShowSheet({ open, onClose }: { open: boolean; onClose: () => voi
 }
 
 /**
+ * "Playing · Rehearsal · 30 s clips": the source's own detail (" · 30 s clips", " · full tracks") in a span the chip
+ * row lets step aside when it is narrow (booth.css, iPad portrait), so the device names beside it stay whole. It stays
+ * in the text and is still read out.
+ */
+function withDetail(text: string, source: string | null) {
+  if (!source?.includes(" · ")) return text;
+  const i = text.lastIndexOf(" · ");
+  // (one flex item: the chip's gap never opens inside its words)
+  return (
+    <span>
+      {text.slice(0, i)}
+      <span className="booth-chip-detail">{text.slice(i)}</span>
+    </span>
+  );
+}
+
+/**
  * Where the night's sound comes from, said plainly: "Spotify · full tracks" when the Premium session plays,
  * "Rehearsal · 30 s clips" otherwise with what would play the full songs.
  */
@@ -352,9 +369,9 @@ function SourceLine({ rehearsal }: { rehearsal: boolean }) {
         {playing && starting
           ? t("booth.connect.starting")
           : playing
-            ? t("booth.playerToolbar.status_playing", { source: source ?? "" })
+            ? withDetail(t("booth.playerToolbar.status_playing", { source: source ?? "" }), source)
             : paused
-              ? t("booth.playerToolbar.status_paused", { source: source ?? "" })
+              ? withDetail(t("booth.playerToolbar.status_paused", { source: source ?? "" }), source)
               : source}
         <PowerLeaf />
       </span>

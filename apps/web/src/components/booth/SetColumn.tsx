@@ -127,11 +127,34 @@ export function SetColumn({
         : b.top;
     return { box, b, r, head, foot: b.bottom - pad };
   }, [scroller]);
+  /**
+   * 2026-11 (CI, iPad landscape with the Controls panel open: the short list still ended on a cut row): two rows and a
+   * gap pill tall, the list has no scroll that both keeps the playing row whole and brings a row's foot to its own —
+   * the visible height is what it is. Then the list's box stops above the row its foot would cut (the room under it
+   * stays empty, its fade moves up with it). Only the list that scrolls itself, the Controls panel open.
+   */
+  const trimFoot = useCallback((box: HTMLElement) => {
+    if (box !== list.current || !box.closest('.booth[data-controls="open"]')) return;
+    const b = box.getBoundingClientRect();
+    const foot = b.bottom - (Number.parseFloat(getComputedStyle(box).scrollPaddingBottom) || 0);
+    const cut = [...box.querySelectorAll<HTMLElement>(".booth-row")]
+      .map((r) => r.getBoundingClientRect())
+      .find((r) => r.top < foot - 1 && r.bottom > foot + 1);
+    // (never the whole list away: a row taller than the list stays as it is)
+    if (!cut || cut.top <= b.top + 1) return;
+    box.style.maxHeight = `${Math.floor(b.height - (foot - cut.top))}px`;
+  }, []);
   const toNow = useCallback(
     (force = false) => {
+      // (measured at the list's full height: a foot trimmed before is undone first, in the same task, never painted)
+      if (list.current?.style.maxHeight) list.current.style.maxHeight = "";
+      if (!force && Date.now() - userAt.current < 10_000) {
+        const own = scroller();
+        if (own) trimFoot(own);
+        return;
+      }
       const m = rowBox();
       if (!m) return;
-      if (!force && Date.now() - userAt.current < 10_000) return;
       const { box, b, r, head, foot } = m;
       // 2026-11 (DJ review: the playing row sat on the bottom edge, under the fade and the toasts): the playing row
       // stays in the middle third of what the column shows; out of it, it comes back to the middle
@@ -162,8 +185,9 @@ export function SetColumn({
       }
       target = Math.max(0, Math.min(box.scrollHeight - box.clientHeight, target));
       if (Math.abs(target - box.scrollTop) > 0.5) box.scrollTop = target;
+      trimFoot(box);
     },
-    [rowBox],
+    [rowBox, trimFoot, scroller],
   );
   // biome-ignore lint/correctness/useExhaustiveDependencies: the playhead moved
   useEffect(() => {
@@ -195,11 +219,22 @@ export function SetColumn({
       check();
     }, 2000);
     check();
+    // the Controls panel opens or closes: the list's trimmed foot is measured again (or undone, the panel closed)
+    const root = box.closest(".booth");
+    const mo =
+      root && typeof MutationObserver === "function"
+        ? new MutationObserver(() => {
+            if (useBooth.getState().started) toNow();
+            else if (list.current) list.current.style.maxHeight = "";
+          })
+        : null;
+    if (root) mo?.observe(root, { attributes: true, attributeFilter: ["data-controls"] });
     return () => {
       box.removeEventListener("wheel", mark);
       box.removeEventListener("touchmove", mark);
       box.removeEventListener("scroll", check);
       clearInterval(id);
+      mo?.disconnect();
     };
   }, [follow, rowBox, toNow, hasPlan]);
 

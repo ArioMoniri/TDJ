@@ -48,3 +48,61 @@ export function creditDisplay(raw: string): string {
       .join(" & ");
   return /\s+-\s+/.test(raw) ? (singerDisplay(raw) as string) : raw;
 }
+
+/**
+ * 2026-11 (the owner: "J.ricardo-G.barbieri-J.m.aguilar" in the Library) — the musicians behind a raw accompanists'
+ * credit: initials glued to a lower-case surname, joined by hyphens. Known musicians get their full names (`guitar`:
+ * a guitarist, so the web reads the credit "… (guitars)"); any other part reads as letters ("E.baffa" → "E. Baffa").
+ * The search indexes these names as the side's aliases (buildSongIndex), so "Guillermo Barbieri" finds the side.
+ */
+export const CREDIT_MUSICIANS: Readonly<Record<string, { name: string; guitar?: true }>> = {
+  // Carlos Gardel's guitarists
+  "j.ricardo": { name: "José Ricardo", guitar: true },
+  "g.barbieri": { name: "Guillermo Barbieri", guitar: true },
+  "j.m.aguilar": { name: "José María Aguilar", guitar: true },
+  riverol: { name: "Domingo Riverol", guitar: true },
+  pettorossi: { name: "Horacio Pettorossi", guitar: true },
+  vivas: { name: "Julio Vivas", guitar: true },
+  // duos and their partners
+  "r.grela": { name: "Roberto Grela", guitar: true },
+  "u.de lio": { name: "Ubaldo De Lío", guitar: true },
+  "a.troilo": { name: "Aníbal Troilo" },
+  "a.piazzolla": { name: "Astor Piazzolla" },
+  "h.salgan": { name: "Horacio Salgán" },
+  "e.m.francini": { name: "Enrique Mario Francini" },
+  "h.stamponi": { name: "Héctor Stamponi" },
+  "p.maffia": { name: "Pedro Maffia" },
+  "p.laurenz": { name: "Pedro Láurenz" },
+  "l.federico": { name: "Leopoldo Federico" },
+  "o.fresedo": { name: "Osvaldo Fresedo" },
+  "r.tanturi": { name: "Ricardo Tanturi" },
+};
+/** a credit: two or more hyphen-joined names, one of them at least "X.surname" (an initial glued to it) */
+const GLUED = /(^|[\s.])\p{Lu}\.\p{Ll}/u;
+const foldName = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
+const capWord = (w: string) => (w ? w[0]!.toLocaleUpperCase("es") + w.slice(1) : w);
+
+export function isCreditName(name: string | null | undefined): boolean {
+  const s = (name ?? "").trim();
+  return s.includes("-") && GLUED.test(s) && s.split("-").every((p) => p.trim().length > 0);
+}
+
+/** one credited name in letters: "J.m.aguilar" → "J. M. Aguilar", "L.uribe Bueno" → "L. Uribe Bueno" */
+export function creditPartName(raw: string): string {
+  return raw
+    .trim()
+    .replace(/\.(?=\S)/g, ". ")
+    .split(/\s+/)
+    .map((w) => (/^\p{Ll}/u.test(w) && !/^(de|del|di|la|y)$/.test(w) ? capWord(w) : w))
+    .join(" ");
+}
+
+/** the people of a raw credit, each by name ([] for any name that is not such a credit) */
+export function creditPeople(raw: string | null | undefined): string[] {
+  if (!raw || !isCreditName(raw)) return [];
+  return raw.split("-").map((p) => CREDIT_MUSICIANS[foldName(p)]?.name ?? creditPartName(p));
+}
+
+/** every musician of the credit is a known guitarist */
+export const creditAllGuitars = (raw: string): boolean =>
+  isCreditName(raw) && raw.split("-").every((p) => !!CREDIT_MUSICIANS[foldName(p)]?.guitar);

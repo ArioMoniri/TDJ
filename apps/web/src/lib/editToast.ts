@@ -7,12 +7,24 @@ import { toast } from "@/lib/toast";
  * toast's Undo (the Booth's "will be skipped"): "Undid: Skip next (Ahora No Me Conocés)" with Redo, and the opposite
  * after a redo. An entry that cannot be undone (it already played in the room) says why instead.
  */
-let last = 0;
-export async function runHistory(kind: "undo" | "redo", o: { scope?: string; id?: number } = {}) {
-  // the Mac app: a key press and its menu command can both arrive for one ⌘Z
-  const now = Date.now();
-  if (now - last < 250) return null;
-  last = now;
+let last: { at: number; kind: "undo" | "redo"; source: HistorySource } | null = null;
+/** where an undo / redo came from, for the keys and the Mac app's menu (a button or a toast's action passes none) */
+export type HistorySource = "key" | "menu";
+/** a key press and its menu command closer than this are one ⌘Z */
+const SAME_PRESS_MS = 250;
+export async function runHistory(
+  kind: "undo" | "redo",
+  o: { scope?: string; id?: number; source?: HistorySource } = {},
+) {
+  // the Mac app: a key press and its menu command can both arrive for one ⌘Z — only that pair is one action. Two
+  // presses of the key, or the header's Undo and then ⌘Z, are two (the ⌘Z right after a click on Undo was lost)
+  if (o.source) {
+    const now = Date.now();
+    const twin = last && last.kind === kind && last.source !== o.source && now - last.at < SAME_PRESS_MS;
+    // (a twin closes its pair: the next press is a new one)
+    last = twin ? null : { at: now, kind, source: o.source };
+    if (twin) return null;
+  }
   const e: UndoResult | null =
     kind === "undo" ? await undoEdit(o) : await redoEdit(o.scope ? { scope: o.scope } : {});
   if (!e) {

@@ -382,12 +382,17 @@ test("the Floor screen: opened from the Booth, it follows the night (Song k of n
   await booth(page, (b) => b.getState().nextNow());
   await expect(screen.getByTestId("floor-song-of")).toHaveText("Song 2 of 4", { timeout: 5000 });
   await expect(screen.getByTestId("floor-advice")).toHaveText("A good time to start dancing");
+  // (2026-11 redesign) the title, what comes next and the time left in the tanda
+  await expect(screen.getByTestId("floor-title")).not.toBeEmpty();
+  await expect(screen.getByTestId("floor-then")).toHaveText("Next: song 3 of 4");
+  await expect(screen.getByTestId("floor-tanda-left")).toContainText("left in this tanda");
   // the cortina: change partners, the next tanda and its countdown
   await booth(page, (b) => {
     const s = b.getState();
     return s.playNow(s.plan.items.findIndex((x, i) => i > s.planIndex && x.kind === "cortina"));
   });
   await expect(screen.getByTestId("floor-cortina")).toBeVisible({ timeout: 10000 });
+  await expect(screen.getByTestId("floor-cortina-title")).toHaveText("Cortina — clear the floor");
   await expect(screen.getByTestId("floor-next")).toContainText("Next:");
   await expect(screen.getByTestId("floor-countdown")).toContainText(/Next tanda in \d:\d\d/);
   // no controls on the dancers' screen

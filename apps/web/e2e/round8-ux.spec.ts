@@ -208,8 +208,12 @@ test("phone booth: a 64 pt strip with the faders behind Levels, Time above Next,
   const strip = page.getByTestId("booth-strip");
   expect((await strip.boundingBox())!.height).toBeLessThanOrEqual(72);
   await expect(strip.getByTestId("booth-cortina-fader")).toHaveCount(0);
-  // (2026-11: on a phone Mix is in •••, the Controls toggle is on the row)
-  await expect(strip.getByTestId("booth-controls-toggle")).toBeVisible();
+  // (2026-11, the phone bar: the bar keeps the transport; Set list, Controls and Mix are in •••)
+  await expect(strip.getByTestId("booth-controls-toggle")).toHaveCount(0);
+  await strip.getByTestId("booth-more").click();
+  await expect(page.getByTestId("booth-menu").getByTestId("booth-controls-toggle")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("booth-menu")).toHaveCount(0);
   await expect(page.getByTestId("booth-start")).toHaveText(/^Start · 30 s clips$/);
   // the stop glyph is quiet until a night runs
   await expect(page.getByTestId("booth-stop")).not.toHaveClass(/booth-stop-armed/);

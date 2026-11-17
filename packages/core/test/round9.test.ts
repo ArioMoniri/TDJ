@@ -23,6 +23,7 @@ import {
   staticProfile,
 } from "../src/index";
 import { loadCatalog } from "../src/load";
+import { WARM_TIMEOUT, warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 beforeAll(() => {
@@ -64,6 +65,9 @@ const golden = (seed: number) => {
   return p;
 };
 const tangos = (p: Playlist) => p.tandas.filter((t) => t.rhythm === "tango");
+
+// the nights every test reads, composed first with the event loop turning between them (composeOnce.ts)
+beforeAll(() => warm(SEEDS.flatMap((s) => [() => night(s), () => golden(s)])), WARM_TIMEOUT);
 
 describe("R9.1 — voices early, vocal majority", () => {
   it("at most 2 instrumental tango tandas before the first vocal one (the early D'Arienzo counts as one)", () => {

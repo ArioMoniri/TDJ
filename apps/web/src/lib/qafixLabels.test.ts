@@ -67,7 +67,11 @@ describe("a tanda's type says what its sides are", () => {
 
 describe("item 10: chips, numbers and choices", () => {
   it("facet chips read as names: a glued credit as two names, the unspecified orchestra as “Other orchestras”", () => {
-    expect(orchestraLabel("J.ricardo-G.barbieri")).toBe("J. Ricardo & G. Barbieri");
+    // (2026-11, the owner: the full names, lib/orchestraName.ts creditName — "J.ricardo-G.barbieri-J.m.aguilar 52")
+    expect(orchestraLabel("J.ricardo-G.barbieri")).toBe("José Ricardo, Guillermo Barbieri (guitars)");
+    expect(orchestraLabel("J.ricardo-G.barbieri-J.m.aguilar")).toBe(
+      "José Ricardo, Guillermo Barbieri, José María Aguilar (guitars)",
+    );
     expect(orchestraLabel("Orquesta (unspecified)")).toBe("Other orchestras");
     expect(orchestraLabel("Carlos Di Sarli")).toBe("Carlos Di Sarli");
     expect(singerLabel("C. Dante - J. Martel")).toBe("Duo · Carlos Dante & Julio Martel");

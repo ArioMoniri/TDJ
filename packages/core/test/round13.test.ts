@@ -25,6 +25,7 @@ import {
   type Tanda,
 } from "../src/index";
 import { findRoot, loadCatalog } from "../src/load";
+import { WARM_TIMEOUT, warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 let featured: Playlist;
@@ -80,6 +81,12 @@ const song = (orch: string, title: string, year?: number) =>
   deps.catalog.songs.find(
     (s) => s.orchestraId === orch && normTitle(s.title) === normTitle(title) && (!year || s.year === year),
   );
+
+// the nights every test reads, composed first with the event loop turning between them (composeOnce.ts)
+beforeAll(
+  () => warm([...SEEDS.map((s) => () => golden(s)), ...REVIEW_SEEDS.map((s) => () => night(s))]),
+  WARM_TIMEOUT,
+);
 
 describe("best years — the user's heatmap (data/index/coverage.json) and the family bands", () => {
   it("the heatmap is loaded: every side of a graded orchestra and year carries its grade", () => {

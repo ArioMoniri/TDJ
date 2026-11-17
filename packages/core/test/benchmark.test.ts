@@ -18,6 +18,7 @@ import {
   type Playlist,
 } from "../src/index";
 import { findRoot, loadCatalog } from "../src/load";
+import { WARM_TIMEOUT, warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 let featured: Playlist;
@@ -51,6 +52,27 @@ const orchCounts = (p: Playlist) => {
   for (const t of p.tandas) m.set(t.orchestraId, (m.get(t.orchestraId) ?? 0) + 1);
   return m;
 };
+
+/**
+ * improveNight is pure and deterministic (the test "is deterministic and leaves the input untouched" holds it to
+ * that): each night is improved once and the invariants below read that one result
+ */
+const improvedOf = new Map<Playlist, ReturnType<typeof improveNight>>();
+const improved = (p: Playlist) => {
+  let r = improvedOf.get(p);
+  if (!r) {
+    r = improveNight(p, deps);
+    improvedOf.set(p, r);
+  }
+  return r;
+};
+
+// the nights every test reads, composed and improved first with the event loop turning between them
+// (composeOnce.ts: one test composing and improving the twenty nights blocked its worker past vitest's 60 s)
+beforeAll(
+  () => warm(SEEDS.flatMap((s) => [() => improved(golden(s)), () => improved(vocalHeavy(s))])),
+  WARM_TIMEOUT,
+);
 
 describe("benchmarkNight", () => {
   it("is pure and deterministic, with a source on every check", () => {
@@ -141,7 +163,7 @@ describe("improveNight", () => {
   it("never lowers the engine score or the benchmark total (seeds 1–20, 4 h golden)", () => {
     for (const seed of SEEDS) {
       const p = golden(seed);
-      const r = improveNight(p, deps);
+      const r = improved(p);
       expect(r.before.score).toBe(p.score.total);
       expect(r.after.score, `seed ${seed}`).toBeGreaterThanOrEqual(r.before.score);
       expect(r.after.bench, `seed ${seed}`).toBeGreaterThanOrEqual(r.before.bench);
@@ -156,7 +178,7 @@ describe("improveNight", () => {
   it("every change keeps caps, spacing, the cycle and title uniqueness", () => {
     for (const seed of SEEDS)
       for (const p of [golden(seed), vocalHeavy(seed)]) {
-        const r = improveNight(p, deps);
+        const r = improved(p);
         const q = r.playlist;
         // the same tandas in the same chairs: orchestras and rhythms unchanged (TTVTTM, caps, spacing kept); round 13's
         // golden-core fixer is the one change that may hand a chair to another orchestra (caps and spacing still hold)
@@ -195,7 +217,7 @@ describe("improveNight", () => {
     let raised = 0;
     for (const seed of SEEDS) {
       const p = vocalHeavy(seed);
-      const r = improveNight(p, deps);
+      const r = improved(p);
       expect(meanHour(r.playlist), `seed ${seed}`).toBeGreaterThanOrEqual(meanHour(p) - 1e-9);
       if (minHour(r.playlist) > minHour(p) || meanHour(r.playlist) > meanHour(p)) raised++;
       const instr = r.changes.filter((c) => c.kind === "instrumental");
@@ -225,7 +247,7 @@ describe("improveNight", () => {
   it("cue-fit never adds a cortina family and never leaves a slow cue before a vals or milonga it could fix", () => {
     for (const seed of SEEDS.slice(0, 8)) {
       const p = golden(seed);
-      const r = improveNight(p, deps);
+      const r = improved(p);
       const fams = (q: Playlist) =>
         new Set(q.tandas.flatMap((t) => (t.cortina ? [familyOf(t.cortina)] : [])));
       const before = fams(p);

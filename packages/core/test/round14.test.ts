@@ -27,6 +27,7 @@ import {
 } from "../src/index";
 import { findRoot, loadCatalog } from "../src/load";
 import { renderQuality } from "../src/quality";
+import { WARM_TIMEOUT, warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 let featured: Playlist;
@@ -71,6 +72,12 @@ const fmt = (p: Playlist, key: string) =>
     .map((v) => `${p.options.seed}: ${v.detail}`);
 
 // ---------------------------------------------------------------------------------------------------------------
+// the nights every test reads, composed first with the event loop turning between them (composeOnce.ts)
+beforeAll(
+  () => warm([...SEEDS.map((s) => () => golden(s)), ...PANEL_SEEDS.map((s) => () => night(s))]),
+  WARM_TIMEOUT,
+);
+
 describe("A — index corrections (discography review §2)", () => {
   it("Trago amargo 1939-12-22 is the Echagüe vocal side", () => {
     const s = byId("9df440312c")!;

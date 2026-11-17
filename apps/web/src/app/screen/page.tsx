@@ -26,5 +26,7 @@ function Inner() {
     const ok = !server || /^https?:\/\/[\w.-]+(:\d+)?\/?$/.test(server);
     return ok ? { code, server } : null;
   }, [code, server]);
-  return <FloorScreen room={room} takeover />;
+  // `?extras=0`: no lyrics or video on this screen (`=1`: shown; absent: this device's choice)
+  const ex = q.get("extras");
+  return <FloorScreen room={room} takeover extras={ex === "0" ? false : ex === "1" ? true : undefined} />;
 }

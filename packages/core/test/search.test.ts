@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import {
   buildSongIndex,
   buildTextIndex,
+  creditPeople,
   editDistance,
   foldText,
   parseSongQuery,
@@ -467,5 +468,37 @@ describe("the real index (19k sides)", () => {
       `search wall p50 ${pct(wall, 0.5).toFixed(2)} ms · p95 ${pct(wall, 0.95).toFixed(2)} ms · cpu p50 ${pct(cpu, 0.5).toFixed(2)} ms · p95 ${p95.toFixed(2)} ms · n=${wall.length}`,
     );
     expect(p95).toBeLessThan(15);
+  });
+});
+
+describe("a raw accompanists' credit is found by the names it stands for (2026-11)", () => {
+  // the catalogue files Gardel's guitar sides under "J.ricardo-G.barbieri-J.m.aguilar"; the Library reads it as
+  // "José Ricardo, Guillermo Barbieri, José María Aguilar (guitars)", so a search for those names must find it
+  const gardel = song("gardel", {
+    title: "Mi Buenos Aires Querido",
+    orchestra: "J.ricardo-G.barbieri-J.m.aguilar",
+    orchestraId: "j-ricardo-g-barbieri-j-m-aguilar",
+    singer: "Carlos Gardel",
+    vocal: true,
+    year: 1934,
+  });
+  const idx = buildSongIndex([...SONGS, gardel]);
+  it("the full names find the side", () => {
+    for (const q of ["Guillermo Barbieri", "José María Aguilar", "jose ricardo", "barbieri"])
+      expect(searchSongs(idx, q).items.map((h) => h.song.id)).toContain("gardel");
+  });
+  it("creditPeople reads the credit as people; any other name has none", () => {
+    expect(creditPeople("J.ricardo-G.barbieri-J.m.aguilar")).toEqual([
+      "José Ricardo",
+      "Guillermo Barbieri",
+      "José María Aguilar",
+    ]);
+    expect(creditPeople("A.troilo-R.grela")).toEqual(["Aníbal Troilo", "Roberto Grela"]);
+    expect(creditPeople("E.baffa-O.berlinghieri")).toEqual(["E. Baffa", "O. Berlinghieri"]);
+    expect(creditPeople("Carlos Di Sarli")).toEqual([]);
+    expect(creditPeople("Francini-Pontier")).toEqual([]);
+  });
+  it("only the credited side gets the names (a first name finds nothing else)", () => {
+    expect(searchSongs(idx, "guillermo").items.map((h) => h.song.id)).toEqual(["gardel"]);
   });
 });

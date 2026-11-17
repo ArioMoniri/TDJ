@@ -1,4 +1,4 @@
-import { singerDisplay } from "@tdj/core";
+import { creditAllGuitars, creditPeople, isCreditName, singerDisplay } from "@tdj/core";
 import { t } from "@/lib/i18n";
 
 /**
@@ -28,58 +28,21 @@ export function orchestraName(s: {
  * still finds and marks them — `creditSpans` carries the marks over):
  *   "J.ricardo-G.barbieri-J.m.aguilar" → "José Ricardo, Guillermo Barbieri, José María Aguilar (guitars)"
  *   "A.troilo-R.grela" → "Aníbal Troilo, Roberto Grela"; "E.baffa-O.berlinghieri" → "E. Baffa, O. Berlinghieri".
- * Known musicians get their full names; "(guitars)" follows only when every one of them is a known guitarist.
+ * Known musicians get their full names; "(guitars)" follows only when every one of them is a known guitarist (the
+ * table and the reading live in core display.ts, which the search also indexes: "Guillermo Barbieri" finds the side).
  * Any other name (an orchestra, "Francini-Pontier") reads as it is.
  */
-const MUSICIANS: Record<string, { name: string; guitar?: true }> = {
-  // Carlos Gardel's guitarists
-  "j.ricardo": { name: "José Ricardo", guitar: true },
-  "g.barbieri": { name: "Guillermo Barbieri", guitar: true },
-  "j.m.aguilar": { name: "José María Aguilar", guitar: true },
-  riverol: { name: "Domingo Riverol", guitar: true },
-  pettorossi: { name: "Horacio Pettorossi", guitar: true },
-  vivas: { name: "Julio Vivas", guitar: true },
-  // duos and their partners
-  "r.grela": { name: "Roberto Grela", guitar: true },
-  "u.de lio": { name: "Ubaldo De Lío", guitar: true },
-  "a.troilo": { name: "Aníbal Troilo" },
-  "a.piazzolla": { name: "Astor Piazzolla" },
-  "h.salgan": { name: "Horacio Salgán" },
-  "e.m.francini": { name: "Enrique Mario Francini" },
-  "h.stamponi": { name: "Héctor Stamponi" },
-  "p.maffia": { name: "Pedro Maffia" },
-  "p.laurenz": { name: "Pedro Láurenz" },
-  "l.federico": { name: "Leopoldo Federico" },
-  "o.fresedo": { name: "Osvaldo Fresedo" },
-  "r.tanturi": { name: "Ricardo Tanturi" },
-};
-/** a credit: two or more hyphen-joined names, one of them at least "X.surname" (an initial glued to it) */
-const GLUED = /(^|[\s.])\p{Lu}\.\p{Ll}/u;
 const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
-const cap = (w: string) => (w ? w[0]!.toLocaleUpperCase("es") + w.slice(1) : w);
-/** one credited name in letters: "J.m.aguilar" → "J. M. Aguilar", "L.uribe Bueno" → "L. Uribe Bueno" */
-function oneName(raw: string): string {
-  return raw
-    .trim()
-    .replace(/\.(?=\S)/g, ". ")
-    .split(/\s+/)
-    .map((w) => (/^\p{Ll}/u.test(w) && !/^(de|del|di|la|y)$/.test(w) ? cap(w) : w))
-    .join(" ");
-}
 
-export function isCredit(name: string | null | undefined): boolean {
-  const s = (name ?? "").trim();
-  return s.includes("-") && GLUED.test(s) && s.split("-").every((p) => p.trim().length > 0);
-}
+export const isCredit = (name: string | null | undefined): boolean => isCreditName(name);
 
 /** the credit as names (display only); any other name unchanged */
 export function creditName(name: string): string {
-  if (!isCredit(name)) return name;
-  const parts = name.split("-").map((p) => p.trim());
-  const known = parts.map((p) => MUSICIANS[fold(p)]);
-  const names = parts.map((p, i) => known[i]?.name ?? oneName(p));
-  const guitars = known.every((k) => k?.guitar);
-  return guitars ? t("orchestra.guitars_credit", { names: names.join(", ") }) : names.join(", ");
+  const names = creditPeople(name);
+  if (!names.length) return name;
+  return creditAllGuitars(name)
+    ? t("orchestra.guitars_credit", { names: names.join(", ") })
+    : names.join(", ");
 }
 
 /**

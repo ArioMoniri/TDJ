@@ -17,6 +17,7 @@ import {
 } from "../src/index";
 import { loadCatalog } from "../src/load";
 import { isPeakSlot as isPeak15, orderCost as orderCost15 } from "../src/order";
+import { WARM_TIMEOUT, warm } from "./composeOnce";
 
 let deps: ReturnType<typeof loadCatalog>;
 beforeAll(() => {
@@ -55,6 +56,9 @@ const golden = (seed: number) => {
 };
 const both = (seed: number) => [night(seed), golden(seed)];
 const tangos = (p: Playlist) => p.tandas.filter((t) => t.rhythm === "tango");
+
+// the nights every test reads, composed first with the event loop turning between them (composeOnce.ts)
+beforeAll(() => warm(SEEDS.map((s) => () => both(s))), WARM_TIMEOUT);
 
 describe("R10.1 — one orchestra at most twice (all rhythms), the última never a repeat, a family once", () => {
   // round 14 (DJ review S5): the cap counts tango tandas — two, in different modes or with different singers — plus

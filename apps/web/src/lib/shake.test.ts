@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearEdits, nextRedo, nextUndo, recordEdit } from "./editHistory";
 import { runHistory } from "./editToast";
 import {
+  adoptMotionGrant,
   type MotionSample,
   nativeShake,
   needsMotionPermission,
@@ -268,5 +269,38 @@ describe("the iPhone / iPad app: UIKit's shake, no motion permission", () => {
     expect(shakeOn({ pref: null, granted: true })).toBe(true);
     env({ app: true, ua: ipad, touch: 0 });
     expect(nativeShake()).toBe(false);
+  });
+  it("Chrome on a phone has requestPermission too but grants motion already: Shake to Undo listens, no tap", async () => {
+    const android =
+      "Mozilla/5.0 (Linux; Android 16; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0 Mobile";
+    env({ app: false, ua: android, touch: 5 });
+    const query = vi.fn(async () => ({ state: "granted" }));
+    vi.stubGlobal("navigator", { userAgent: android, maxTouchPoints: 5, permissions: { query } });
+    expect(needsMotionPermission()).toBe(true);
+    expect(shakeOn()).toBe(false);
+    expect(await adoptMotionGrant()).toBe(true);
+    expect(query).toHaveBeenCalledWith({ name: "accelerometer" });
+    expect(shakeOn()).toBe(true);
+  });
+  it("Safari has no accelerometer permission to query: it still waits for the grant from a tap", async () => {
+    env({ app: false, ua: iphone, touch: 5 });
+    vi.stubGlobal("navigator", {
+      userAgent: iphone,
+      maxTouchPoints: 5,
+      permissions: {
+        query: async () => {
+          throw new TypeError("'accelerometer' is not a valid value for enumeration PermissionName.");
+        },
+      },
+    });
+    expect(await adoptMotionGrant()).toBe(false);
+    expect(shakeOn()).toBe(false);
+    // a sensor the browser does not grant yet: no grant either
+    vi.stubGlobal("navigator", {
+      userAgent: iphone,
+      maxTouchPoints: 5,
+      permissions: { query: async () => ({ state: "prompt" }) },
+    });
+    expect(await adoptMotionGrant()).toBe(false);
   });
 });

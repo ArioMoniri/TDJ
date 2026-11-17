@@ -38,6 +38,48 @@ export interface FloorState {
   songId: string | null;
   /** when the Booth said this (ms since epoch): a viewer carries the position forward */
   at: number;
+  /**
+   * 2026-11 (the owner: "dancer information, prominent on both screens") — what plays right after this item, and the
+   * night's clock around it: the item's start, the end of this tanda, the start of La Cumparsita and the night's
+   * length (seconds on the night's planned clock; null when there is none ahead). `floorTimes` turns them into the
+   * tanda's time left, La Cumparsita's countdown and the place in the night, carried forward like the position.
+   */
+  follows: FloorFollows | null;
+  itemStartSec: number;
+  tandaEndSec: number | null;
+  closingAtSec: number | null;
+  nightSec: number;
+  /** each tanda's rhythm, in order (the night strip) */
+  arc: string[];
+}
+
+/** what follows the item playing: another song of the tanda, the cortina, La Cumparsita, a break, or the night's end */
+export type FloorFollows = "song" | "cortina" | "closing" | "break" | "end";
+const FOLLOWS: FloorFollows[] = ["song", "cortina", "closing", "break", "end"];
+
+/** the dancer's clock: the tanda's seconds left, La Cumparsita's countdown, and where the night is (0…1) */
+export function floorTimes(
+  f: Pick<
+    FloorState,
+    | "positionSec"
+    | "lengthSec"
+    | "playing"
+    | "at"
+    | "itemStartSec"
+    | "tandaEndSec"
+    | "closingAtSec"
+    | "nightSec"
+  >,
+  now = Date.now(),
+): { tandaLeftSec: number | null; cumparsitaInSec: number | null; nightAt: number } {
+  const pos = (f.itemStartSec ?? 0) + floorPosition(f, now);
+  const left = (end: number | null | undefined) =>
+    end === null || end === undefined ? null : Math.max(0, Math.round(end - pos));
+  return {
+    tandaLeftSec: left(f.tandaEndSec),
+    cumparsitaInSec: left(f.closingAtSec),
+    nightAt: f.nightSec > 0 ? Math.max(0, Math.min(1, pos / f.nightSec)) : 0,
+  };
 }
 
 /** the join-the-floor stage of song `k` (0-based) of `n` */
@@ -59,6 +101,8 @@ type Item = {
   year?: number | null;
   rhythm: string;
   lengthSec: number;
+  /** the planned start on the night's clock (absent: the lengths before it, summed) */
+  startSec?: number;
 };
 type TandaLite = {
   orchestra: string;
@@ -107,16 +151,57 @@ export function floorOf(b: BoothLite, now = Date.now()): FloorState {
     srcStartSec: 0,
     songId: null,
     at: now,
+    follows: null,
+    itemStartSec: 0,
+    tandaEndSec: null,
+    closingAtSec: null,
+    nightSec: 0,
+    arc: (b.playlist?.tandas ?? []).slice(0, 80).map((x) => x.rhythm),
   };
   if (!it) return base;
+  // the night's clock: the plan's starts, else the lengths summed
+  const starts: number[] = [];
+  let acc = 0;
+  for (const x of items) {
+    const s0 = typeof x.startSec === "number" ? x.startSec : acc;
+    starts.push(s0);
+    acc = s0 + x.lengthSec;
+  }
+  const endOf = (i: number) => (starts[i] ?? 0) + (items[i]?.lengthSec ?? 0);
+  const after = items[b.planIndex + 1];
+  const then: FloorFollows = !after
+    ? "end"
+    : after.kind === "track"
+      ? "song"
+      : after.kind === "closing"
+        ? after.tanda === 0
+          ? "song"
+          : "closing"
+        : after.kind;
+  let lastOfTanda = -1;
+  if (it.kind === "track")
+    items.forEach((x, i) => {
+      if (x.kind === "track" && x.tanda === it.tanda) lastOfTanda = i;
+    });
+  const closingIdx = items.findIndex((x, i) => i > b.planIndex && x.kind === "closing" && x.tanda !== 0);
+  const clock = {
+    follows: then,
+    itemStartSec: starts[b.planIndex] ?? 0,
+    tandaEndSec: lastOfTanda >= 0 ? endOf(lastOfTanda) : null,
+    closingAtSec: closingIdx >= 0 ? (starts[closingIdx] ?? null) : null,
+    nightSec: items.length ? endOf(items.length - 1) : 0,
+  };
   const e = b.entities[b.planIndex];
   const tandaOf = (n: number) => (n > 0 ? b.playlist?.tandas[n - 1] : undefined);
   // the next tanda: after a cortina or a break the one that follows; during a song the one after this tanda
   const nextT =
-    it.kind === "track" ? tandaOf(it.tanda + 1) : tandaOf(it.kind === "closing" ? 0 : it.tanda + 1);
+    it.kind === "track"
+      ? tandaOf(it.tanda + 1)
+      : tandaOf(it.kind === "closing" ? (it.tanda === 0 ? 1 : 0) : it.tanda + 1);
   const playing = b.started && (b.state === "playing" || b.state === "cortina") && !b.paused;
   const common = {
     ...base,
+    ...clock,
     title: it.title,
     rhythm: it.rhythm,
     year: e?.year ?? it.year ?? null,
@@ -204,6 +289,13 @@ export function cleanFloor(x: unknown): FloorState | null {
     srcStartSec: Math.max(0, num(o.srcStartSec)),
     songId: typeof o.songId === "string" && /^[\w:-]{1,80}$/.test(o.songId) ? o.songId : null,
     at: num(o.at, Date.now()),
+    follows: FOLLOWS.includes(o.follows as FloorFollows) ? (o.follows as FloorFollows) : null,
+    itemStartSec: Math.max(0, num(o.itemStartSec)),
+    tandaEndSec: typeof o.tandaEndSec === "number" && Number.isFinite(o.tandaEndSec) ? o.tandaEndSec : null,
+    closingAtSec:
+      typeof o.closingAtSec === "number" && Number.isFinite(o.closingAtSec) ? o.closingAtSec : null,
+    nightSec: Math.max(0, num(o.nightSec)),
+    arc: Array.isArray(o.arc) ? o.arc.slice(0, 80).map((r) => s(r, 20)) : [],
   };
 }
 
