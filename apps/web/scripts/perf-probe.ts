@@ -9,7 +9,7 @@
  */
 import { type BrowserContextOptions, chromium, devices } from "@playwright/test";
 
-const URL = process.env.TDJ_URL ?? "https://d3k5k2c1l0s5ri.cloudfront.net";
+const URL = process.env.TDJ_URL ?? "http://localhost:3000";
 const CHROMIUM = process.env.CHROMIUM ?? "/opt/pw-browsers/chromium";
 
 declare global {

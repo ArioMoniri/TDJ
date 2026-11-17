@@ -375,7 +375,7 @@ mod tests {
         assert!(allowed_fetch("https://api.deezer.com/track/3135556", "GET").is_ok());
         assert!(allowed_fetch("https://musicbrainz.org/ws/2/recording/?query=x", "GET").is_ok());
         assert_eq!(
-            allowed_fetch("https://d3k5k2c1l0s5ri.cloudfront.net/api/compose", "GET")
+            allowed_fetch("https://example.cloudfront.net/api/compose", "GET")
                 .unwrap_err()
                 .status,
             403
