@@ -42,6 +42,15 @@ jobs:
           BUILD: ${{ inputs.build }}
           PLATFORMS: ${{ inputs.mac && 'IOS,MAC_OS' || 'IOS' }}
         run: node scripts/release/wait-build.mjs --build "$BUILD" --platforms "$PLATFORMS"
+      - name: Export compliance and what App Store Connect still needs
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          APPLE_APP_ID: ${{ vars.APPLE_APP_ID }}
+          BUILD: ${{ inputs.build }}
+          PLATFORMS: ${{ inputs.mac && 'IOS,MAC_OS' || 'IOS' }}
+        run: node scripts/release/review-readiness.mjs --build "$BUILD" --platforms "$PLATFORMS"
       - uses: ruby/setup-ruby@v1
         with: { ruby-version: "3.3", bundler-cache: true, working-directory: apps/desktop }
       - name: Submit for App Review
