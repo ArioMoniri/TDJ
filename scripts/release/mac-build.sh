@@ -193,8 +193,23 @@ node apps/desktop/scripts/build-ui.mjs >/dev/null
 
 export APPLE_API_ISSUER="$APP_STORE_CONNECT_ISSUER_ID" APPLE_API_KEY="$APP_STORE_CONNECT_KEY_ID" APPLE_API_KEY_PATH="$APPLE_KEY_NAMED"
 UPLOADED=()
-altool_upload() { # $1 file, $2 ios|macos
-  xcrun altool --upload-app -f "$1" -t "$2" --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" --output-format normal
+# the App Store app's Apple ID: altool cannot always find it from the bundle ID (2026-11-17: "Cannot determine the
+# Apple ID from Bundle ID 'com.ariomoniri.tdj' and platform 'IOS'" left the IPA unuploaded), so it is passed in
+ASC_APP_ID="${APPLE_APP_ID:-$(node -e 'console.log(require("./package.json").release?.appStoreId ?? "")')}"
+FAILED_UPLOADS=()
+altool_upload() { # $1 file, $2 ios|macos — a failed upload fails the run at the end (never a silent skip)
+  local extra=()
+  if [ -n "$ASC_APP_ID" ]; then
+    extra=(--apple-id "$ASC_APP_ID" --bundle-id "$BUNDLE_ID" --bundle-version "$BUILD"
+      --bundle-short-version-string "$VERSION")
+    xcrun altool --upload-package "$1" -t "$2" "${extra[@]}" --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+      --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" --output-format normal && return 0
+  else
+    xcrun altool --upload-app -f "$1" -t "$2" --apiKey "$APP_STORE_CONNECT_KEY_ID" \
+      --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" --output-format normal && return 0
+  fi
+  FAILED_UPLOADS+=("$1")
+  return 1
 }
 tauri() { (cd "$DESKTOP" && pnpm exec tauri "$@"); }
 
@@ -365,4 +380,5 @@ fi
 step "Done in $(( ($(date +%s) - T0) / 60 )) min"
 ls -lh "$OUT"
 for u in "${UPLOADED[@]:-}"; do [ -n "$u" ] && echo "✓ $u (processing takes 5–30 min; then it appears in TestFlight)"; done
+if [ "${#FAILED_UPLOADS[@]}" -gt 0 ]; then die "upload to App Store Connect failed: ${FAILED_UPLOADS[*]}"; fi
 echo "Build number $BUILD, version $VERSION, commit $COMMIT. Outputs: $OUT"

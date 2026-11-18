@@ -100,6 +100,8 @@ jobs:
       # the upstream author's public team / bundle IDs only in the upstream repository (the version job checks a fork)
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || (github.repository == 'ArioMoniri/TDJ' && 'FF68N39FU5' || '') }}
       TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || (github.repository == 'ArioMoniri/TDJ' && 'com.ariomoniri.tdj' || '') }}
+      # the App Store app's Apple ID for altool (it cannot always find it from the bundle ID)
+      APPLE_APP_ID: ${{ vars.APPLE_APP_ID }}
       # the apps are standalone: no server address is built in; the Spotify Client ID is public (PKCE)
       TDJ_SPOTIFY_CLIENT_ID: ${{ vars.TDJ_SPOTIFY_CLIENT_ID }}
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}

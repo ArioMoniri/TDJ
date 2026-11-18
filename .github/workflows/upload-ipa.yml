@@ -1,0 +1,58 @@
+name: Upload iOS build
+# Uploads the iPhone + iPad IPA a Release apps run already built and signed (its apple-builds artifact) to App Store
+# Connect, without rebuilding: for when that run's upload step failed after a good build.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "The Release apps run whose apple-builds artifact holds TDJ-iOS.ipa"
+        required: true
+      build:
+        description: "Its build number (CFBundleVersion), e.g. 462004"
+        required: true
+      version:
+        description: "Its marketing version, e.g. 1.0.0"
+        required: true
+permissions:
+  contents: read
+  actions: read
+concurrency: upload-ipa
+jobs:
+  upload:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Require this repository's own App Store Connect key and app
+        env:
+          HAS_ASC: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID != '' && secrets.APP_STORE_CONNECT_KEY_ID != '' && secrets.APP_STORE_CONNECT_PRIVATE_KEY != '' }}
+          HAS_APP: ${{ vars.APPLE_APP_ID != '' }}
+        run: |
+          [ "$HAS_ASC" = true ] || { echo "::error::Missing APP_STORE_CONNECT_ISSUER_ID/KEY_ID/PRIVATE_KEY"; exit 1; }
+          [ "$HAS_APP" = true ] || { echo "::error::Missing the APPLE_APP_ID variable"; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          name: apple-builds
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: builds
+      - name: Upload TDJ-iOS.ipa to App Store Connect
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+          APPLE_APP_ID: ${{ vars.APPLE_APP_ID }}
+          TDJ_APP_BUNDLE_ID: ${{ vars.TDJ_APP_BUNDLE_ID || (github.repository == 'ArioMoniri/TDJ' && 'com.ariomoniri.tdj' || '') }}
+          BUILD: ${{ inputs.build }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          IPA=$(find builds -name 'TDJ-iOS.ipa' | head -1)
+          [ -n "$IPA" ] || { echo "::error::no TDJ-iOS.ipa in the artifact"; exit 1; }
+          mkdir -p ~/.appstoreconnect/private_keys
+          KEY=~/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8
+          printf '%s\n' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$KEY"
+          chmod 600 "$KEY"
+          trap 'rm -f "$KEY"' EXIT
+          xcrun altool --upload-package "$IPA" -t ios --apple-id "$APPLE_APP_ID" --bundle-id "$TDJ_APP_BUNDLE_ID" \
+            --bundle-version "$BUILD" --bundle-short-version-string "$VERSION" \
+            --apiKey "$APP_STORE_CONNECT_KEY_ID" --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" --output-format normal
