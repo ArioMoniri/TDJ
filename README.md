@@ -20,6 +20,7 @@ commit ([docs/RELEASING.md](docs/RELEASING.md)).
   <a href="docs/SELF_DEPLOY.md"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/deploy-your-own-web-app-white.svg"><img src="media/badges/deploy-your-own-web-app-black.svg" alt="Deploy your own web app" height="40"></picture></a>&nbsp;&nbsp;
   <a href="https://github.com/ArioMoniri/TDJ/releases/latest/download/TDJ-macOS.dmg"><picture><source media="(prefers-color-scheme: dark)" srcset="media/badges/download-the-mac-dmg-white.svg"><img src="media/badges/download-the-mac-dmg-black.svg" alt="Download the Mac app (DMG)" height="40"></picture></a>
 </p>
+<p align="center"><a href="https://github.com/ArioMoniri/TDJ/releases/latest"><img src="https://img.shields.io/github/v/release/ArioMoniri/TDJ?label=latest%20release&color=e8336d" alt="Latest release (the DMG button downloads it)"></a>&nbsp;<sub>The DMG button always downloads the <a href="https://github.com/ArioMoniri/TDJ/releases/latest">latest release</a>; every release lists the same buttons and a <code>SHA256SUMS</code> file.</sub></p>
 <p align="center" data-store-status="coming-soon"><sub><b>Coming to the App Store.</b> The iPhone, iPad and Mac apps are in TestFlight beta while App Review is pending; the store links open once the listing is approved.</sub></p>
 
 - **iPhone and iPad**: iOS and iPadOS 16 or later. One universal app; the Booth keeps playing with the screen locked.

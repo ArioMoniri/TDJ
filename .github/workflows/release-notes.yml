@@ -1,0 +1,36 @@
+name: Refresh release notes
+# Rewrites a published release's text from scripts/release/release-notes.mjs (the README's download buttons, the
+# store's what's new, where the version runs), without touching its tag or files.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, e.g. 1.0.0 (tag v<version>)"
+        required: true
+      build:
+        description: "Its build number, e.g. 462004"
+        required: true
+      commit:
+        description: "Its commit (12 characters), e.g. 2b08707b1d90"
+        required: true
+permissions:
+  contents: write
+jobs:
+  notes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, package-manager-cache: false }
+      - name: Write and apply the release text
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          BUILD: ${{ inputs.build }}
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+          node scripts/release/release-notes.mjs --version "$VERSION" --build "$BUILD" --commit "$COMMIT" > notes.md
+          gh release edit "v$VERSION" -R "$GITHUB_REPOSITORY" --notes-file notes.md
+          echo "v$VERSION release text updated" >> "$GITHUB_STEP_SUMMARY"

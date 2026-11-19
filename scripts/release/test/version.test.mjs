@@ -119,7 +119,9 @@ test("release notes: the store's what's new, then one version, one commit, and e
     notes: "What is new.\r\n",
     release,
   });
-  assert.match(md, /^What is new\.\n/);
+  // the README's download buttons first, then the store's what's new
+  assert.match(md, /^<p align="center">/);
+  assert.match(md, /<\/p>\n\nWhat is new\.\n/);
   assert.match(md, /\*\*1\.2\.3\*\* \(build 459871\)/);
   assert.match(md, /`0123abcd`/);
   assert.ok(md.includes(release.webUrl));
@@ -142,7 +144,8 @@ test("release notes: without a public web URL they link only GitHub and Apple, n
   const md = releaseNotes({ version: "1.0.0", build: "460000", commit: "0123abcd", notes: "New.", release });
   const hosts = [...md.matchAll(/https?:\/\/([^/\s)]+)/g)].map((m) => m[1]);
   assert.ok(hosts.length > 0);
-  assert.deepEqual([...new Set(hosts)], ["github.com"]);
+  // GitHub (links, the buttons' images at the tag) and Apple's store pages only
+  assert.deepEqual([...new Set(hosts)].sort(), ["apps.apple.com", "github.com", "raw.githubusercontent.com"]);
   assert.match(
     md,
     /\[deploy your own\]\(https:\/\/github\.com\/ArioMoniri\/TDJ\/blob\/v1\.0\.0\/docs\/SELF_DEPLOY\.md\)/,

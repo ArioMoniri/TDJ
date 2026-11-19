@@ -19,7 +19,31 @@ export function releaseNotes({ version, build, commit, notes, release = readRele
     : release.testflightUrl
       ? `TestFlight beta: ${release.testflightUrl} (App Store review pending)`
       : "TestFlight (invited testers), App Store review pending";
-  return `${notes.replace(/\r\n/g, "\n").trim()}
+  // the README's download buttons, at this release's tag (the Releases tab and the README show the same buttons)
+  const badge = (file) => `https://raw.githubusercontent.com/${release.repo}/v${version}/media/badges/${file}`;
+  const appStore = release.appStoreUrl || `https://apps.apple.com/app/id${release.appStoreId}`;
+  const macStore = release.macAppStoreUrl || `${appStore}?platform=mac`;
+  const buttons = [
+    [appStore, "download-on-the-app-store-black-en-us.svg", "Download on the App Store, for iPhone and iPad"],
+    [macStore, "download-on-the-mac-app-store-black-en-us.svg", "Download on the Mac App Store"],
+    [
+      `https://github.com/${release.repo}/blob/v${version}/docs/SELF_DEPLOY.md`,
+      "deploy-your-own-web-app-black.svg",
+      "Deploy your own web app",
+    ],
+    [
+      `https://github.com/${release.repo}/releases/download/v${version}/TDJ-macOS.dmg`,
+      "download-the-mac-dmg-black.svg",
+      "Download the Mac app (DMG)",
+    ],
+  ]
+    .map(([href, file, alt]) => `<a href="${href}"><img src="${badge(file)}" alt="${alt}" height="40"></a>`)
+    .join("&nbsp;&nbsp;\n  ");
+  return `<p align="center">
+  ${buttons}
+</p>
+
+${notes.replace(/\r\n/g, "\n").trim()}
 
 ## This release everywhere
 
