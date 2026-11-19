@@ -15,7 +15,12 @@ function fake({ encryption = null } = {}) {
       if (p.includes("/appInfos?"))
         return { data: [{ id: "i1", attributes: { state: "PREPARE_FOR_SUBMISSION" } }] };
       if (p.includes("/ageRatingDeclaration"))
-        return { data: { attributes: { violenceRealistic: "NONE", gambling: null } } };
+        return {
+          data: {
+            id: "d1",
+            attributes: { violenceRealistic: "NONE", gambling: null, socialMediaAgeRestricted: null },
+          },
+        };
       if (p.includes("/appStoreVersions"))
         return {
           data: [
@@ -52,6 +57,8 @@ test("answers an unanswered export compliance as exempt and names unanswered age
   assert.equal(patch[2].data.attributes.usesNonExemptEncryption, false);
   assert.equal(r.builds.IOS, "answered");
   assert.deepEqual(r.ageRating, ["gambling"]);
+  const social = c.calls.find((x) => x[0] === "PATCH" && x[1] === "/v1/ageRatingDeclarations/d1");
+  assert.equal(social[2].data.attributes.socialMediaAgeRestricted, false);
   assert.ok(lines.some((l) => /unanswered: gambling/.test(l)));
 });
 

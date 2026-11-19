@@ -35,6 +35,15 @@ export async function readiness({ client, appId, build, platforms = ["IOS", "MAC
   const infos = (await client.get(`/v1/apps/${appId}/appInfos?limit=5`))?.data ?? [];
   for (const info of infos) {
     const decl = (await client.get(`/v1/appInfos/${info.id}/ageRatingDeclaration`))?.data;
+    // T-DJ is a DJ tool, not a social media app: the newer required question is answered No (the owner asked for the
+    // remaining submission steps to be done, 2026-11-18); the other nulls are optional (kids band, Korea GRAC, URL)
+    if (decl?.id && decl.attributes?.socialMediaAgeRestricted === null) {
+      await client.patch(`/v1/ageRatingDeclarations/${decl.id}`, {
+        data: { type: "ageRatingDeclarations", id: decl.id, attributes: { socialMediaAgeRestricted: false } },
+      });
+      decl.attributes.socialMediaAgeRestricted = false;
+      log("age rating: socialMediaAgeRestricted answered No (not a social media app)");
+    }
     const unanswered = Object.entries(decl?.attributes ?? {})
       .filter(([, v]) => v === null)
       .map(([k]) => k);
