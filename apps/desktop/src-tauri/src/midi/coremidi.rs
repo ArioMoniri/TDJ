@@ -37,14 +37,22 @@ pub fn start(on_ports: fn()) {
                 if let Some(mi) = &lister_in {
                     for p in mi.ports() {
                         if let Ok(name) = mi.port_name(&p) {
-                            v.push(MidiPort { id: p.id(), name, dir: "in" });
+                            v.push(MidiPort {
+                                id: p.id(),
+                                name,
+                                dir: "in",
+                            });
                         }
                     }
                 }
                 if let Some(mo) = &lister_out {
                     for p in mo.ports() {
                         if let Ok(name) = mo.port_name(&p) {
-                            v.push(MidiPort { id: p.id(), name, dir: "out" });
+                            v.push(MidiPort {
+                                id: p.id(),
+                                name,
+                                dir: "out",
+                            });
                         }
                     }
                 }

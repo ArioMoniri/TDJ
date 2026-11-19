@@ -11,7 +11,9 @@ interface NativeInfo {
   version?: string;
   apiBase?: string;
   /** the Spotify Client ID this build ships with (public; PKCE needs no secret) */
-  spotifyClientId?: string;
+  spotifyClientId?: string | null;
+  /** the DJ's own Spotify Client ID ("Use my own Spotify app"), kept in this device's Keychain */
+  ownSpotifyClientId?: string | null;
   /** the TDJ server the DJ linked under Settings → Connections, when the link is on */
   linkedServer?: string | null;
   updater?: boolean;
@@ -53,11 +55,41 @@ const loadDb = () => {
   return loaded;
 };
 
-/** Spotify Client ID: the DJ's own (Settings → Spotify → Advanced) wins over the one this build ships with. */
+/** The Client ID the app was built with (TDJ_SPOTIFY_CLIENT_ID, baked into the bundle by build-ui.mjs). */
+const BUILT_IN_SPOTIFY = process.env.NEXT_PUBLIC_TDJ_SPOTIFY_CLIENT_ID || "";
+
+/**
+ * Which Spotify app signs the DJ in: their own ("Use my own Spotify app", Settings → Connections → Spotify; kept in
+ * the Keychain, or the page's settings from an older build) wins over the one this build ships with. Spotify's
+ * Development Mode admits 5 listed users (February 2026), so every DJ past those needs their own.
+ */
+export function pickSpotifyClientId(o: {
+  keychain?: string | null;
+  settings?: string | null;
+  native?: string | null;
+  builtIn?: string | null;
+}): { id: string; own: boolean } {
+  const own = (o.keychain ?? "").trim() || (o.settings ?? "").trim();
+  if (own) return { id: own, own: true };
+  return { id: (o.native ?? "").trim() || (o.builtIn ?? "").trim(), own: false };
+}
+
 export async function spotifyClientId(): Promise<string> {
   const { useStore } = await import("@/lib/store");
-  const own = useStore.getState().settings.spotifyClientId?.trim();
-  return own || (await nativeInfo()).spotifyClientId || "";
+  const info = await nativeInfo();
+  return pickSpotifyClientId({
+    keychain: info.ownSpotifyClientId,
+    settings: useStore.getState().settings.spotifyClientId,
+    native: info.spotifyClientId,
+    builtIn: BUILT_IN_SPOTIFY,
+  }).id;
+}
+
+/** Saves the DJ's own Client ID in this device's Keychain ("" removes it: the built-in app again). */
+export async function saveOwnSpotifyClientId(id: string): Promise<void> {
+  const v = id.trim();
+  if (v) await invoke("secret_set", { name: "spotify.client_id", value: v });
+  else await invoke("secret_delete", { name: "spotify.client_id" });
 }
 
 /** What the engine worker asks the page to do natively (lib/app/host.ts). */

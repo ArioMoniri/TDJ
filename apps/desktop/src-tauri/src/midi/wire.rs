@@ -92,7 +92,10 @@ mod tests {
 
     #[test]
     fn a_batch_is_one_event_the_page_reads() {
-        let d = messages_detail(&[("in-1".into(), vec![0x90, 11, 127]), ("in-1".into(), vec![0x80, 11, 0])]);
+        let d = messages_detail(&[
+            ("in-1".into(), vec![0x90, 11, 127]),
+            ("in-1".into(), vec![0x80, 11, 0]),
+        ]);
         assert_eq!(d["type"], "messages");
         assert_eq!(d["items"][0]["port"], "in-1");
         assert_eq!(d["items"][1]["data"], json!([128, 11, 0]));
@@ -127,10 +130,18 @@ mod tests {
 
     #[test]
     fn a_plugged_controller_changes_the_list() {
-        let a = vec![MidiPort { id: "1".into(), name: "DDJ-400".into(), dir: "in" }];
+        let a = vec![MidiPort {
+            id: "1".into(),
+            name: "DDJ-400".into(),
+            dir: "in",
+        }];
         let mut b = a.clone();
         assert!(!ports_changed(&a, &b));
-        b.push(MidiPort { id: "2".into(), name: "DDJ-400".into(), dir: "out" });
+        b.push(MidiPort {
+            id: "2".into(),
+            name: "DDJ-400".into(),
+            dir: "out",
+        });
         assert!(ports_changed(&a, &b));
     }
 }

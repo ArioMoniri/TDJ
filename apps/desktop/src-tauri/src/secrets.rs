@@ -8,15 +8,19 @@ use std::sync::Mutex;
 /// The Keychain service every TDJ item lives under.
 pub const SERVICE: &str = "com.ariomoniri.tdj";
 
-/// Names the page may write: one model key per provider. Spotify tokens are written by `net.rs` only.
+/// Names the page may write: one model key per provider, and the DJ's own Spotify Client ID. Spotify tokens are
+/// written by `net.rs` only.
 pub fn page_may_write(name: &str) -> bool {
     matches!(
         name,
-        "ai.anthropic" | "ai.openai" | "ai.gemini" | "ai.openrouter"
+        "ai.anthropic" | "ai.openai" | "ai.gemini" | "ai.openrouter" | SPOTIFY_OWN_CLIENT
     )
 }
 
 pub const SPOTIFY_REFRESH: &str = "spotify.refresh";
+/// "Use my own Spotify app" (Settings → Connections → Spotify): the DJ's own Client ID, kept on this device. Public
+/// (PKCE needs no secret), so the page may read it back through `get_native_info`; the tokens stay native-only.
+pub const SPOTIFY_OWN_CLIENT: &str = "spotify.client_id";
 
 pub trait SecretStore: Send + Sync {
     fn get(&self, name: &str) -> Option<String>;
@@ -83,6 +87,12 @@ pub fn page_set(store: &dyn SecretStore, name: &str, value: &str) -> Result<(), 
     if v.is_empty() {
         return store.delete(name);
     }
+    if name == SPOTIFY_OWN_CLIENT {
+        if !crate::spotify::valid_client_id(v) {
+            return Err("That does not look like a Spotify Client ID.".into());
+        }
+        return store.set(name, v);
+    }
     if v.len() > 4096 || v.chars().any(|c| c.is_control()) {
         return Err("That does not look like an API key.".into());
     }
@@ -103,5 +113,18 @@ mod tests {
         assert!(page_set(&s, "ai.openai", "a\nb").is_err());
         page_set(&s, "ai.anthropic", "").unwrap();
         assert!(s.get("ai.anthropic").is_none());
+    }
+
+    #[test]
+    fn the_djs_own_spotify_client_id_is_kept_on_the_device() {
+        let s = Memory::default();
+        page_set(&s, SPOTIFY_OWN_CLIENT, " 0123456789abcdef0123456789abcdef ").unwrap();
+        assert_eq!(
+            s.get(SPOTIFY_OWN_CLIENT).as_deref(),
+            Some("0123456789abcdef0123456789abcdef")
+        );
+        assert!(page_set(&s, SPOTIFY_OWN_CLIENT, "not an id!").is_err());
+        page_set(&s, SPOTIFY_OWN_CLIENT, "").unwrap();
+        assert!(s.get(SPOTIFY_OWN_CLIENT).is_none());
     }
 }

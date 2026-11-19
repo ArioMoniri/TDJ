@@ -12,9 +12,9 @@
 //! apps/web/src/lib/controller/access.ts. Elsewhere (Linux checks) the commands answer "no ports".
 #![cfg_attr(not(any(target_os = "macos", target_os = "ios")), allow(dead_code))]
 
-pub mod wire;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 mod coremidi;
+pub mod wire;
 
 use self::wire::{dispatch_js, drain, messages_detail, valid_message, MidiPort};
 use serde_json::Value;
