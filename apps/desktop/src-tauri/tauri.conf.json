@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "TDJ",
+  "productName": "T-DJ",
   "mainBinaryName": "TDJ",
   "version": "../../../package.json",
   "identifier": "com.ariomoniri.tdj",
@@ -51,7 +51,7 @@
         "background": "dmg/background.png",
         "windowSize": {
           "width": 660,
-          "height": 400
+          "height": 428
         },
         "appPosition": {
           "x": 180,

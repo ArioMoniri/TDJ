@@ -184,7 +184,7 @@ jobs:
         run: |
           d="$RUNNER_TEMP/release"; rm -rf "$d"; mkdir -p "$d"
           gh release download "v$V" -R "$GITHUB_REPOSITORY" -D "$d" \
-            -p latest.json -p TDJ-macOS.app.tar.gz -p TDJ-macOS.app.tar.gz.sig -p SHA256SUMS -p TDJ-macOS.dmg -p "TDJ-$V-macOS.dmg"
+            -p latest.json -p TDJ-macOS.app.tar.gz -p TDJ-macOS.app.tar.gz.sig -p SHA256SUMS -p T-DJ-macOS.dmg -p "T-DJ-$V-macOS.dmg" -p TDJ-macOS.dmg
           (cd "$d" && sha256sum -c SHA256SUMS)
           node scripts/release/verify-updater.mjs --manifest "$d/latest.json" --tarball "$d/TDJ-macOS.app.tar.gz" \
             --sig "$d/TDJ-macOS.app.tar.gz.sig" --version "$V" --repo "$GITHUB_REPOSITORY" | tee -a "$GITHUB_STEP_SUMMARY"
@@ -193,7 +193,7 @@ jobs:
           gh release edit "v$V" -R "$GITHUB_REPOSITORY" --draft=false --latest
           {
             echo "## Released T-DJ $V (commit ${{ needs.version.outputs.commit }})"
-            echo "- Download: https://github.com/$GITHUB_REPOSITORY/releases/latest/download/TDJ-macOS.dmg"
+            echo "- Download: https://github.com/$GITHUB_REPOSITORY/releases/latest/download/T-DJ-macOS.dmg"
             echo "- TestFlight: build ${{ needs.version.outputs.build }} (iPhone, iPad and Mac), processing takes 5–30 min"
             echo "- Web: deployed from the same commit when the web job ran; /api/version reports $V"
           } >> "$GITHUB_STEP_SUMMARY"

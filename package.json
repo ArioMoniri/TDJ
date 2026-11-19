@@ -1,7 +1,7 @@
 {
   "name": "tdj",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TDJ — Tango DJ playlist composer: tandas, cortinas, energy arcs, exports to Spotify and DJ apps.",
   "license": "PolyForm-Noncommercial-1.0.0",
   "release": {

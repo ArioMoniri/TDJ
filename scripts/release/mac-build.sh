@@ -248,10 +248,10 @@ if want dmg; then
   rm -rf "$B"
   TAURI_BUNDLER_DMG_IGNORE_CI="${TAURI_BUNDLER_DMG_IGNORE_CI:-true}" \
     tauri build --target universal-apple-darwin --bundles app,dmg --features updater --config "$WORK/dmg.json" --ci
-  DMG="$B/dmg/TDJ_${VERSION}_universal.dmg"; APP="$B/macos/TDJ.app"
+  DMG="$B/dmg/T-DJ_${VERSION}_universal.dmg"; APP="$B/macos/T-DJ.app"
   [ -f "$DMG" ] || DMG=$(find "$B/dmg" -name '*.dmg' -newer "$WORK" | head -1)
   [ -n "$DMG" ] && [ -f "$DMG" ] || die "no DMG produced in $B/dmg"
-  [ -s "$B/macos/TDJ.app.tar.gz.sig" ] || die "no updater signature: TAURI_SIGNING_PRIVATE_KEY (and its password) must be set"
+  [ -s "$B/macos/T-DJ.app.tar.gz.sig" ] || die "no updater signature: TAURI_SIGNING_PRIVATE_KEY (and its password) must be set"
   codesign --verify --deep --strict "$APP"
   xcrun stapler validate "$APP"
   # the DMG itself: sign, notarise, staple (Gatekeeper checks the download, not only the app inside)
@@ -259,15 +259,16 @@ if want dmg; then
   xcrun notarytool submit "$DMG" --key "$APPLE_KEY_NAMED" --key-id "$APP_STORE_CONNECT_KEY_ID" --issuer "$APP_STORE_CONNECT_ISSUER_ID" --wait
   xcrun stapler staple "$DMG"
   spctl -a -vvv -t install "$DMG"
-  cp "$DMG" "$OUT/TDJ-macOS.dmg"; cp "$DMG" "$OUT/TDJ-$VERSION-macOS.dmg"
-  cp "$B/macos/TDJ.app.tar.gz" "$OUT/TDJ-macOS.app.tar.gz"; cp "$B/macos/TDJ.app.tar.gz.sig" "$OUT/TDJ-macOS.app.tar.gz.sig"
+  # the App Store name everywhere (T-DJ); TDJ-macOS.dmg stays as a copy for links in apps already installed (1.0.0)
+  cp "$DMG" "$OUT/T-DJ-macOS.dmg"; cp "$DMG" "$OUT/T-DJ-$VERSION-macOS.dmg"; cp "$DMG" "$OUT/TDJ-macOS.dmg"
+  cp "$B/macos/T-DJ.app.tar.gz" "$OUT/TDJ-macOS.app.tar.gz"; cp "$B/macos/T-DJ.app.tar.gz.sig" "$OUT/TDJ-macOS.app.tar.gz.sig"
   node scripts/release/latest-json.mjs --version "$VERSION" --sig "$OUT/TDJ-macOS.app.tar.gz.sig" \
     --notes-file "${TDJ_RELEASE_NOTES:-apps/desktop/fastlane/metadata/en-US/release_notes.txt}" --repo "$REPO" > "$OUT/latest.json"
   # the auto-update path end to end: latest.json → this release's tarball, signature valid for the app's public key
   node scripts/release/verify-updater.mjs --manifest "$OUT/latest.json" --tarball "$OUT/TDJ-macOS.app.tar.gz" \
     --sig "$OUT/TDJ-macOS.app.tar.gz.sig" --version "$VERSION" --pubkey "$PUBKEY" --repo "$REPO" \
     || die "the updater artifacts do not verify (see above): no release was touched"
-  (cd "$OUT" && shasum -a 256 TDJ-macOS.dmg "TDJ-$VERSION-macOS.dmg" TDJ-macOS.app.tar.gz > SHA256SUMS)
+  (cd "$OUT" && shasum -a 256 T-DJ-macOS.dmg "T-DJ-$VERSION-macOS.dmg" TDJ-macOS.dmg TDJ-macOS.app.tar.gz > SHA256SUMS)
   unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 fi
 
@@ -287,7 +288,7 @@ if want mas; then
   ( unset APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH
     export TDJ_APP_STORE=1
     tauri build --target universal-apple-darwin --bundles app --config "$WORK/mas.json" --ci )
-  MAS_APP="$CARGO_TARGET_DIR/universal-apple-darwin/release/bundle/macos/TDJ.app"
+  MAS_APP="$CARGO_TARGET_DIR/universal-apple-darwin/release/bundle/macos/T-DJ.app"
   codesign -d --entitlements - "$MAS_APP" 2>/dev/null | grep -q app-sandbox || die "the store build is not sandboxed"
   # files copied from the owner-only signing folder (the embedded profile) keep mode 600, which App Store Connect
   # rejects (90255: readable only by root once installed); permissions are not part of the code signature
@@ -367,7 +368,7 @@ if [ "$GH_RELEASE" = 1 ] && want dmg; then
     gh release create "v$VERSION" -R "$REPO" --draft --target "$HEAD_SHA" --title "T-DJ $VERSION" \
       --notes-file "$OUT/release-notes.md"
   fi
-  gh release upload "v$VERSION" -R "$REPO" --clobber "$OUT/TDJ-macOS.dmg" "$OUT/TDJ-$VERSION-macOS.dmg" \
+  gh release upload "v$VERSION" -R "$REPO" --clobber "$OUT/T-DJ-macOS.dmg" "$OUT/T-DJ-$VERSION-macOS.dmg" "$OUT/TDJ-macOS.dmg" \
     "$OUT/TDJ-macOS.app.tar.gz" "$OUT/TDJ-macOS.app.tar.gz.sig" "$OUT/latest.json" "$OUT/SHA256SUMS"
   echo "draft release ready: publish it at https://github.com/$REPO/releases (the README button serves the newest published one)"
 fi

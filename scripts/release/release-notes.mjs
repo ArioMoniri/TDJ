@@ -20,7 +20,8 @@ export function releaseNotes({ version, build, commit, notes, release = readRele
       ? `TestFlight beta: ${release.testflightUrl} (App Store review pending)`
       : "TestFlight (invited testers), App Store review pending";
   // the README's download buttons, at this release's tag (the Releases tab and the README show the same buttons)
-  const badge = (file) => `https://raw.githubusercontent.com/${release.repo}/v${version}/media/badges/${file}`;
+  const badge = (file) =>
+    `https://raw.githubusercontent.com/${release.repo}/v${version}/media/badges/${file}`;
   const appStore = release.appStoreUrl || `https://apps.apple.com/app/id${release.appStoreId}`;
   const macStore = release.macAppStoreUrl || `${appStore}?platform=mac`;
   const buttons = [
@@ -32,7 +33,7 @@ export function releaseNotes({ version, build, commit, notes, release = readRele
       "Deploy your own web app",
     ],
     [
-      `https://github.com/${release.repo}/releases/download/v${version}/TDJ-macOS.dmg`,
+      `https://github.com/${release.repo}/releases/download/v${version}/T-DJ-macOS.dmg`,
       "download-the-mac-dmg-black.svg",
       "Download the Mac app (DMG)",
     ],
@@ -53,7 +54,7 @@ ${notes.replace(/\r\n/g, "\n").trim()}
 | Commit | \`${commit}\` |
 | Web | ${release.webUrl || `self-hosted: [deploy your own](https://github.com/${release.repo}/blob/v${version}/docs/SELF_DEPLOY.md)`} |
 | iPhone, iPad, Mac App Store | ${store} |
-| Mac download | [TDJ-macOS.dmg](https://github.com/${release.repo}/releases/download/v${version}/TDJ-macOS.dmg), signed and notarised, updates itself; \`SHA256SUMS\` attached |
+| Mac download | [T-DJ-macOS.dmg](https://github.com/${release.repo}/releases/download/v${version}/T-DJ-macOS.dmg), signed and notarised, updates itself; \`SHA256SUMS\` attached |
 `;
 }
 

@@ -20,7 +20,7 @@ export const LINKS = {
   macAppStore: APP_STORE_ID ? `https://apps.apple.com/app/id${APP_STORE_ID}?platform=mac` : "",
   appStoreLive: process.env.NEXT_PUBLIC_TDJ_APP_STORE_LIVE === "1",
   testflight: process.env.NEXT_PUBLIC_TDJ_TESTFLIGHT_URL || "",
-  dmg: `https://github.com/${REPO}/releases/latest/download/TDJ-macOS.dmg`,
+  dmg: `https://github.com/${REPO}/releases/latest/download/T-DJ-macOS.dmg`,
   releases: `https://github.com/${REPO}/releases`,
 } as const;
 

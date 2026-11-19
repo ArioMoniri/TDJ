@@ -49,7 +49,7 @@ test("release links: App Store ID from the root package.json, nothing claims the
   assert.match(r.appStoreId, /^\d{9,10}$/);
   assert.equal(r.appStoreUrl, `https://apps.apple.com/app/id${r.appStoreId}`);
   assert.match(r.macAppStoreUrl, /platform=mac$/);
-  assert.equal(r.dmgUrl, "https://github.com/ArioMoniri/TDJ/releases/latest/download/TDJ-macOS.dmg");
+  assert.equal(r.dmgUrl, "https://github.com/ArioMoniri/TDJ/releases/latest/download/T-DJ-macOS.dmg");
   // no public web instance: empty, or a deployment's own https address
   assert.ok(r.webUrl === "" || r.webUrl.startsWith("https://"));
   assert.ok(r.testflightUrl === "" || r.testflightUrl.startsWith("https://testflight.apple.com/join/"));
@@ -125,7 +125,7 @@ test("release notes: the store's what's new, then one version, one commit, and e
   assert.match(md, /\*\*1\.2\.3\*\* \(build 459871\)/);
   assert.match(md, /`0123abcd`/);
   assert.ok(md.includes(release.webUrl));
-  assert.ok(md.includes("releases/download/v1.2.3/TDJ-macOS.dmg"));
+  assert.ok(md.includes("releases/download/v1.2.3/T-DJ-macOS.dmg"));
   // not live yet: no claim that the App Store has it
   if (!release.appStoreLive) assert.match(md, /review pending/);
   const live = releaseNotes({

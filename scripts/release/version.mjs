@@ -66,7 +66,7 @@ export function readRelease(root = ROOT) {
     macAppStoreUrl: appStoreId ? `https://apps.apple.com/app/id${appStoreId}?platform=mac` : "",
     testflightUrl: r.testflightUrl ?? "",
     webUrl: r.webUrl ?? "",
-    dmgUrl: `https://github.com/${repo}/releases/latest/download/TDJ-macOS.dmg`,
+    dmgUrl: `https://github.com/${repo}/releases/latest/download/T-DJ-macOS.dmg`,
     releasesUrl: `https://github.com/${repo}/releases`,
     appStoreLive: r.appStoreLive === true,
   };
