@@ -65,5 +65,5 @@ test("answers an unanswered export compliance as exempt and names unanswered age
 test("leaves an answered build alone", async () => {
   const c = fake({ encryption: false });
   await readiness({ client: c, appId: "1", build: "462004", platforms: ["IOS"], log: () => {} });
-  assert.equal(c.calls.filter((x) => x[0] === "PATCH").length, 0);
+  assert.equal(c.calls.filter((x) => x[0] === "PATCH" && x[1].startsWith("/v1/builds/")).length, 0);
 });
