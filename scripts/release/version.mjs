@@ -97,7 +97,24 @@ export function releaseEnv(root = ROOT, env = process.env) {
     NEXT_PUBLIC_TDJ_TESTFLIGHT_URL: r.testflightUrl,
     NEXT_PUBLIC_TDJ_WEB_URL: r.webUrl,
     NEXT_PUBLIC_TDJ_REPO: r.repo,
+    // docs/SYNC.md: the sync server the apps use by default (empty: none; the DJ may set one in Settings → Sync).
+    // Never committed: the owner's builds take it from the TDJ_SYNC_URL repository variable.
+    NEXT_PUBLIC_TDJ_SYNC_URL: syncUrl(env),
   };
+}
+
+/** The default sync server of a build: an https origin (or http://localhost), else empty. */
+export function syncUrl(env = process.env) {
+  const raw = (env.TDJ_SYNC_URL || env.NEXT_PUBLIC_TDJ_SYNC_URL || "").trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw);
+    const local = u.hostname === "localhost" || u.hostname === "127.0.0.1";
+    if (u.protocol !== "https:" && !(local && u.protocol === "http:")) return "";
+    return u.origin;
+  } catch {
+    return "";
+  }
 }
 
 /** Everything that must agree with the root version; [] when in sync. `tag` (v1.2.3) is checked too when given. */

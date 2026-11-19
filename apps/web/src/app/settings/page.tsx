@@ -49,6 +49,7 @@ import { OwnerContributions } from "@/components/OwnerContributions";
 import { PageHeader } from "@/components/PageHeader";
 import { PowerSaverGroup } from "@/components/PowerSaver";
 import { Sheet } from "@/components/Sheet";
+import { SyncSettings } from "@/components/SyncSettings";
 import { LyricsConnections } from "@/components/song/LyricsConnections";
 import { TandaRulesGroup } from "@/components/TandaRules";
 import { DataSources } from "@/components/ui/DataSources";
@@ -648,6 +649,8 @@ export default function Settings() {
           <PopularitySwitch />
         </Group>
 
+        {/* docs/SYNC.md: the same library on every device (sync code, iCloud in the apps, a library file) */}
+        <SyncSettings />
         {APP && <AppConnections />}
         <Connectors />
         {/* 2026-11: where song details look for lyrics (LRCLIB; opt-in Musixmatch and Genius with your key) */}
