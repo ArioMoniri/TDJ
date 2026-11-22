@@ -44,6 +44,23 @@ pub enum DeepLink {
     NightFile { path: std::path::PathBuf },
     /// `tdj://room?server=https://…&code=ABC234`: a room on the server of whoever made it (§12, opt-in)
     Room { server: String, code: String },
+    /// `tdj://sync#tango-…`: a sync code from Settings → Sync's QR code (docs/SYNC.md), opened at
+    /// `/settings#sync=…` (the fragment never reaches a server); the page asks before it joins
+    Sync { code: String },
+}
+
+/// A sync code as the QR code carries it: `tango-` and 28 Crockford base32 characters in groups (any case).
+fn valid_sync_code(c: &str) -> bool {
+    let body: String = c
+        .to_ascii_lowercase()
+        .trim_start_matches("tango")
+        .chars()
+        .filter(|ch| *ch != '-')
+        .collect();
+    body.len() == 28
+        && body
+            .bytes()
+            .all(|b| b"0123456789abcdefghjkmnpqrstvwxyz".contains(&b))
 }
 
 /// A night link's payload: `n1.` then base64url, at most 100 000 characters.
@@ -144,6 +161,12 @@ pub fn parse(raw: &str) -> Option<DeepLink> {
             .filter(|f| valid_night_fragment(f))
             .map(|f| DeepLink::Night {
                 fragment: f.to_string(),
+            }),
+        "sync" => url
+            .fragment()
+            .filter(|f| valid_sync_code(f))
+            .map(|f| DeepLink::Sync {
+                code: f.to_ascii_lowercase(),
             }),
         "room" => {
             let code = get("code")
@@ -385,6 +408,22 @@ mod tests {
             Some(DeepLink::NightFile { .. })
         ));
         assert_eq!(parse("file:///Users/dj/notes.txt"), None);
+    }
+
+    #[test]
+    fn sync_code_links() {
+        let code = "tango-0123-4567-89ab-cdef-ghjk-mnpq-rstv";
+        assert_eq!(
+            parse(&format!("tdj://sync#{code}")),
+            Some(DeepLink::Sync { code: code.into() })
+        );
+        assert_eq!(
+            parse("tdj://sync#TANGO-0123-4567-89AB-CDEF-GHJK-MNPQ-RSTV"),
+            Some(DeepLink::Sync { code: code.into() })
+        );
+        assert_eq!(parse("tdj://sync#tango-0123"), None);
+        assert_eq!(parse("tdj://sync#%3Cscript%3E"), None);
+        assert_eq!(parse("tdj://sync"), None);
     }
 
     #[test]

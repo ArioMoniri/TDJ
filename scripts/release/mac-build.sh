@@ -224,6 +224,9 @@ altool_upload() { # $1 file, $2 ios|macos — a failed upload fails the run at t
   return 1
 }
 tauri() { (cd "$DESKTOP" && pnpm exec tauri "$@"); }
+# the committed entitlements (the upstream IDs) with this build's bundle ID and team: a fork signs with its own
+# App ID and iCloud container (iCloud.<bundle ID>) without editing the plists
+entitlements_for() { sed -e "s/com\.ariomoniri\.tdj/$BUNDLE_ID/g" -e "s/FF68N39FU5/$TEAM_ID/g" "$1"; }
 
 # ------------------------------------------------------------------ 1. Developer ID DMG
 if want dmg; then
@@ -292,19 +295,23 @@ if want mas; then
   step "Mac App Store package (universal, sandboxed)"
   [ -n "$DIST" ] && [ -n "$INSTALLER" ] || die "Apple Distribution or Mac Installer identity missing"
   PROFILE="$SIGN/MAC_APPSTORE_PROFILE.provisionprofile"
+  # docs/SYNC.md: the entitlements name this build's own iCloud container (iCloud.<bundle ID>) and team
+  entitlements_for "$TAURI_DIR/entitlements/mac-appstore.plist" > "$WORK/mas.entitlements"
   [ -f "$PROFILE" ] || die "Mac App Store profile missing"
   node -e '
-    const [v,b,id,prof]=process.argv.slice(1);
+    const [v,b,id,prof,ent]=process.argv.slice(1);
     process.stdout.write(JSON.stringify({version:v,bundle:{targets:["app"],createUpdaterArtifacts:false,macOS:{bundleVersion:b,
-      signingIdentity:id,entitlements:"entitlements/mac-appstore.plist",
+      signingIdentity:id,entitlements:ent,
       files:{"embedded.provisionprofile":prof,"Resources/PrivacyInfo.xcprivacy":"./PrivacyInfo.xcprivacy"}}}}))' \
-    "$VERSION" "$BUILD" "$DIST" "$PROFILE" > "$WORK/mas.json"
+    "$VERSION" "$BUILD" "$DIST" "$PROFILE" "$WORK/mas.entitlements" > "$WORK/mas.json"
   # no notarisation for the store build: the App Store signs it
   ( unset APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH
     export TDJ_APP_STORE=1
     tauri build --target universal-apple-darwin --bundles app --config "$WORK/mas.json" --ci )
   MAS_APP="$CARGO_TARGET_DIR/universal-apple-darwin/release/bundle/macos/T-DJ.app"
   codesign -d --entitlements - "$MAS_APP" 2>/dev/null | grep -q app-sandbox || die "the store build is not sandboxed"
+  codesign -d --entitlements - "$MAS_APP" 2>/dev/null | grep -q ubiquity-container-identifiers \
+    || die "the store build has no iCloud entitlement (docs/SYNC.md; the profile must include iCloud: apple-setup.mjs)"
   # files copied from the owner-only signing folder (the embedded profile) keep mode 600, which App Store Connect
   # rejects (90255: readable only by root once installed); permissions are not part of the code signature
   chmod -R u+rwX,go+rX "$MAS_APP"
@@ -339,7 +346,22 @@ if want ios; then
 {"colors":[{"idiom":"universal","color":{"color-space":"srgb","components":{"red":"0.043","green":"0.039","blue":"0.063","alpha":"1.000"}}}],"info":{"version":1,"author":"xcode"}}
 JSON
   cp "$TAURI_DIR"/icons/ios/*.png "$GEN/Assets.xcassets/AppIcon.appiconset/" 2>/dev/null || true
+  # docs/SYNC.md: iCloud Documents for the sync log. The target must name an entitlements file (Tauri's template
+  # does; an older gen/apple may not), and after xcodegen the iCloud keys are merged into it
+  IOS_ENT_REL="$(basename "$IOS_SRC")/$(basename "$IOS_SRC").entitlements"
+  if ! grep -q 'CODE_SIGN_ENTITLEMENTS\|entitlements:' "$GEN/project.yml"; then
+    perl -0pi -e "s/(\n    settings:\n      base:\n)/\$1        CODE_SIGN_ENTITLEMENTS: $IOS_ENT_REL\n/" "$GEN/project.yml"
+  fi
   (cd "$GEN" && xcodegen generate >/dev/null)
+  IOS_ENT=$(find "$IOS_SRC" -maxdepth 1 -name '*.entitlements' | head -1)
+  [ -n "$IOS_ENT" ] || { IOS_ENT="$GEN/$IOS_ENT_REL"; plutil -create xml1 "$IOS_ENT" 2>/dev/null \
+    || printf '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict/></plist>\n' > "$IOS_ENT"; }
+  entitlements_for "$TAURI_DIR/entitlements/ios.plist" > "$WORK/ios.entitlements"
+  for k in icloud-container-identifiers ubiquity-container-identifiers icloud-services icloud-container-environment; do
+    /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.$k" "$IOS_ENT" >/dev/null 2>&1 || true
+  done
+  /usr/libexec/PlistBuddy -c "Merge $WORK/ios.entitlements" "$IOS_ENT" >/dev/null
+  grep -q ubiquity-container-identifiers "$IOS_ENT" || die "could not add the iCloud entitlements ($IOS_ENT)"
   IOS_CERTIFICATE="$(base64 < "$SIGN/APPLE_DISTRIBUTION_CERT.p12")"
   IOS_CERTIFICATE_PASSWORD="$(cat "$SIGN/APPLE_DISTRIBUTION_CERT.password")"
   IOS_MOBILE_PROVISION="$(base64 < "$SIGN/IOS_APPSTORE_PROFILE.mobileprovision")"
@@ -360,6 +382,9 @@ JSON
   echo "ipa: version $IPA_VER build $IPA_BUILD device family $IPA_FAMILY"
   [ "$IPA_VER" = "$VERSION" ] || die "the IPA says version $IPA_VER, expected $VERSION"
   [ "$IPA_BUILD" = "$BUILD" ] || echo "::warning::the IPA's CFBundleVersion is $IPA_BUILD, not $BUILD (App Review submission must use $IPA_BUILD)"
+  mkdir -p "$WORK/ipa" && unzip -q -o "$IPA" -d "$WORK/ipa"
+  codesign -d --entitlements - "$WORK"/ipa/Payload/*.app 2>/dev/null | grep -q ubiquity-container-identifiers \
+    || die "the IPA has no iCloud entitlement (docs/SYNC.md; the iOS profile must include iCloud: apple-setup.mjs)"
   cp "$IPA" "$OUT/TDJ-iOS.ipa"
   if [ "$UPLOAD" = 1 ]; then altool_upload "$OUT/TDJ-iOS.ipa" ios && UPLOADED+=("iOS ipa (iPhone + iPad) → TestFlight"); fi
 fi

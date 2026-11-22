@@ -14,6 +14,15 @@
   <key>com.apple.security.device.audio-input</key><true/>
   <!-- File → Print Set List -->
   <key>com.apple.security.print</key><true/>
+  <!-- docs/SYNC.md: the encrypted sync log mirrored into iCloud Documents (src/icloud.rs). The profile must carry
+       the same container: scripts/release/apple-setup.mjs regenerates a profile that lacks it. -->
+  <key>com.apple.developer.icloud-container-identifiers</key>
+  <array><string>iCloud.com.ariomoniri.tdj</string></array>
+  <key>com.apple.developer.ubiquity-container-identifiers</key>
+  <array><string>iCloud.com.ariomoniri.tdj</string></array>
+  <key>com.apple.developer.icloud-services</key>
+  <array><string>CloudDocuments</string></array>
+  <key>com.apple.developer.icloud-container-environment</key><string>Production</string>
   <key>com.apple.application-identifier</key><string>FF68N39FU5.com.ariomoniri.tdj</string>
   <key>com.apple.developer.team-identifier</key><string>FF68N39FU5</string>
 </dict>

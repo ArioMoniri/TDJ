@@ -16,6 +16,10 @@ export function Boot() {
       if (localStorage.getItem("tdj-owner-v1"))
         void import("@/lib/contrib/owner").then((m) => m.startOwnerSync());
     } catch {}
+    // docs/SYNC.md: a device that joined a sync space syncs on every page; others never load the module
+    try {
+      if (localStorage.getItem("tdj-sync-v1")) void import("@/lib/sync/client").then((m) => m.startSync());
+    } catch {}
   }, [boot]);
   // an older copy of the featured night in this browser follows the shipped version (after the store hydrates)
   useEffect(() => {

@@ -93,7 +93,7 @@ export const SECTION_META: Record<SectionId, SectionMeta> = {
     title: "settings.cat.library",
     blurb: "settings.cat.library_blurb",
     color: "#a2845e",
-    syn: "library data files storage kütüphane veri dosya depolama",
+    syn: "library data files storage sync devices icloud code export import kütüphane veri dosya depolama eşitleme cihaz kod dışa içe aktar",
   },
   rooms: {
     title: "settings.cat.rooms",

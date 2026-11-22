@@ -53,6 +53,7 @@ import { NightClosingGroup } from "@/components/NightClosing";
 import { OwnerContributions } from "@/components/OwnerContributions";
 import { PowerSaverGroup } from "@/components/PowerSaver";
 import { Sheet } from "@/components/Sheet";
+import { SyncSettings } from "@/components/SyncSettings";
 import { SettingsShell } from "@/components/settings/SettingsShell";
 import { LyricsConnections } from "@/components/song/LyricsConnections";
 import { TandaRulesGroup } from "@/components/TandaRules";
@@ -809,6 +810,8 @@ export default function Settings({ searchParams }: { searchParams: Promise<Searc
     ),
     library: (
       <>
+        {/* docs/SYNC.md: the same nights on every device (sync code, iCloud, a library file) */}
+        <SyncSettings />
         <Group
           header={tx("settings.dj_apps")}
           data-setting="dj-apps"

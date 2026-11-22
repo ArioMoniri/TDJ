@@ -17,6 +17,7 @@ import {
   readRelease,
   releaseEnv,
   setVersion,
+  syncUrl,
 } from "../version.mjs";
 
 /** a copy of the files the version lives in, to bump without touching the repo */
@@ -99,6 +100,14 @@ test("build-time env for the web app: version and the CI commit", () => {
   assert.equal(env.NEXT_PUBLIC_TDJ_VERSION, readRelease().version);
   assert.equal(env.NEXT_PUBLIC_TDJ_COMMIT, "0123456789ab");
   assert.equal(commitSha({ TDJ_COMMIT: "abc" }), "abc");
+  // docs/SYNC.md: no sync server unless the build names one (never a committed default)
+  assert.equal(releaseEnv(ROOT, {}).NEXT_PUBLIC_TDJ_SYNC_URL, "");
+  assert.equal(
+    releaseEnv(ROOT, { TDJ_SYNC_URL: "https://sync.example.org/path" }).NEXT_PUBLIC_TDJ_SYNC_URL,
+    "https://sync.example.org",
+  );
+  assert.equal(syncUrl({ TDJ_SYNC_URL: "http://sync.example.org" }), "");
+  assert.equal(syncUrl({ NEXT_PUBLIC_TDJ_SYNC_URL: "http://localhost:3000" }), "http://localhost:3000");
 });
 
 test("the release workflow and mac-build.sh read the root version, and accept the old ipad target", () => {

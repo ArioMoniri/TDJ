@@ -55,6 +55,12 @@ const COMMANDS: &[&str] = &[
     "byo_oauth_exchange",
     "byo_oauth_access",
     "byo_oauth_logout",
+    // docs/SYNC.md: the sync log mirrored into iCloud Documents (src/icloud.rs)
+    "icloud_status",
+    "icloud_list",
+    "icloud_read",
+    "icloud_write",
+    "icloud_remove",
 ];
 
 /// `"spotifyClientId": "<letters and digits>"` from tdj-bundle.json (no JSON crate in the build script).

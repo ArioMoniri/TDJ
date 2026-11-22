@@ -6,6 +6,7 @@
  */
 import { DatabaseSync } from "node:sqlite";
 import type { BrowserContext } from "playwright";
+import { type ICloudDrive, icloudCommand, newDrive } from "./icloud-mock";
 
 export interface MockOptions {
   platform: "macos" | "ipados";
@@ -14,6 +15,10 @@ export interface MockOptions {
   /** a TDJ server the DJ linked under Settings → Connections (store captures of Rooms): its name, and where the
    * page sends the linked-server requests (a URL the capture answers with ctx.route) */
   linked?: { server: string; apiBase: string };
+  /** the iCloud Drive this device is signed in to (share one between two mocks: one account); default its own */
+  icloud?: ICloudDrive;
+  /** the Developer ID DMG: no iCloud (src/icloud.rs answers unsupported) */
+  dmg?: boolean;
 }
 export interface Mock {
   calls: Array<{ cmd: string; args: Record<string, unknown> }>;
@@ -51,12 +56,16 @@ function cannedFetch(url: string) {
 }
 
 export async function installTauriMock(ctx: BrowserContext, o: MockOptions): Promise<Mock> {
+  const DRIVE = newDrive();
   const db = new DatabaseSync(o.dbPath ?? ":memory:");
   const secrets = new Map<string, string>();
   const calls: Mock["calls"] = [];
   const modelCalls: Mock["modelCalls"] = [];
   const handle = (cmd: string, args: Record<string, unknown>): unknown => {
     calls.push({ cmd, args });
+    // docs/SYNC.md: the iCloud Documents folder (src/icloud.rs), one drive per iCloud account
+    const ic = icloudCommand(o.icloud ?? DRIVE, cmd, args, !o.dmg);
+    if (ic !== undefined) return ic;
     switch (cmd) {
       case "get_native_info":
         return {

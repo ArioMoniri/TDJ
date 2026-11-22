@@ -7,5 +7,8 @@
        unsigned-memory exceptions are needed. -->
   <!-- 2026-11: the Booth's room meter (microphone), hardened runtime: only after the DJ switches it on -->
   <key>com.apple.security.device.audio-input</key><true/>
+  <!-- docs/SYNC.md: no iCloud here. A Developer ID app reaches an iCloud container only through an embedded
+       Developer ID profile listing it, which the DMG and its updater do not carry: the DMG syncs with a sync code
+       (src/icloud.rs answers "unsupported" in the updater build). -->
 </dict>
 </plist>

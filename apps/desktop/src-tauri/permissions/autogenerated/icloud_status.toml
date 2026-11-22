@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-icloud-status"
+description = "Enables the icloud_status command without any pre-configured scope."
+commands.allow = ["icloud_status"]
+
+[[permission]]
+identifier = "deny-icloud-status"
+description = "Denies the icloud_status command without any pre-configured scope."
+commands.deny = ["icloud_status"]

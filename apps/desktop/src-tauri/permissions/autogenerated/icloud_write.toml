@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-icloud-write"
+description = "Enables the icloud_write command without any pre-configured scope."
+commands.allow = ["icloud_write"]
+
+[[permission]]
+identifier = "deny-icloud-write"
+description = "Denies the icloud_write command without any pre-configured scope."
+commands.deny = ["icloud_write"]

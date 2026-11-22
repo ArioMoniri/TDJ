@@ -189,6 +189,14 @@ and the set list opens from it.
 <img src="media/readme/phone.webp" height="330" alt="T-DJ on an iPhone in dark mode"/>
 </p>
 
+**The same library on every device.** Your nights, History, favourites, settings and what T-DJ learned follow you
+from the iPhone to the iPad, the Mac and the browser. There is no account and no password: turn on sync in
+Settings → Sync and you get a code like `tango-k7m2-…`. Scan its QR code with the other device's camera, or type it
+there. Everything is end-to-end encrypted with that code, so the server only stores data it cannot read. The App
+Store apps also sync through iCloud Drive when it is on, even with no server, and a library file (encrypted or
+JSON) moves everything when you have neither. A self-hosted copy is its own sync server. How it works:
+[docs/SYNC.md](docs/SYNC.md).
+
 More screens: [Booth on iPad](media/readme/booth.webp) · [Build by hand](media/readme/build.webp) ·
 [search](media/readme/search.webp) · [keys](media/readme/keys.webp) · [Guide](media/readme/guide.webp) ·
 [Compose](media/readme/compose-light.webp) · [dark Compose](media/readme/compose-dark.webp)

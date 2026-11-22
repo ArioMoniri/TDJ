@@ -28,8 +28,36 @@ Facts behind the answer:
 - **Optional link to a TDJ server** (Settings → Connections, off by default): a DJ may link a server they run
   themselves (or their organiser runs) for rooms, database sync, Google and Dropbox. That server is the DJ's own
   choice and not operated for this app; nothing is linked unless the DJ types its address and confirms. It does
-  not change the answer above. If the developer ever operates a server that the app links to by default, revisit
-  these answers.
+  not change the answer above.
+- **Sync** (off until turned on; below): end-to-end encrypted, the developer's default sync server stores only
+  ciphertext it cannot read.
+
+## Sync (docs/SYNC.md)
+
+Settings → Sync keeps a DJ's nights, History, favourites, settings and learned preferences the same on their
+devices. It is **off until the DJ turns it on**, has **no account**, and is **end-to-end encrypted**: the sync code
+that encrypts it is made on the device and never leaves the DJ's devices. The developer (who runs the default sync
+server) and Apple (iCloud) store **only ciphertext** they cannot read, under an id derived from the code that names
+no one. No email, name, phone number, device identifier or usage data is collected.
+
+How to answer (Apple defines "collect" as transmitting data off the device in a way that lets you or your partners
+**access** it longer than needed to serve the request; end-to-end encrypted data the developer cannot decrypt is
+not accessible to it):
+
+- **Data Not Collected** stays the answer. The developer cannot access the synced library, cannot link it to a
+  person, and uses nothing for tracking, advertising or analytics.
+- If App Review asks, say: "Optional sync is end-to-end encrypted on the device (AES-256-GCM, a key derived from a
+  random code that never leaves the user's devices). Our server stores only ciphertext; we cannot read it."
+- If Apple's form is ever read as requiring a disclosure for it, the narrowest true one is: User Content → Other
+  User Content · App Functionality · **not** linked to the user · **not** used for tracking.
+
+What a sync server sees: that an encrypted space exists, record counts and sizes, change times, a random tag per
+device with its last request time, and each request's IP address (as any web server). iCloud: the same ciphertext
+files in the app's own iCloud container (Mac App Store and iOS builds; the Developer ID DMG has no iCloud).
+
+Export compliance: the encryption is the system's own (WebCrypto in WebKit: AES-GCM, HKDF, HMAC), used to protect
+the user's own data; `ITSAppUsesNonExemptEncryption = false` stays correct (exempt: standard encryption, data
+protection only).
 
 ## Age rating (App Store Connect → the version → Age Rating)
 
