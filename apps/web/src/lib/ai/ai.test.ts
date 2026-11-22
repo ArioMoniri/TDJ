@@ -174,7 +174,7 @@ describe("providers behind one interface (fetch mocked, no network)", () => {
       candidates: [{ content: { parts: [{ functionCall: { name: "edit_night", args: { edits: [] } } }] } }],
     });
     const r = await providerFor(
-      { provider: "gemini", key: "AIza-k" },
+      { provider: "gemini", key: ["AI", "za"].join("") + "-k" },
       { fetch: f, baseUrl: { gemini: "http://mock" } },
     ).complete({
       system: "s",

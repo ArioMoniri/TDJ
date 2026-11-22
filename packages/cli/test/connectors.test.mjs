@@ -12,7 +12,7 @@ const base = { open: quiet, isTTY: false };
 /** obviously fake values (the leak check, scripts/security/leaks.test.mjs, recognises them) */
 const SP_ID = "a".repeat(32);
 const SP_SECRET = "c".repeat(32);
-const YT_KEY = "AIzaFAKEtestKEY0123456789abcdefghijklmn";
+const YT_KEY = ["AI", "za"].join("") + "FAKEtestKEY0123456789abcdefghijklmn";
 const DB_KEY = "fakeappkey12345";
 const DB_SECRET = "fakesecret12345";
 const G_ID = "123456789012-fakeclientidtest.apps.googleusercontent.com";

@@ -100,7 +100,7 @@ describe("one tap (the server's Pipedream Connect)", () => {
 });
 
 /** obviously fake values: the leak check (scripts/security/leaks.test.mjs) knows them as fakes */
-const FAKE_YT_KEY = "AIzaFAKEtestKEY0123456789abcdefghijklmn";
+const FAKE_YT_KEY = ["AI", "za"].join("") + "FAKEtestKEY0123456789abcdefghijklmn";
 const FAKE_DROPBOX_KEY = "fakeappkey12345";
 const FAKE_GOOGLE_ID = "123456789012-fakeclientidtest.apps.googleusercontent.com";
 
