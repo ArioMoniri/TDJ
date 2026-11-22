@@ -1,7 +1,7 @@
 "use client";
 import { ArrowDownToLine, Disc3, Maximize2, PanelLeftOpen, PictureInPicture2, X } from "lucide-react";
 import { useReducedMotion } from "motion/react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   type CSSProperties,
   type KeyboardEvent,
@@ -47,7 +47,6 @@ import { MiniPlayerCard } from "../MiniPlayer";
 import { Artwork } from "../ui/Artwork";
 import { usePlayingEntity } from "../ui/TandaArt";
 import { DOCK_FLOAT_EVENT } from "./DockGrip";
-import { openNowPlaying } from "./open";
 import "./dock.css";
 
 /** a long press on the gramophone opens its quick controls */
@@ -153,13 +152,13 @@ const RING_R = 46;
  * - `float`: a floating card, dragged anywhere, snapping to an edge or a corner, resized by its handle or a pinch;
  * - `disc`: below a card's width (and whenever the sidebar is collapsed) the round gramophone — the cover as the
  *   record's label, spinning while the room plays (still when paused, with Reduce Motion or Battery saver), a ring
- *   around it for how much of the song is left; a tap opens Now playing, a long press its quick controls.
+ *   around it for how much of the song is left; a tap (or a long press) opens the player's card in place — Now
+ *   playing is one tap further, on the card (the owner: "it jumped straight to Now playing").
  * Position and size are kept per device (lib/dock). A drag starts only on the grabber, the card's head or the
  * gramophone; a press on a control that travels is cancelled, so the room's transport never changes by accident.
  */
 export function PlayerDock() {
   const path = usePathname();
-  const router = useRouter();
   const snapshot = useBoothSnapshot(path);
   const track = usePlayer((s) => s.track);
   const onBooth = path === "/booth" || !!path?.startsWith("/booth/");
@@ -281,6 +280,7 @@ export function PlayerDock() {
     eatUntil.current = performance.now() + 450;
   }, []);
   const onClickCapture = (e: MouseEvent) => {
+    if (!shellRef.current?.contains(e.target as Node)) return;
     if (performance.now() < eatUntil.current) {
       e.preventDefault();
       e.stopPropagation();
@@ -323,6 +323,8 @@ export function PlayerDock() {
     };
   }, [eat]);
   const onPointerDownCapture = (e: ReactPointerEvent<HTMLDivElement>) => {
+    // (a sheet the player opened, the room's output picker, is in its React tree but not on it: its own gestures)
+    if (!shellRef.current?.contains(e.target as Node)) return;
     const el = (e.target as HTMLElement).closest<HTMLElement>(
       "button:not(.dock-grip):not(.dock-disc):not(.dock-resize), a, .booth-mini-seek",
     );
@@ -595,6 +597,8 @@ export function PlayerDock() {
     if (!quick) return;
     const out = (e: PointerEvent) => {
       if (shellRef.current?.contains(e.target as Node)) return;
+      // a sheet the card opened (the room's output picker) keeps the card open beneath it
+      if ((e.target as Element | null)?.closest?.('[role="dialog"]')) return;
       useDock.setState({ quick: false });
     };
     const key = (e: globalThis.KeyboardEvent) => {
@@ -651,8 +655,7 @@ export function PlayerDock() {
           night={night}
           onTap={() => {
             haptic(4);
-            if (night) openNowPlaying((h) => router.push(h));
-            else shellRef.current?.querySelector<HTMLElement>('[data-testid="mini-cover"]')?.click();
+            useDock.setState({ quick: !useDock.getState().quick });
           }}
           onQuick={() => {
             haptic(10);

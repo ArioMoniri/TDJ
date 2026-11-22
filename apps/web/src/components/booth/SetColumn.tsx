@@ -345,7 +345,7 @@ export function SetColumn({
               >
                 <span className="booth-tanda-text">
                   <span
-                    className="booth-tanda-title text-caption1 block truncate font-semibold uppercase tracking-wide text-[var(--label-2)]"
+                    className="booth-tanda-title text-caption1 block font-semibold uppercase tracking-wide text-[var(--label-2)]"
                     data-testid="booth-tanda-title"
                   >
                     {g.tanda === 0 ? (

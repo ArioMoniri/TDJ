@@ -11,6 +11,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { type CSSProperties, type PointerEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { guard, useArmed } from "@/lib/booth/confirm";
@@ -22,12 +23,22 @@ import { t } from "@/lib/i18n";
 import { orchestraName } from "@/lib/orchestraName";
 import { usePlayer } from "@/lib/player";
 import { DockGrip } from "../player/DockGrip";
-import { openNowPlaying, openRoomOutput } from "../player/open";
+import { openNowPlaying } from "../player/open";
 import { Artwork } from "../ui/Artwork";
 import { Marquee } from "../ui/Marquee";
 import { rhythmWord } from "../ui/TandaTypeBadge";
 import { ConfirmHint, ConfirmRing, useHoldConfirm } from "./Confirm";
 import "./mini.css";
+
+/** the Booth's room output picker, over the page the player is on (loaded on the first tap: the Booth's store is
+ * on the page already, the night plays from it) */
+const RoomOutputSheet = dynamic(() => import("./PlayerToolbar").then((m) => m.RoomOutputSheet), {
+  ssr: false,
+});
+
+/** the room's volume range (dB), as the Booth's master fader */
+const VOL_MIN = -30;
+const VOL_MAX = 6;
 
 type BoothStore = typeof UseBooth;
 type BoothState = ReturnType<BoothStore["getState"]>;
@@ -146,6 +157,8 @@ export function BoothMini() {
   // Resume never waits (no confirmation is needed while paused)
   const pause = useHoldConfirm("pause", () => void boothStore()?.getState().togglePause());
   const seekArmed = useArmed("mini-seek");
+  // 2026-11 (the owner: "Room · This device" went to the Booth, then opened its picker): the picker opens here
+  const [roomPick, setRoomPick] = useState(false);
   const [seekTo, setSeekTo] = useState<number | null>(null);
   // 2026-11 (the owner: "UI issue for the jump guide" — the bubble sat at the bar's far right over Pause / Next / Mute):
   // the bubble stands over its marker, inside the bar and clear of the buttons, its pointer on the marker
@@ -246,6 +259,7 @@ export function BoothMini() {
       data-state={s.state}
       data-cue={cue ? cue.where : undefined}
       data-place={place ?? undefined}
+      data-armed={next.armed || pause.armed || undefined}
     >
       <DockGrip />
       {cue && (
@@ -313,6 +327,10 @@ export function BoothMini() {
           </span>
         )}
       </button>
+      {/* the one hint of an armed control (the first tap on Next said nothing): in the place of the night's lines (the
+          title's in the bar and the compact row), in the flow, so it never covers the seek bar or the buttons and
+          the buttons never move under the finger between the two taps (mini.css) */}
+      {(next.armed || pause.armed) && <ConfirmHint className="booth-mini-hint" testId="booth-mini-hint" />}
       {status && (
         <span className="booth-mini-chip" data-testid="booth-mini-status" role="status">
           {status}
@@ -349,10 +367,6 @@ export function BoothMini() {
           <SkipForward size={20} strokeWidth={2} aria-hidden />
           {(next.armed || next.holding) && <ConfirmRing />}
         </button>
-        {/* the one hint of an armed control, over the buttons (the first tap on Next said nothing) */}
-        {(next.armed || pause.armed) && (
-          <ConfirmHint className="booth-mini-arm booth-mini-hint" testId="booth-mini-hint" />
-        )}
         <button
           type="button"
           className="booth-mini-btn"
@@ -409,22 +423,33 @@ export function BoothMini() {
           <label className="booth-mini-vol">
             <span className="sr-only">{t("booth.controlStrip.master_volume")}</span>
             <Volume2 size={14} strokeWidth={2} aria-hidden />
-            <input
-              type="range"
-              min={-30}
-              max={6}
-              step={1}
-              value={s.master}
-              onChange={(e) => st.getState().setMaster(Number(e.currentTarget.value))}
-              aria-valuetext={t("booth.controlStrip.db", { p1: s.master > 0 ? "+" : "", master: s.master })}
-              data-testid="booth-mini-volume"
-            />
+            {/* 2026-11 (the owner: the purple fill ended left of the thumb): the track and its fill are drawn here, the
+                fill to the thumb's centre at every value and width (mini.css: thumb / 2 + fraction x (width - thumb),
+                where the browser puts the thumb) */}
+            <span
+              className="booth-mini-range"
+              style={{ "--frac": (s.master - VOL_MIN) / (VOL_MAX - VOL_MIN) } as CSSProperties}
+            >
+              <span className="booth-mini-range-fill" data-testid="booth-mini-volume-fill" aria-hidden />
+              <input
+                type="range"
+                min={VOL_MIN}
+                max={VOL_MAX}
+                step={1}
+                value={s.master}
+                onChange={(e) => st.getState().setMaster(Number(e.currentTarget.value))}
+                aria-valuetext={t("booth.controlStrip.db", { p1: s.master > 0 ? "+" : "", master: s.master })}
+                data-testid="booth-mini-volume"
+              />
+            </span>
           </label>
           <button
             type="button"
             className="booth-mini-out"
             data-out="room"
-            onClick={() => openRoomOutput((h) => router.push(h))}
+            aria-haspopup="dialog"
+            aria-expanded={roomPick}
+            onClick={() => setRoomPick(true)}
             aria-label={t("booth.playerToolbar.room_output_2", { p1: outLabel(s.outputs.room) })}
             data-testid="booth-mini-out-room"
           >
@@ -450,6 +475,7 @@ export function BoothMini() {
           </button>
         </div>
       )}
+      {roomPick && <RoomOutputSheet onClose={() => setRoomPick(false)} />}
     </section>
   );
 }

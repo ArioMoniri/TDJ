@@ -100,7 +100,7 @@ const column = (page: Page) =>
     };
   });
 
-test("1. open: the sidebar layout on Compose and Build, the whole width used; Build's Add at the column's edge", async ({
+test("1. open: the sidebar layout on Compose and Build, the whole width used; Build's search across the column", async ({
   page,
 }, info) => {
   const p = posture(info);
@@ -129,19 +129,16 @@ test("1. open: the sidebar layout on Compose and Build, the whole width used; Bu
   await page.goto("/build");
   await expect(page.getByTestId("build-guide")).toBeVisible({ timeout: 30_000 });
   expect(await visible(page, "sidebar")).toBe(true);
-  const guide = (await page.getByTestId("build-guide").boundingBox())!;
   const bcol = await column(page);
-  expect(guide.x + guide.width, "the night uses the column's width").toBeGreaterThanOrEqual(bcol.right - 2);
-  // too narrow for the Add panel beside the night: the floating Add, at the column's trailing edge
-  await expect(page.getByTestId("build-add-panel")).toHaveCount(0);
-  const add = (await page.getByTestId("build-add-open").boundingBox())!;
-  expect(add.height).toBeGreaterThanOrEqual(44);
-  expect(add.width).toBeGreaterThanOrEqual(44);
-  expect(Math.abs(add.x + add.width - bcol.right), "Add's edge = the column's edge").toBeLessThanOrEqual(2);
-  expect(add.x).toBeGreaterThanOrEqual(bcol.left);
-  // the sheet still opens from it
-  await page.getByTestId("build-add-open").click();
-  await expect(page.getByTestId("build-add-sheet")).toBeVisible();
+  // 2026-11: the search is the page's centre, across the column; no floating Add, no sheet
+  const search = (await page.getByTestId("build-add-panel").boundingBox())!;
+  expect(search.x).toBeGreaterThanOrEqual(bcol.left - 2);
+  expect(search.x + search.width, "the search uses the column's width").toBeGreaterThanOrEqual(
+    bcol.right - 2,
+  );
+  await expect(page.getByTestId("build-add-open")).toHaveCount(0);
+  const guide = (await page.getByTestId("build-guide").boundingBox())!;
+  expect(guide.x + guide.width).toBeLessThanOrEqual(bcol.right + 2);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/duo-open-build.png` });
 });
 

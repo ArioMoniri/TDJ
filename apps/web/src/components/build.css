@@ -62,3 +62,87 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* 2026-11 (the owner: "the song search should be in the middle, as the main part of the page, not a side column"):
+   the search and its results are the page's centre; the night (its length, energy and tandas), the guidance and What
+   comes next are the panels beside it.
+   - a phone (one column): the search, What comes next, the night, the guidance;
+   - an iPad, a narrow window (from 640 px): the search across the top, the night and the guidance with What comes
+     next side by side under it;
+   - a desktop (from 960 px): the night | the search | the guidance and What comes next, the two panels held in view
+     beside the search (each scrolls on its own when taller than the window). */
+.build-page {
+  container: build / inline-size;
+}
+.build-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "main"
+    "next"
+    "night"
+    "guide";
+  column-gap: var(--space-6, 24px);
+  row-gap: var(--space-2, 8px);
+  align-items: start;
+}
+.build-main {
+  grid-area: main;
+}
+.build-night {
+  grid-area: night;
+}
+.build-side {
+  display: contents;
+}
+.build-side-guide {
+  grid-area: guide;
+}
+.build-side-next {
+  grid-area: next;
+}
+@container build (min-width: 640px) {
+  .build-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "main main"
+      "night side";
+  }
+  .build-side {
+    grid-area: side;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2, 8px);
+  }
+}
+@container build (min-width: 960px) {
+  .build-layout {
+    grid-template-columns: minmax(240px, 27%) minmax(0, 1fr) minmax(240px, 27%);
+    grid-template-areas: "night main side";
+  }
+  .build-night,
+  .build-side {
+    position: sticky;
+    top: calc(var(--chrome-top, 0px) + 4.5rem);
+    max-height: calc(100dvh - var(--chrome-top, 0px) - 6rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding-bottom: var(--space-4, 16px);
+  }
+}
+/* the side panel's choices (Next tanda: Next in cycle, Tango, Vals, Milonga) wrap onto a second line rather than
+   scroll a word out of sight */
+.build-side .segmented {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.build-side .seg {
+  flex: 1 0 auto;
+  justify-content: center;
+}
+/* every column's first heading on one line: the night's (a flex stack) keeps the page's heading rhythm */
+.build-layout .build-night > .section-head:first-child {
+  margin-top: var(--space-6, 24px);
+  margin-bottom: calc(var(--space-2, 8px) - var(--space-4, 16px));
+}

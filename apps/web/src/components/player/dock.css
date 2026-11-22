@@ -16,6 +16,119 @@
 .side-player:empty {
   display: none;
 }
+/* the player's share of the sidebar (Sidebar.tsx, lib/dock/sidePlayer.ts): its height is the DJ's (the handle above
+   it); the whole player scrolls inside it when that is less than it needs */
+.side-player {
+  display: flow-root;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+/* the handle between the nav and the player: on the foot's top line, a grabber, a 44 px target for a finger */
+.side-split {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 12px;
+  margin: -8px -12px 2px;
+  cursor: row-resize;
+  touch-action: none;
+  z-index: 1;
+}
+.side-split::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+@media (pointer: coarse) {
+  .side-split::after {
+    inset: -16px 0;
+  }
+}
+.side-split-bar {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--label-3);
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+.side-split:hover .side-split-bar,
+.side-split[data-dragging] .side-split-bar,
+.side-split:focus-visible .side-split-bar {
+  opacity: 1;
+  background: var(--tint);
+}
+.side-split:focus-visible {
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+html:has(.side-split[data-dragging]) {
+  cursor: row-resize;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ——— the compact row (a short window, or the handle dragged down): cover, title, play / pause, next and the progress
+   line; the head, the night's lines, mute and the settings wait for the whole player ——— */
+[data-player="compact"] .dock[data-place="side"] {
+  padding: 4px 4px 2px;
+}
+[data-player="compact"] .dock[data-place="side"] .dock-head,
+[data-player="compact"] .dock[data-place="side"] .booth-mini-meta,
+[data-player="compact"] .dock[data-place="side"] .booth-mini-chip,
+[data-player="compact"] .dock[data-place="side"] .booth-mini-cue,
+[data-player="compact"] .dock[data-place="side"] .booth-mini-more,
+[data-player="compact"] .dock[data-place="side"] [data-testid="booth-mini-mute"],
+[data-player="compact"] .dock[data-place="side"] [data-testid="mini-prev"],
+[data-player="compact"] .dock[data-place="side"] .mini-close,
+[data-player="compact"] .dock[data-place="side"] .mini-row2,
+[data-player="compact"] .dock[data-place="side"] .mini-time {
+  display: none;
+}
+[data-player="compact"] .dock[data-place="side"] .booth-mini {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "cover text btns"
+    "seek seek seek";
+  column-gap: 6px;
+  row-gap: 0;
+  padding: 0;
+}
+[data-player="compact"] .dock[data-place="side"] .booth-mini-text {
+  align-self: center;
+}
+[data-player="compact"] .dock[data-place="side"] .booth-mini-btns > .booth-mini-toggle {
+  margin-right: 4px;
+}
+[data-player="compact"] .dock[data-place="side"] .booth-mini-seek {
+  height: 12px;
+}
+/* the armed hint in the compact row: where the title was */
+[data-player="compact"] .dock[data-place="side"] .booth-mini-hint {
+  grid-area: text;
+}
+[data-player="compact"] .dock[data-place="side"] .booth-mini[data-armed] > .booth-mini-text {
+  visibility: hidden;
+}
+[data-player="compact"] .dock[data-place="side"] .mini-row1 {
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+[data-player="compact"] .dock[data-place="side"] .mini-row1 > .mini-cover {
+  order: 0;
+}
+[data-player="compact"] .dock[data-place="side"] .mini-row1 > .mini-meta {
+  order: 1;
+  flex: 1 1 0;
+}
+[data-player="compact"] .dock[data-place="side"] .mini-row1 > .mini-ctl {
+  order: 2;
+}
+[data-player="compact"] .dock[data-place="side"] .mini-row3 {
+  padding: 0 4px;
+}
 .dock[data-place="side"] {
   display: block;
   margin-bottom: 8px;
@@ -425,6 +538,14 @@ html[data-power="saver"] .dock-record {
   font-size: 12px;
   color: var(--label-2);
 }
+/* the armed control's hint takes the night's lines' place under the cover (the title stays) */
+.dock:not([data-place="bar"]) .booth-mini-hint {
+  grid-area: meta;
+  padding-inline: 2px;
+}
+.dock:not([data-place="bar"]) .booth-mini[data-armed] > .booth-mini-text {
+  visibility: visible;
+}
 /* QA 2026-11 (the sidebar's player: "the meta lines wrap into four cramped lines"): under the cover, across the card,
    one fact per line — "Tanda 1 of 25 · next in 0:28", "La Cumparsita in 40:36", "Song 1 of 4 · Next tanda: Tango" —
    each on one line (an ellipsis only in a card narrower than any sidebar) */
@@ -467,23 +588,120 @@ html[data-power="saver"] .dock-record {
   padding: 0 6px;
   color: var(--label-2);
 }
-.booth-mini-vol > input {
+/* 2026-11 (the owner: the purple fill ended left of the thumb): the range draws its own track and fill; the fill ends
+   at the thumb's centre at every value and width — the browser puts an unstyled-appearance thumb's left edge at
+   fraction x (width - thumb), so its centre is thumb / 2 + fraction x (width - thumb) */
+.booth-mini-range {
+  --thumb: 18px;
+  --rail: 4px;
+  position: relative;
   flex: 1;
   min-width: 0;
   height: 44px;
-  accent-color: var(--room, var(--tint));
+  display: flex;
+  align-items: center;
+}
+.booth-mini-range::before,
+.booth-mini-range-fill {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: var(--rail);
+  margin-top: calc(var(--rail) / -2);
+  border-radius: calc(var(--rail) / 2);
+  pointer-events: none;
+}
+.booth-mini-range::before {
+  right: 0;
+  background: var(--fill-2);
+}
+.booth-mini-range-fill {
+  width: calc(var(--thumb) / 2 + var(--frac, 0) * (100% - var(--thumb)));
+  background: var(--room, var(--tint));
+}
+.booth-mini-range > input {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   cursor: pointer;
 }
+.booth-mini-range > input:focus-visible {
+  outline: none;
+}
+.booth-mini-range > input::-webkit-slider-runnable-track {
+  height: 44px;
+  background: transparent;
+  border: 0;
+}
+.booth-mini-range > input::-moz-range-track {
+  height: 44px;
+  background: transparent;
+  border: 0;
+}
+.booth-mini-range > input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--thumb);
+  height: var(--thumb);
+  margin-top: calc((44px - var(--thumb)) / 2);
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.22),
+    0 1px 3px rgb(0 0 0 / 0.3);
+}
+.booth-mini-range > input::-moz-range-thumb {
+  width: var(--thumb);
+  height: var(--thumb);
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.22),
+    0 1px 3px rgb(0 0 0 / 0.3);
+}
+.booth-mini-range > input:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 2px rgb(var(--surface)),
+    0 0 0 4px var(--tint);
+}
+.booth-mini-range > input:focus-visible::-moz-range-thumb {
+  box-shadow:
+    0 0 0 2px rgb(var(--surface)),
+    0 0 0 4px var(--tint);
+}
+/* 2026-11 (the owner: Room's outline sat off the button): one full-width row like the volume's and Now playing, its
+   ring inside its own rounded box; it opens the picker over this page */
 .booth-mini-out {
-  display: inline-flex;
+  display: flex;
+  flex: 1 1 100%;
   align-items: center;
+  justify-content: flex-start;
   gap: 5px;
+  min-width: 0;
   min-height: 44px;
   max-width: 100%;
   padding: 0 6px;
   border-radius: 10px;
   font-size: 12px;
+  text-align: left;
   color: var(--label);
+  overflow: hidden;
+}
+.booth-mini-out:focus-visible {
+  outline-offset: -2px;
+}
+.booth-mini-out > svg {
+  flex: none;
 }
 .booth-mini-out[data-out="room"] > svg,
 .booth-mini-out[data-out="room"] > .booth-mini-out-word {

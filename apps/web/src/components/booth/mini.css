@@ -117,10 +117,26 @@
 .booth-mini-btns > .booth-mini-toggle {
   margin-right: 12px;
 }
-.booth-mini-btns > .booth-mini-hint {
-  right: 0;
-  bottom: calc(100% + 6px);
-  white-space: nowrap;
+/* 2026-11 (the owner: "Tap again or hold to confirm" covered the progress bar and the transport): the armed control's
+   hint takes the place of the title and the night's lines (the cell they leave keeps its size), in the flow — never
+   over the seek bar or the buttons, and nothing moves under the finger between the two taps */
+.booth-mini-hint {
+  grid-area: text / text / meta / meta;
+  align-self: center;
+  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 0;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 600;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  color: var(--tint-text, var(--tint));
+}
+.booth-mini[data-armed] > .booth-mini-text,
+.booth-mini[data-armed] > .booth-mini-meta {
+  visibility: hidden;
 }
 .booth-mini-btn {
   position: relative;

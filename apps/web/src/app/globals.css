@@ -3655,20 +3655,3 @@ html:has([data-testid="now-view"]) .app-toast {
   top: calc(var(--chrome-top) + 4.25rem);
   bottom: auto;
 }
-
-/* 2026-11: Build's floating Add button (components/ManualBuilder.tsx, below 1024 px where the Add panel is a sheet)
-   sits at the content column's trailing edge: a phone's 16 px margin; the centred 720 px column of the nav pill
-   layout (its 24 px padding); the sidebar layout's 32 px padding (the iPhone Duo open). Never in the empty gutter. */
-.build-add-fab {
-  right: max(1rem, env(safe-area-inset-right, 0px));
-}
-@media (min-width: 600px) {
-  .build-add-fab {
-    right: max(1.5rem, calc((100vw - 720px) / 2 + 1.5rem));
-  }
-}
-@media (min-width: 900px) {
-  .build-add-fab {
-    right: calc(2rem + max(0px, (100vw - var(--sidebar-w) - 4rem - var(--col-max, 1320px)) / 2));
-  }
-}
