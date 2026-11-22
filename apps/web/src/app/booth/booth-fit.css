@@ -1,0 +1,163 @@
+/* =====================================================================================================================
+   2026-11 — the Booth follows the room it is given, not the window (the owner, Mac app at ~1000 px with the sidebar
+   open: "UI issues in smaller screen sizes and it is not dynamic" — the Now card crushed to a word per line, the
+   header chips and the transport's words cut mid-word). The layout reads the width of the page's own column (`main`,
+   a size container from 900 px: whatever the sidebar takes), the deck's width and the Now card's width, so a wide
+   sidebar on a medium window lays the night out as a narrow window would. Loaded after booth.css (layout.tsx).
+
+   The page's column (C = main's content box, from 900 px):
+     C ≥ 1100   the deck and the set list side by side as before (the set ≤ 520 px, 44 %);
+     660–1099   still two columns, each with a floor: the deck ≥ 300 px, the set list ≥ 320 px (44 %, as above,
+                once that is under 360 px);
+     C < 660    one column (the deck, then the night and the set list) that scrolls as one, between the chips and
+                the transport — as on an iPad in portrait.
+   The deck (its own container): from 560 px Up next and Energy tonight side by side; below, Energy tonight goes under
+   Up next as a low strip (the whole deck's width, 140 px of chart).
+   The Now card (its own container): below 420 px a smaller cover and title; below 320 px the cover above the words —
+   no column is ever narrower than its words (never a word per line).
+   ===================================================================================================================== */
+
+/* ---------- containers ---------- */
+.booth .booth-deck {
+  container: booth-deck / inline-size;
+}
+.booth [data-testid="booth-now"] {
+  container: booth-now / inline-size;
+}
+
+/* ---------- the two columns, from the column's own width ---------- */
+@media (min-width: 900px) {
+  @container main (max-width: 1099.98px) {
+    .booth .booth-grid {
+      grid-template-columns: minmax(300px, 1fr) minmax(320px, min(520px, 44%));
+    }
+  }
+  /* one column: the grid keeps its height (the page holds still between the chips and the transport) and scrolls as
+     one; the deck and the set column lose their own scroll */
+  @container main (max-width: 659.98px) {
+    .booth .booth-grid {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: none;
+      align-content: start;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-bottom: var(--booth-gap);
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        #000 var(--booth-gap),
+        #000 calc(100% - var(--booth-gap)),
+        transparent 100%
+      );
+    }
+    .booth .booth-grid > .booth-deck,
+    .booth .booth-grid > .booth-col-set,
+    .booth[data-controls="open"] .booth-grid > .booth-col-set {
+      grid-column: 1;
+      grid-row: auto;
+      display: grid;
+      min-height: auto;
+      overflow: visible;
+      padding-bottom: 0;
+      mask-image: none;
+    }
+    /* (one gap between the night and the set list: the column's own) */
+    .booth[data-state] .booth-grid > .booth-col-set > .booth-night {
+      margin-bottom: 0;
+    }
+    .booth[data-controls="open"] .booth-grid > .booth-col-set > .booth-set {
+      overflow: visible;
+      mask-image: none;
+    }
+  }
+}
+
+/* ---------- the deck: Up next and Energy tonight side by side only when both keep their words ---------- */
+@container booth-deck (max-width: 559.98px) {
+  .booth .booth-deck .booth-deck-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Energy tonight: a low strip under Up next */
+  .booth .booth-deck .booth-energy > svg {
+    height: 140px;
+  }
+}
+
+/* ---------- the Now card: never a word per line ---------- */
+@container booth-now (max-width: 419.98px) {
+  .booth [data-testid="booth-now"] .booth-now-head {
+    gap: 12px;
+  }
+  .booth [data-testid="booth-now"] .booth-now-head .booth-art {
+    /* (the size, not --art: the component sets --art inline) */
+    width: 64px;
+    height: 64px;
+  }
+  .booth [data-testid="booth-now"] .booth-title {
+    font-size: 26px;
+    overflow-wrap: break-word;
+  }
+  .booth [data-testid="booth-now"] .booth-now-artist {
+    font-size: 15px;
+    overflow-wrap: break-word;
+  }
+}
+@container booth-now (max-width: 319.98px) {
+  .booth [data-testid="booth-now"] .booth-now-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .booth [data-testid="booth-now"] .booth-title {
+    font-size: 24px;
+  }
+}
+
+/* ---------- the chips under the title: the compact form first (booth.css: the glyph for ROOM / HEADPHONES, Show as
+   its glyph), then a second row, and only a chip wider than a whole row cuts its name — which then slides on hover /
+   focus (FitText) ---------- */
+@media (min-width: 600px) {
+  .booth-head-row > .booth-toolbar {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .booth-toolbar > .booth-out {
+    max-width: 100%;
+  }
+  .booth-out > .booth-out-name {
+    flex: 0 1 auto;
+    min-width: 0;
+    text-overflow: clip;
+  }
+}
+
+/* ---------- the transport: every cell keeps 44 px and its word. As the row narrows (its own width, whatever the
+   window): Fade, Crossfade and Skip next already live in the Controls panel (booth.css); then Mute and Talk step into
+   the panel too (it shows a control the row hides: ControlsPanel's DUPS), and the primary gives up some width. A word
+   that still does not fit shows its start and slides on hover / focus (FitText). ---------- */
+@container strip (max-width: 679.98px) {
+  .booth .booth-strip .booth-prio-low {
+    display: none;
+  }
+}
+@container strip (max-width: 899.98px) {
+  .booth .booth-strip .booth-primary {
+    flex: 0 0 min(var(--primary-w, 168px), 30cqw);
+    width: min(var(--primary-w, 168px), 30cqw);
+  }
+}
+.booth .booth-strip .booth-tbtn > .booth-tbtn-l {
+  overflow: hidden;
+}
+/* the primary's word in the size its measure used (booth.css set 13 px on a narrow row, a later rule drew 15 px and
+   cut "Start · 30 s clips") */
+@container strip (max-width: 720px) {
+  .booth .booth-strip .booth-primary {
+    font-size: 13px;
+  }
+}
+.booth .booth-strip .booth-tbtn > .booth-tbtn-l > .fit {
+  text-align: center;
+}
+.booth .booth-strip .booth-primary > .booth-start-label {
+  text-overflow: clip;
+}

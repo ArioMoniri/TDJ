@@ -36,6 +36,7 @@ import { useMediaQuery } from "@/lib/hooks";
 import { fmtNumber, t as tx } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { Artwork } from "../ui/Artwork";
+import { FitText } from "../ui/FitText";
 import { Marquee } from "../ui/Marquee";
 import { useTip } from "../ui/Tip";
 import { ConfirmHint, ConfirmRing, useHoldConfirm } from "./Confirm";
@@ -201,8 +202,10 @@ export function ControlStrip({
       <Play size={18} fill="currentColor" strokeWidth={0} aria-hidden />
       {/* the label names the source (round8-ux.md §3) and fits a 390 px phone (round 18) */}
       <span className="booth-start-label">
-        {startLabel}
-        {extra && (!wide || fit?.extra) && <span className="booth-start-extra">{extra}</span>}
+        <FitText text={`${startLabel}${extra && (!wide || fit?.extra) ? extra : ""}`}>
+          {startLabel}
+          {extra && (!wide || fit?.extra) && <span className="booth-start-extra">{extra}</span>}
+        </FitText>
       </span>
     </button>
   ) : breakUntil !== null ? (
@@ -361,6 +364,7 @@ export function ControlStrip({
       {/* 2026-11: one back and one ahead, before and during the night (← / →) */}
       <TBtn
         label={tx("booth.controlStrip.previous")}
+        short={tx("booth.controls.short_previous")}
         hint={tx("booth.controlStrip.previous_hint")}
         onClick={() => {
           haptic(8);
@@ -475,6 +479,7 @@ export function ControlStrip({
             onClick={() => act.toggleMute()}
             armedBy="mute"
             testId="booth-mute"
+            className="booth-prio-low"
           >
             <VolumeX
               size={20}
@@ -510,6 +515,7 @@ export function ControlStrip({
             onClick={() => act.setDucked(!ducked)}
             disabled={!caps.volume}
             testId="booth-talk"
+            className="booth-prio-low"
           >
             <Mic size={20} strokeWidth={2} aria-hidden />
           </TBtn>
@@ -555,6 +561,7 @@ export function ControlStrip({
         <TBtn
           label={tx("booth.controls.title")}
           hint={tx("booth.controls.toggle_hint")}
+          short={tx("booth.controls.short_controls")}
           onClick={onControls}
           testId="booth-controls-toggle"
           expanded={controlsOpen}
@@ -620,6 +627,7 @@ function TBtn({
   testId,
   className = "",
   why,
+  short,
   children,
 }: {
   /** QA 2026-11: a key that arms this control from the keyboard (m → Mute): shown armed; a tap runs at once */
@@ -638,6 +646,8 @@ function TBtn({
   confirmKey?: string;
   testId: string;
   className?: string;
+  /** a shorter word for the label, drawn when the whole one does not fit and nothing may move */
+  short?: string;
   children: ReactNode;
 }) {
   const tip = useTip<HTMLButtonElement>(hint);
@@ -684,8 +694,9 @@ function TBtn({
         }
       >
         {children}
+        {/* 2026-11: a label that does not fit slides to show the rest on hover / focus (ui/FitText.tsx) */}
         <span className="booth-tbtn-l" aria-hidden>
-          {label}
+          <FitText text={label} short={short} />
         </span>
         {((h && hold.holding) || armedShown) && <ConfirmRing />}
         {armedShown && !hold.holding && <ConfirmHint testId={`${testId}-nudge`} />}

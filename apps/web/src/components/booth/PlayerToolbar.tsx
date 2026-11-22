@@ -9,6 +9,7 @@ import { toast } from "@/lib/toast";
 import { ActionRow, Group } from "../Form";
 import { PowerLeaf } from "../PowerSaver";
 import { Sheet } from "../Sheet";
+import { FitText } from "../ui/FitText";
 import { IndicatorSwitches } from "./IndicatorSwitches";
 import { cuePairLabel, OutputChainGroup } from "./OutputsView";
 import { SpotifyRoomGroup, useSpotifyNeedsDevice, useSpotifyRoomName } from "./SpotifyRoom";
@@ -79,7 +80,9 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
       >
         <Speaker size={16} strokeWidth={2} aria-hidden />
         <span className="booth-out-word">{t("booth.playerToolbar.room")}</span>
-        <span className="booth-out-name">{roomLabel}</span>
+        <span className="booth-out-name">
+          <FitText text={roomLabel} />
+        </span>
         <ChevronDown size={14} strokeWidth={2} aria-hidden />
       </button>
       {(outputs.cueSupported || outputs.cue === CUE_ON_ROOM) && !apple ? (
@@ -99,7 +102,7 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
           <Headphones size={16} strokeWidth={2} aria-hidden />
           <span className="booth-out-word">{t("booth.playerToolbar.headphones")}</span>
           <span className="booth-out-name">
-            {outputs.cue ? label(outputs.cue) : t("booth.playerToolbar.choose")}
+            <FitText text={outputs.cue ? label(outputs.cue) : t("booth.playerToolbar.choose")} />
           </span>
           <ChevronDown size={14} strokeWidth={2} aria-hidden />
         </button>
@@ -118,9 +121,13 @@ export function PlayerToolbar({ rehearsal }: { rehearsal: boolean }) {
           <Headphones size={16} strokeWidth={2} aria-hidden />
           <span className="booth-out-word">{t("booth.playerToolbar.headphones")}</span>
           <span className="booth-out-name">
-            {apple
-              ? t("booth.connect.headphones_second_device")
-              : t("booth.playerToolbar.not_in_this_browser")}
+            <FitText
+              text={
+                apple
+                  ? t("booth.connect.headphones_second_device")
+                  : t("booth.playerToolbar.not_in_this_browser")
+              }
+            />
           </span>
         </button>
       )}

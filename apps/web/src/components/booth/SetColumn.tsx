@@ -34,6 +34,7 @@ import { useTandaSwap } from "../TandaSwapSheet";
 import { Artwork } from "../ui/Artwork";
 import { BpmKey } from "../ui/BpmKey";
 import { EraBadge } from "../ui/EraBadge";
+import { FitText } from "../ui/FitText";
 import { TandaPlayCover } from "../ui/TandaPlay";
 import { TandaTypeBadge } from "../ui/TandaTypeBadge";
 import { FloorMenu, FloorReaction } from "./FloorReaction";
@@ -711,8 +712,8 @@ const Row = memo(function Row({
         data-testid="booth-row-play"
       >
         <span className="booth-row-title block">
-          {it.title}
-          {it.birthday ? tx("booth.setColumn.birthday") : ""}
+          {/* 2026-11: a cut title slides to show the rest on hover / focus (ui/FitText.tsx) */}
+          <FitText text={`${it.title}${it.birthday ? tx("booth.setColumn.birthday") : ""}`} />
         </span>
         <span className="booth-row-sub text-footnote block truncate text-[var(--label-2)]">
           {it.kind === "cortina"
