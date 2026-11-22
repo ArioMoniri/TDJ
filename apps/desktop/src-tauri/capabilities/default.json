@@ -48,6 +48,11 @@
     "allow-midi-ports",
     "allow-midi-open",
     "allow-midi-close",
-    "allow-midi-send"
+    "allow-midi-send",
+    "allow-icloud-status",
+    "allow-icloud-list",
+    "allow-icloud-read",
+    "allow-icloud-write",
+    "allow-icloud-remove"
   ]
 }

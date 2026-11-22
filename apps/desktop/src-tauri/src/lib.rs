@@ -19,6 +19,7 @@ mod bridge;
 mod commands;
 #[cfg_attr(mobile, allow(dead_code))] // folder picking on iPad: Swift plugin, see folders.rs
 mod folders;
+mod icloud;
 mod links;
 #[cfg_attr(mobile, allow(dead_code))] // the menu bar is macOS-only
 mod menu;
@@ -485,6 +486,7 @@ fn handle_link(app: &AppHandle, raw: &str) {
         links::DeepLink::SpotifyCallback { query } => go(&format!("/callback?{query}")),
         links::DeepLink::Open { path } => go(&path),
         links::DeepLink::Night { fragment } => go(&format!("/night#{fragment}")),
+        links::DeepLink::Sync { code } => go(&format!("/settings#sync={code}")),
         // the Rooms page asks before it talks to that server (the one opt-in case where the app reaches a server)
         links::DeepLink::Room { server, code } => go(&format!(
             "/rooms?join={code}&server={}",
@@ -703,6 +705,11 @@ pub fn run() {
             midi::midi_open,
             midi::midi_close,
             midi::midi_send,
+            icloud::icloud_status,
+            icloud::icloud_list,
+            icloud::icloud_read,
+            icloud::icloud_write,
+            icloud::icloud_remove,
         ])
         .build(tauri::generate_context!())
         .expect("error while building TDJ")

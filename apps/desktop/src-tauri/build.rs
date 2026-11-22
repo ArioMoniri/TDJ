@@ -48,6 +48,12 @@ const COMMANDS: &[&str] = &[
     "midi_open",
     "midi_close",
     "midi_send",
+    // docs/SYNC.md: the sync log mirrored into iCloud Documents (src/icloud.rs)
+    "icloud_status",
+    "icloud_list",
+    "icloud_read",
+    "icloud_write",
+    "icloud_remove",
 ];
 
 fn main() {
