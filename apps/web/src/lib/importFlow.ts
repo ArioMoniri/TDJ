@@ -221,13 +221,23 @@ export function nightOf(entries: ImportEntry[], name: string, source: ImportSour
  * one-night exceptions of its tandas (never a template or a compose signal). A YouTube import's videos are
  * remembered for the Booth's YouTube player. Nothing is learned here (`learnFromNight` is the DJ's choice).
  */
-export function keepImported(n: ImportedNight, entries: ImportEntry[]): string {
+export function keepImported(
+  n: ImportedNight,
+  entries: ImportEntry[],
+  /**
+   * 2026-11 ("Import a night"): false keeps it in History only — the Booth loads it itself (mid-night it asks first),
+   * History just lists it — and leaves the current night and the Compose settings as they are
+   */
+  o: { current?: boolean } = {},
+): string {
   const st = useStore.getState();
   const p = n.playlist;
   const snap = makeSnapshot(p, p.options, "import");
   st.addSnapshot(snap);
-  st.setPlaylist(p);
-  st.replaceOptions({ ...p.options });
+  if (o.current !== false) {
+    st.setPlaylist(p);
+    st.replaceOptions({ ...p.options });
+  }
   if (n.exceptions.length)
     st.updateMemory((m) => ({ ...m, learned: recordExceptions(m.learned, n.exceptions) }));
   const videos: Record<string, string> = {};

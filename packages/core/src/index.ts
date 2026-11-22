@@ -39,6 +39,7 @@ export * from "./praise";
 export * from "./profiles";
 export * from "./refine";
 export * from "./repair";
+export * from "./review";
 export * from "./rng";
 export * from "./room";
 export * from "./roomClient";

@@ -24,6 +24,7 @@ import { EnergyCurve } from "@/components/EnergyCurve";
 import { ExportSheet } from "@/components/ExportSheet";
 import { FeaturedCard } from "@/components/FeaturedCard";
 import { ActionRow, Group, Row } from "@/components/Form";
+import { ImportNightSheet, openImportNight } from "@/components/importNight/ImportNight";
 import { Menu } from "@/components/Menu";
 import { NightCover } from "@/components/NightCover";
 import { PageHeader } from "@/components/PageHeader";
@@ -254,6 +255,7 @@ export default function HistoryPage() {
 
   return (
     <div className="mx-auto max-w-[720px] lg:max-w-[1100px]">
+      <ImportNightSheet />
       <PageHeader
         title={tx("history.history")}
         subtitle={
@@ -282,8 +284,8 @@ export default function HistoryPage() {
                   icon: FolderOpen,
                   onClick: () => router.push("/night"),
                 },
-                // 2026-11: Import a playlist (app/import)
-                { label: tx("import.entry"), icon: ListPlus, onClick: () => router.push("/import") },
+                // 2026-11: Import a night (components/importNight: kept here, in History)
+                { label: tx("importNight.entry"), icon: ListPlus, onClick: () => openImportNight("history") },
                 { label: tx("history.rooms"), icon: Users, onClick: () => router.push("/rooms") },
                 {
                   label: tx("history.save_history_as_a_file"),
