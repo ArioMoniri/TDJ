@@ -59,6 +59,16 @@ export function dataFiles(src = readFileSync(join(repo, "packages/core/src/data.
   return [...block.matchAll(/"(data\/[^"]+\.json)"/g)].map((m) => m[1]);
 }
 
+/**
+ * The Spotify Client ID the app ships with (TDJ_SPOTIFY_CLIENT_ID, a repository variable; public, PKCE needs no
+ * secret): into the page (NEXT_PUBLIC_TDJ_SPOTIFY_CLIENT_ID) and the bundle marker, which src-tauri/build.rs reads
+ * when the Rust build does not see the variable (the iOS build runs inside Xcode). "" when unset or malformed.
+ */
+export function spotifyClientIdFrom(env = process.env) {
+  const id = String(env.TDJ_SPOTIFY_CLIENT_ID ?? "").trim();
+  return /^[A-Za-z0-9]{1,64}$/.test(id) ? id : "";
+}
+
 function walk(dir, fn) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
@@ -98,7 +108,7 @@ function main() {
   images: { unoptimized: true },
   agentRules: false,
   typescript: { ignoreBuildErrors: true },
-  env: ${JSON.stringify({ ...releaseEnv(), NEXT_PUBLIC_TDJ_TARGET: "app" })},
+  env: ${JSON.stringify({ ...releaseEnv(), NEXT_PUBLIC_TDJ_TARGET: "app", NEXT_PUBLIC_TDJ_SPOTIFY_CLIENT_ID: spotifyClientIdFrom() })},
 };
 `,
   );
@@ -134,7 +144,7 @@ function main() {
     spawnSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).stdout?.trim() || null;
   writeFileSync(
     join(out, "tdj-bundle.json"),
-    `${JSON.stringify({ version: releaseEnv().NEXT_PUBLIC_TDJ_VERSION, commit, builtAt: new Date().toISOString(), standalone: true }, null, 2)}\n`,
+    `${JSON.stringify({ version: releaseEnv().NEXT_PUBLIC_TDJ_VERSION, commit, builtAt: new Date().toISOString(), standalone: true, spotifyClientId: spotifyClientIdFrom() || null }, null, 2)}\n`,
   );
   let pages = 0;
   walk(out, (p) => {

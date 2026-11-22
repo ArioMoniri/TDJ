@@ -1,7 +1,7 @@
 //! IPC commands the page may call (`window.__TAURI_INTERNALS__.invoke(name, args)`). Every one is listed in
 //! build.rs (app manifest) and granted per window in capabilities/*.json; nothing else is reachable from a page.
 
-use crate::{agents, folders, links, net, secrets, settings, system, AppState};
+use crate::{agents, folders, links, net, secrets, settings, spotify, system, AppState};
 use serde::Serialize;
 use tauri::{AppHandle, Manager, State, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
@@ -17,6 +17,8 @@ pub struct NativeInfo {
     pub linked_server: Option<String>,
     /// the Spotify Client ID this build ships with (public; PKCE needs no secret)
     pub spotify_client_id: Option<&'static str>,
+    /// the DJ's own Spotify Client ID ("Use my own Spotify app"), kept in the Keychain on this device; it wins
+    pub own_spotify_client_id: Option<String>,
     pub bundled: bool,
     pub app_store: bool,
     pub updater: bool,
@@ -41,6 +43,7 @@ pub fn get_native_info(state: State<'_, AppState>) -> NativeInfo {
         version: env!("CARGO_PKG_VERSION"),
         linked_server: state.bridge.server(),
         spotify_client_id: crate::SPOTIFY_CLIENT_ID.filter(|c| !c.is_empty()),
+        own_spotify_client_id: state.secrets.get(secrets::SPOTIFY_OWN_CLIENT),
         bundled: state.bundled,
         app_store: crate::APP_STORE_BUILD,
         updater: cfg!(feature = "updater"),
@@ -141,15 +144,35 @@ pub fn acp_kill(state: State<'_, AppState>, id: u32) {
 
 // ---------------------------------------------------------------- Spotify (PKCE, tokens in the Keychain)
 
-/// The end of the PKCE sign-in: the page's checked code-exchange form → tokens; the refresh token goes to the
-/// Keychain, the short-lived access token stays in memory and is handed to the page.
+/// The start of a sign-in (lib/app/login.ts → `appLogin`): the page's verifier and state wait here for
+/// `tdj://spotify-callback`, which the native side then finishes on its own (spotify.rs, lib.rs `handle_link`).
 #[tauri::command]
-pub async fn spotify_token(
-    state: State<'_, AppState>,
+pub fn spotify_begin(
+    st: State<'_, AppState>,
     client_id: String,
+    state: String,
+    verifier: String,
+    next: Option<String>,
+) -> Res<()> {
+    let p = spotify::Pending::new(
+        &client_id,
+        &state,
+        &verifier,
+        next.as_deref(),
+        std::time::Instant::now(),
+    )?;
+    *st.spotify_pending.lock().unwrap() = Some(p);
+    Ok(())
+}
+
+/// The code exchange: the refresh token goes to the Keychain, the short-lived access token stays in memory and is
+/// handed to the page. Used by the deep link (native sign-in) and by `spotify_token` (the page's fallback).
+pub async fn spotify_exchange(
+    state: &AppState,
+    client_id: &str,
     form: String,
 ) -> Result<net::SpotifyAccess, net::NetError> {
-    net::check_exchange_form(&form, &client_id)?;
+    net::check_exchange_form(&form, client_id)?;
     let j = net::spotify_token_request(&state.http, form).await?;
     let t = net::parse_token(&j, net::now_ms())?;
     if let Some(r) = &t.refresh {
@@ -160,6 +183,17 @@ pub async fn spotify_token(
     }
     *state.spotify.lock().unwrap() = Some(t.access.clone());
     Ok(t.access)
+}
+
+/// The end of a sign-in the page finished itself (`/callback`, when the app restarted after it began): the page's
+/// checked code-exchange form → tokens.
+#[tauri::command]
+pub async fn spotify_token(
+    state: State<'_, AppState>,
+    client_id: String,
+    form: String,
+) -> Result<net::SpotifyAccess, net::NetError> {
+    spotify_exchange(&state, &client_id, form).await
 }
 
 /// A valid access token, refreshed from the Keychain when needed; none when the DJ is not signed in.
@@ -197,6 +231,7 @@ pub async fn spotify_access(
 #[tauri::command]
 pub fn spotify_logout(state: State<'_, AppState>) -> Res<()> {
     *state.spotify.lock().unwrap() = None;
+    *state.spotify_pending.lock().unwrap() = None;
     state.secrets.delete(secrets::SPOTIFY_REFRESH)
 }
 
@@ -435,8 +470,16 @@ pub fn floor_window(app: AppHandle, path: String) -> Res<String> {
         let main = app
             .get_webview_window(crate::MAIN)
             .ok_or_else(|| "no main window".to_string())?;
-        let url = main.url().map_err(|e| e.to_string())?.join(&path).map_err(|e| e.to_string())?;
-        let here = main.current_monitor().ok().flatten().map(|m| m.name().cloned());
+        let url = main
+            .url()
+            .map_err(|e| e.to_string())?
+            .join(&path)
+            .map_err(|e| e.to_string())?;
+        let here = main
+            .current_monitor()
+            .ok()
+            .flatten()
+            .map(|m| m.name().cloned());
         let target = main
             .available_monitors()
             .unwrap_or_default()
