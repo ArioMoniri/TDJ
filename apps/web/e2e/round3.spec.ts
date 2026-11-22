@@ -113,7 +113,7 @@ test("memory: a note survives a reload and travels with the review request", asy
   await page.getByRole("radio", { name: "Memory" }).click();
   await expect(page.getByTestId("memory-notes")).toContainText(note, { timeout: 15000 });
   // the settings row shows what is stored
-  await page.goto("/settings");
+  await page.goto("/settings?section=library");
   await expect(page.getByText(/In this browser · \d+ items?/)).toBeVisible();
   await expect(page.getByRole("switch", { name: /learn from my feedback/ })).toHaveAttribute(
     "aria-checked",

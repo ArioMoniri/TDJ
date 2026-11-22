@@ -362,7 +362,7 @@ test("export → webhook POSTs the chosen format to the DJ's URL (browser-only s
     received = { body: route.request().postData() ?? "", format: route.request().headers()["x-tdj-format"] };
     route.fulfill({ status: 200, body: "ok", headers: { "access-control-allow-origin": "*" } });
   });
-  await page.goto("/settings");
+  await page.goto("/settings?section=connections");
   await page.locator("#connector-webhook").click();
   await page.locator("#connector-webhook-url").fill("https://hook.test/catch");
   await page.getByRole("dialog", { name: "Your automation" }).getByRole("button", { name: "Save" }).click();

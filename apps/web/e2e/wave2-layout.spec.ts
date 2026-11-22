@@ -274,7 +274,7 @@ test("Settings: no check beside a provider with no key, Test says why it is off,
   page,
 }) => {
   test.skip(!isDesktop(), "desktop");
-  await page.goto("/settings");
+  await page.goto("/settings?section=ai");
   const rows = page.getByTestId("model-connections");
   await expect(rows).toBeVisible({ timeout: 20_000 });
   const anthropic = page.locator("#model-anthropic");
@@ -289,10 +289,6 @@ test("Settings: no check beside a provider with no key, Test says why it is off,
   await expect(page.locator("#ai-status")).not.toContainText("Checking", { timeout: 20_000 });
   const own = page.locator("#ai-own-key");
   if (await own.isVisible().catch(() => false)) await own.click();
-  // (measured once the featured night's learned rules, which load late and are taller than a column, are in)
-  await expect(page.getByTestId("featured-learned").getByTestId("learned-rule").first()).toBeVisible({
-    timeout: 30_000,
-  });
   const note = page.getByTestId("ai-workspace-note");
   if (await note.isVisible().catch(() => false)) {
     // both edges in one frame: the note sits under the Models footer, in the same column
@@ -308,7 +304,7 @@ test("Settings: no check beside a provider with no key, Test says why it is off,
     expect(n.y).toBeGreaterThanOrEqual(foot.bottom - 0.5);
     expect(Math.abs(n.x - foot.x)).toBeLessThanOrEqual(1);
   }
-  // no group splits across the two columns (its rows in one, its footer in the other) and no footer runs over rows
+  // no group splits (its rows in one place, its footer in another) and no footer runs over rows
   const bad = await page.evaluate(() => {
     const out: string[] = [];
     for (const s of document.querySelectorAll("main section")) {

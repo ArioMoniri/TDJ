@@ -339,7 +339,7 @@ test.describe("sidebar and wide layouts", () => {
     if (sameLine) expect(seg.width).toBeLessThan(r.width * 0.75);
     else expect(seg.width).toBeGreaterThanOrEqual(r.width - 48);
     // a long list is a pop-up, not a row of segments
-    await page.goto("/settings");
+    await page.goto("/settings?section=appearance");
     await expect(page.getByRole("radiogroup", { name: W("Theme") })).toBeVisible();
   });
 });

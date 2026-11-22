@@ -186,7 +186,7 @@ test("hover explains an indicator; Show and Settings turn indicators off everywh
   await expect(page.getByTestId("booth-era")).toHaveCount(0);
   await expect(page.getByTestId("booth-art")).toHaveCount(0);
   // the same switches in Settings, with their one-line explanations
-  await page.goto("/settings");
+  await page.goto("/settings?section=appearance");
   const group = page.getByTestId("indicator-switches");
   await expect(group).toContainText("best years");
   await expect(group.getByRole("switch", { name: "Era badge" })).not.toBeChecked();

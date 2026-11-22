@@ -433,7 +433,7 @@ test.describe("iPhone 15 Pro", () => {
 
   test("Settings: a switch row is 44 pt, the switch 51 × 31 with a 44 px touch area", async ({ browser }) => {
     const { ctx, page } = await open(browser, dev("iPhone 15 Pro"));
-    await page.goto("/settings");
+    await page.goto("/settings?section=appearance");
     const sw = page.getByRole("switch", { name: "Reduce transparency" });
     await sw.scrollIntoViewIfNeeded();
     const track = (await sw.locator(".switch-track").boundingBox())!;

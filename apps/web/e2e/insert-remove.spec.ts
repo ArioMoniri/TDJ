@@ -114,7 +114,7 @@ test("Settings → Night: the last La Cumparsita as 4 + 1 composes it as the úl
   test.setTimeout(240_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await quiet(page);
-  await page.goto("/settings");
+  await page.goto("/settings?section=night");
   const night = page.getByTestId("settings-night");
   await expect(night).toBeVisible({ timeout: 30000 });
   await expect(night.getByRole("combobox", { name: "The last La Cumparsita" })).toHaveValue("straight");

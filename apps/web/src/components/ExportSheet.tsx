@@ -1040,7 +1040,7 @@ export function ExportSheet({
       {!hosted && !settings.spotifyClientId && (
         <p id="spotify-why" className="section-foot mt-2 text-center">
           {tx("exportSheet.needs_a_spotify_client_id_add", { p1: " " })}
-          <Link href="/settings" className="text-[var(--tint)]">
+          <Link href="/settings?section=connections" className="text-[var(--tint)]">
             {tx("exportSheet.settings")}
           </Link>
           .
@@ -1161,7 +1161,11 @@ export function ExportSheet({
                   : tx("exportSheet.set_up")
           }
           chevron
-          onClick={!hosted && !settings.spotifyClientId ? () => location.assign("/settings") : toSpotify}
+          onClick={
+            !hosted && !settings.spotifyClientId
+              ? () => location.assign("/settings?section=connections")
+              : toSpotify
+          }
           disabled={busy || done}
           busy={busy}
           id="send-spotify"
@@ -1421,7 +1425,7 @@ export function ExportSheet({
                 {noFolders && (
                   <>
                     {tx("exportSheet.your_dj_app_finds_the_songs", { p1: " ", p2: " " })}
-                    <Link href="/settings" className="text-[var(--tint)]">
+                    <Link href="/settings?section=library#file-naming" className="text-[var(--tint)]">
                       {tx("exportSheet.settings")}
                     </Link>
                     .

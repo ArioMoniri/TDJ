@@ -572,7 +572,7 @@ test("the light confirmation: before the night none; mid-night a tap on Next doe
     await expect(end).toContainText("Tap again or hold to confirm");
   }
   // Settings → Booth → off: a single tap advances
-  await page.goto("/settings");
+  await page.goto("/settings?section=booth");
   const sw = page.getByRole("switch", { name: "Confirm actions that change the song" });
   await expect(sw).toBeChecked();
   await sw.click();

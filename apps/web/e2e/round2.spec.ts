@@ -139,7 +139,7 @@ test("database: a song edit persists after reload and reaches the composer", asy
 test("settings: switching the model provider changes the default model and survives reload", async ({
   page,
 }) => {
-  await page.goto("/settings");
+  await page.goto("/settings?section=ai");
   // round 22: a blank model is the provider's default from the model config (Anthropic's newest Claude model)
   const model = page.locator("#ai-model");
   await expect(model).toHaveValue("");

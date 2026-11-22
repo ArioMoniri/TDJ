@@ -58,7 +58,7 @@ test("no page shows engineer words", async ({ page }) => {
     await page.waitForTimeout(500);
     found.push(...(await engineerWords(page)).map((h) => `/database ${tab}: ${h}`));
   }
-  await page.goto("/settings");
+  await page.goto("/settings?section=ai");
   const own = page.locator("#ai-own-key");
   await own.click({ timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(400);

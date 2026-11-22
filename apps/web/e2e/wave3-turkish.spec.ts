@@ -72,9 +72,24 @@ test("Settings › Language › Türkçe: Compose, Booth, Database, Settings and
   await expect(
     page.getByRole("radiogroup", { name: "Dil" }).getByRole("radio", { name: "Türkçe" }),
   ).toBeChecked();
-  await expect(page.getByText("Görünüm", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("settings-cat-appearance")).toHaveText("Görünüm");
   await settle(page);
   await scan("/settings");
+  // every Settings category, one pane at a time
+  for (const section of [
+    "appearance",
+    "booth",
+    "audio",
+    "keyboard",
+    "night",
+    "connections",
+    "ai",
+    "library",
+  ]) {
+    await page.goto(`/settings?section=${section}`);
+    await settle(page);
+    await scan(`/settings?section=${section}`);
+  }
 
   // Compose: the form, then a composed night
   await page.goto("/");

@@ -83,6 +83,8 @@ export interface RowProps {
   "aria-label"?: string;
   "data-resolved"?: string;
   "data-testid"?: string;
+  /** the setting this row is, for Settings' search and deep links (lib/settingsIndex.ts) */
+  "data-setting"?: string;
   /** the help tag on hover and long-press: what the row does */
   tip?: string;
 }
@@ -179,6 +181,7 @@ export function PickerRow<K extends string>({
   tile,
   tip,
   wrapValue,
+  setting,
 }: {
   label: ReactNode;
   value: K | undefined;
@@ -197,6 +200,8 @@ export function PickerRow<K extends string>({
   tip?: string;
   /** the values are phrases: the current one wraps onto more lines instead of ending in "…" */
   wrapValue?: boolean;
+  /** the setting this row is, for Settings' search and deep links (lib/settingsIndex.ts) */
+  setting?: string;
 }) {
   const id = useId();
   const t = useTip(tipOf(tip, sub));
@@ -205,6 +210,7 @@ export function PickerRow<K extends string>({
     <div
       className={`cell relative w-full ${disabled ? "" : "cell-tap"}`}
       data-leading={tile ? "tile" : undefined}
+      data-setting={setting}
       {...on(t.props)}
     >
       {t.tag}
@@ -257,8 +263,10 @@ export function SwitchRow({
   disabled,
   children,
   tip,
+  setting,
 }: {
   label: string;
+  setting?: string;
   sub?: ReactNode;
   checked: boolean;
   onChange: (v: boolean) => void;
@@ -269,7 +277,7 @@ export function SwitchRow({
 }) {
   const t = useTip(tipOf(tip, sub));
   return (
-    <div className="cell" data-leading={tile ? "tile" : undefined} {...on(t.props)}>
+    <div className="cell" data-leading={tile ? "tile" : undefined} data-setting={setting} {...on(t.props)}>
       {t.tag}
       {tile}
       <span className="min-w-0 flex-1">
@@ -291,9 +299,11 @@ export function StepperRow({
   children,
   display,
   tip,
+  setting,
   ...stepper
 }: {
   label: string;
+  setting?: string;
   value: number;
   unit?: string;
   sub?: ReactNode;
@@ -315,7 +325,7 @@ export function StepperRow({
   const isPhone = useMediaQuery("(max-width: 599.98px)");
   const t = useTip(tipOf(tip, sub));
   return (
-    <div className="cell" {...on(t.props)}>
+    <div className="cell" data-leading={tile ? "tile" : undefined} data-setting={setting} {...on(t.props)}>
       {t.tag}
       {tile}
       <span className="min-w-0 flex-1">
@@ -443,9 +453,11 @@ export function SegmentedRow<K extends string>({
   sub,
   tile,
   tip,
+  setting,
   ...seg
 }: {
   label: string;
+  setting?: string;
   value: K;
   items: Array<[K, string]>;
   onChange: (k: K) => void;
@@ -470,12 +482,18 @@ export function SegmentedRow<K extends string>({
         value={seg.value}
         items={seg.items}
         onChange={(k) => k && seg.onChange(k)}
+        setting={setting}
       >
         {children}
       </PickerRow>
     );
   return (
-    <div className="cell seg-row" data-leading={tile ? "tile" : undefined} {...on(t.props)}>
+    <div
+      className="cell seg-row"
+      data-leading={tile ? "tile" : undefined}
+      data-setting={setting}
+      {...on(t.props)}
+    >
       {t.tag}
       {tile}
       <span className="seg-row-label min-w-0 flex-1">
