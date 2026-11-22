@@ -3,7 +3,8 @@
 //   1. register the bundle ID (one universal App ID for iPad + Mac) and its capabilities,
 //   2. create or reuse the signing certificates from CSRs generated here (private keys never leave this
 //      machine/store): Apple Distribution, Mac Installer Distribution, Developer ID Application,
-//   3. create or refresh the App Store provisioning profiles (iPad, Mac),
+//   3. create or refresh the App Store provisioning profiles (iPad, Mac); a profile without the iCloud container
+//      (docs/SYNC.md: the sync log in iCloud Documents) is replaced, so it carries the App ID's current capabilities,
 //   4. keep the .p12 files + passwords + profiles in a store the release builds read:
 //        --store dir:<folder>        e.g. ~/drive/tdj-signing on the rented Mac (default there)
 //        --store ssm:/tdj/apple      AWS SSM SecureStrings (GitHub OIDC role, apple-setup.yml)
@@ -66,6 +67,34 @@ export const PROFILES = {
     ext: "provisionprofile",
   },
 };
+
+/**
+ * docs/SYNC.md: the App ID's iCloud capability (iCloud Documents; the "Xcode 6+" iCloud, the only one Apple still
+ * offers). The API can enable the capability; it cannot create or assign an iCloud container, which the owner does
+ * once in the portal (manualSteps). The Developer ID DMG uses no iCloud (it has no profile; it syncs with a code).
+ */
+export const ICLOUD_CAPABILITY = {
+  type: "ICLOUD",
+  settings: [{ key: "ICLOUD_VERSION", options: [{ key: "XCODE_6", enabled: true }] }],
+};
+export const icloudContainer = (bundleId) => `iCloud.${bundleId}`;
+
+/**
+ * Whether a profile (base64, as App Store Connect returns it) grants the iCloud container: the profile is a signed
+ * plist, so its entitlements are readable in the DER without verifying the signature.
+ */
+export function profileHasICloud(profileB64, container) {
+  if (!profileB64) return false;
+  const text = Buffer.from(profileB64, "base64").toString("latin1");
+  const i = text.indexOf("com.apple.developer.ubiquity-container-identifiers");
+  if (i < 0 || !text.includes("com.apple.developer.icloud-container-identifiers")) return false;
+  // the container (or Xcode's wildcard form) in the ubiquity list right after the key
+  const list = text.slice(i, i + 2000);
+  return (
+    list.includes(`<string>${container}</string>`) ||
+    /<string>iCloud\.\*<\/string>|<string>\*<\/string>/.test(list)
+  );
+}
 
 export const LINKS = {
   newApp: "https://appstoreconnect.apple.com/apps",
@@ -254,6 +283,7 @@ export async function ensureBundleId(api, identifier, name, log) {
   throw new Error("unreachable");
 }
 
+/** `capabilities`: type names, or `{ type, settings }` (ICLOUD_CAPABILITY). */
 export async function ensureCapabilities(api, bundle, capabilities, log) {
   if (!capabilities.length) return;
   const have = new Set(
@@ -261,7 +291,8 @@ export async function ensureCapabilities(api, bundle, capabilities, log) {
       (c) => c.attributes?.capabilityType,
     ),
   );
-  for (const capabilityType of capabilities) {
+  for (const cap of capabilities) {
+    const capabilityType = typeof cap === "string" ? cap : cap.type;
     if (have.has(capabilityType)) {
       log(`✓ capability ${capabilityType}`);
       continue;
@@ -269,7 +300,10 @@ export async function ensureCapabilities(api, bundle, capabilities, log) {
     await api.post("/v1/bundleIdCapabilities", {
       data: {
         type: "bundleIdCapabilities",
-        attributes: { capabilityType },
+        attributes: {
+          capabilityType,
+          ...(typeof cap === "object" && cap.settings ? { settings: cap.settings } : {}),
+        },
         relationships: { bundleId: { data: { type: "bundleIds", id: bundle.id } } },
       },
     });
@@ -391,7 +425,8 @@ export async function ensureCert(api, store, kind, opts) {
   throw lastErr ?? new Error(`${c.label}: could not create`);
 }
 
-export async function ensureProfile(api, store, which, bundle, certId, { log, now = Date.now() }) {
+/** `icloud`: the container every profile must grant (a profile without it is replaced); none: not checked. */
+export async function ensureProfile(api, store, which, bundle, certId, { log, now = Date.now(), icloud }) {
   const p = PROFILES[which];
   const existing = (
     await api.all(`/v1/profiles?filter[name]=${enc(p.name)}&include=bundleId,certificates&limit=200`)
@@ -404,13 +439,14 @@ export async function ensureProfile(api, store, which, bundle, certId, { log, no
       prof.attributes.profileType === p.type &&
       daysLeft(prof.attributes.expirationDate, now) > RENEW_DAYS &&
       certs.includes(certId) &&
-      bundleOk;
+      bundleOk &&
+      (!icloud || profileHasICloud(prof.attributes.profileContent, icloud));
     if (ok && prof.attributes.profileContent) {
       await store.put(p.key, prof.attributes.profileContent);
       log(`✓ profile "${p.name}": reusing ${prof.id}`);
       return { status: "reused", id: prof.id };
     }
-    log(`… profile "${p.name}" ${prof.id} is stale (state, expiry or certificate), replacing it`);
+    log(`… profile "${p.name}" ${prof.id} is stale (state, expiry, certificate or iCloud), replacing it`);
     await api.del(`/v1/profiles/${prof.id}`);
   }
   const r = await api.post("/v1/profiles", {
@@ -425,12 +461,26 @@ export async function ensureProfile(api, store, which, bundle, certId, { log, no
   });
   await store.put(p.key, r.data.attributes.profileContent);
   log(`✓ profile "${p.name}": created ${r.data.id}`);
+  // a new profile carries what the App ID has now: without the container, it is still to be assigned in the portal
+  if (icloud && !profileHasICloud(r.data.attributes.profileContent, icloud)) {
+    log(
+      `! profile "${p.name}" has no iCloud container ${icloud}: assign it to the App ID (see below) and run again`,
+    );
+    return { status: "created", id: r.data.id, icloudMissing: true };
+  }
   return { status: "created", id: r.data.id };
 }
 
 /** Everything only a person can do, as clickable steps. */
-export function manualSteps({ app, devid, bundleId, teamId }) {
+export function manualSteps({ app, devid, bundleId, teamId, icloud, icloudMissing }) {
   const out = [];
+  if (icloudMissing) {
+    out.push(
+      `iCloud container (sync, docs/SYNC.md; the API cannot assign one): ${LINKS.identifiers} → ${bundleId} → iCloud → ` +
+        `Configure → tick ${icloud} (create it under Identifiers → iCloud Containers if it is not listed) → Save. ` +
+        "Then run this again: the profiles are regenerated with it.",
+    );
+  }
   if (!app) {
     out.push(
       `Create the App Store Connect app record (the API cannot): ${LINKS.newApp} → "+" → New App → platforms iOS and macOS, ` +
@@ -460,6 +510,7 @@ export async function setup(opts) {
   const { api, store, log } = opts;
   const bundle = await ensureBundleId(api, opts.bundleId, opts.appName, log);
   await ensureCapabilities(api, bundle, opts.capabilities ?? [], log);
+  const icloud = opts.icloud || undefined;
   const results = { bundle: bundle.id };
   for (const kind of opts.certs ?? ["distribution", "installer", "devid"]) {
     try {
@@ -473,7 +524,7 @@ export async function setup(opts) {
   if (dist?.id) {
     for (const which of opts.profiles ?? ["ios", "mac"]) {
       try {
-        results[which] = await ensureProfile(api, store, which, bundle, dist.id, opts);
+        results[which] = await ensureProfile(api, store, which, bundle, dist.id, { ...opts, icloud });
       } catch (e) {
         results[which] = { status: "failed", error: e.message };
         log(`✗ profile ${PROFILES[which].name}: ${e.message}`);
@@ -485,7 +536,14 @@ export async function setup(opts) {
   if (app) log(`✓ App Store Connect app record ${app.id} ("${app.attributes?.name}")`);
   if (results.devid?.csrPem)
     log(`\nDeveloper ID CSR (not secret; upload it at ${LINKS.newCertificate}):\n${results.devid.csrPem}`);
-  results.manual = manualSteps({ app, devid: results.devid, bundleId: opts.bundleId, teamId: opts.teamId });
+  results.manual = manualSteps({
+    app,
+    devid: results.devid,
+    bundleId: opts.bundleId,
+    teamId: opts.teamId,
+    icloud,
+    icloudMissing: ["ios", "mac"].some((w) => results[w]?.icloudMissing),
+  });
   return results;
 }
 
@@ -520,6 +578,8 @@ Options
   --bundle-id ID      default ${DEFAULTS.bundleId} (env TDJ_APP_BUNDLE_ID)
   --team-id ID        default ${DEFAULTS.teamId} (env APPLE_TEAM_ID)
   --capability TYPE   enable an App ID capability (repeatable), e.g. ASSOCIATED_DOMAINS
+  --no-icloud         skip iCloud (enabled by default: the App ID's ICLOUD capability, and profiles that grant
+                      the container iCloud.<bundle ID>; docs/SYNC.md)
   --only LIST         certs,profiles subset: distribution,installer,devid,ios,mac
   --revoke-oldest     when Apple's certificate limit is reached, revoke the oldest Apple Distribution /
                       Mac Installer certificate (never a Developer ID one)
@@ -538,6 +598,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
       "bundle-id": { type: "string", default: env.TDJ_APP_BUNDLE_ID || DEFAULTS.bundleId },
       "team-id": { type: "string", default: env.APPLE_TEAM_ID || DEFAULTS.teamId },
       capability: { type: "string", multiple: true, default: [] },
+      "no-icloud": { type: "boolean", default: false },
       only: { type: "string" },
       "revoke-oldest": { type: "boolean", default: false },
       "devid-cer": { type: "string" },
@@ -580,7 +641,8 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     bundleId: values["bundle-id"],
     teamId: values["team-id"],
     appName: DEFAULTS.appName,
-    capabilities: values.capability,
+    capabilities: values["no-icloud"] ? values.capability : [ICLOUD_CAPABILITY, ...values.capability],
+    icloud: values["no-icloud"] ? undefined : icloudContainer(values["bundle-id"]),
     certs: only ? only.filter((x) => x in CERTS) : undefined,
     profiles: only ? only.filter((x) => x in PROFILES) : undefined,
     revokeOldest: values["revoke-oldest"],

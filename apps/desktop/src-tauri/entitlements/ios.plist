@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- iOS (iPhone + iPad) App Store build. scripts/release/mac-build.sh merges these keys into the generated
+       Xcode project's entitlements (gen/apple/*_iOS/*_iOS.entitlements) before `tauri ios build`.
+       docs/SYNC.md: the encrypted sync log mirrored into iCloud Documents (src/icloud.rs). -->
+  <key>com.apple.developer.icloud-container-identifiers</key>
+  <array><string>iCloud.com.ariomoniri.tdj</string></array>
+  <key>com.apple.developer.ubiquity-container-identifiers</key>
+  <array><string>iCloud.com.ariomoniri.tdj</string></array>
+  <key>com.apple.developer.icloud-services</key>
+  <array><string>CloudDocuments</string></array>
+  <key>com.apple.developer.icloud-container-environment</key><string>Production</string>
+</dict>
+</plist>

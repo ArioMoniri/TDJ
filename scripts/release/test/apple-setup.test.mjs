@@ -9,10 +9,14 @@ import { test } from "node:test";
 import {
   dirStore,
   ensureBundleId,
+  ensureCapabilities,
   ensureCert,
   ensureProfile,
   exportSigning,
+  ICLOUD_CAPABILITY,
+  icloudContainer,
   manualSteps,
+  profileHasICloud,
   setup,
 } from "../apple-setup.mjs";
 import { AscError, createClient, loadKey, makeToken } from "../asc.mjs";
@@ -373,4 +377,96 @@ test("setup: whole run tells the owner to create the app record when it is missi
   assert.equal(r.mac.status, "created");
   assert.equal(r.app, null);
   assert.match(r.manual[0], /appstoreconnect\.apple\.com\/apps.*New App/);
+});
+
+// docs/SYNC.md: the App ID's iCloud capability, and profiles that grant the container
+const plistProfile = (ents) =>
+  Buffer.from(
+    `0\x82\x10junk<?xml version="1.0"?><plist><dict><key>Entitlements</key><dict>${ents}</dict></dict></plist>junk`,
+    "latin1",
+  ).toString("base64");
+const WITH_ICLOUD = plistProfile(
+  "<key>com.apple.developer.icloud-container-identifiers</key><array><string>iCloud.com.example.tdj</string></array>" +
+    "<key>com.apple.developer.ubiquity-container-identifiers</key><array><string>iCloud.com.example.tdj</string></array>",
+);
+const WITHOUT = plistProfile("<key>application-identifier</key><string>T.com.example.tdj</string>");
+
+test("iCloud: a profile is read for the container; one without it is replaced", async () => {
+  assert.equal(profileHasICloud(WITH_ICLOUD, "iCloud.com.example.tdj"), true);
+  assert.equal(profileHasICloud(WITH_ICLOUD, "iCloud.com.other.app"), false);
+  assert.equal(profileHasICloud(WITHOUT, "iCloud.com.example.tdj"), false);
+  assert.equal(profileHasICloud("", "iCloud.com.example.tdj"), false);
+  assert.equal(icloudContainer("com.example.tdj"), "iCloud.com.example.tdj");
+
+  const far = new Date(Date.now() + 200 * 86400000).toISOString();
+  const prof = (content) => ({
+    id: "P1",
+    attributes: {
+      name: "TDJ Mac App Store",
+      profileState: "ACTIVE",
+      profileType: "MAC_APP_STORE",
+      expirationDate: far,
+      profileContent: content,
+    },
+    relationships: { certificates: { data: [{ id: "C1" }] }, bundleId: { data: { id: "B" } } },
+  });
+  const opts = { log: quiet, icloud: "iCloud.com.example.tdj" };
+  const store = dirStore(mkdtempSync(join(tmpdir(), "s-")));
+  const keep = mockApi({ "GET /v1/profiles": () => ({ body: { data: [prof(WITH_ICLOUD)] } }) });
+  assert.equal((await ensureProfile(keep.api, store, "mac", { id: "B" }, "C1", opts)).status, "reused");
+
+  const deleted = [];
+  const old = mockApi({
+    "GET /v1/profiles": () => ({ body: { data: [prof(WITHOUT)] } }),
+    "DELETE /v1/profiles/P1": () => {
+      deleted.push("P1");
+      return { status: 204 };
+    },
+    "POST /v1/profiles": () => ({
+      status: 201,
+      body: { data: { id: "P2", attributes: { profileContent: WITH_ICLOUD } } },
+    }),
+  });
+  const r = await ensureProfile(old.api, store, "mac", { id: "B" }, "C1", opts);
+  assert.deepEqual([r.status, r.icloudMissing, deleted], ["created", undefined, ["P1"]]);
+  assert.equal(await store.get("MAC_APPSTORE_PROFILE"), WITH_ICLOUD);
+
+  // the container is not assigned yet: the new profile still lacks it, and the owner is told what to do
+  const unassigned = mockApi({
+    "GET /v1/profiles": () => ({ body: { data: [] } }),
+    "POST /v1/profiles": () => ({
+      status: 201,
+      body: { data: { id: "P3", attributes: { profileContent: WITHOUT } } },
+    }),
+  });
+  const u = await ensureProfile(unassigned.api, store, "ios", { id: "B" }, "C1", opts);
+  assert.equal(u.icloudMissing, true);
+  const steps = manualSteps({
+    app: { id: "A" },
+    bundleId: "com.example.tdj",
+    teamId: "T",
+    icloud: opts.icloud,
+    icloudMissing: true,
+  });
+  assert.match(steps[0], /iCloud → Configure → tick iCloud\.com\.example\.tdj/);
+});
+
+test("iCloud: the capability is enabled with its settings when the App ID lacks it", async () => {
+  const posted = [];
+  const { api } = mockApi({
+    "GET /v1/bundleIds/B/bundleIdCapabilities": () => ({
+      body: { data: [{ attributes: { capabilityType: "IN_APP_PURCHASE" } }] },
+    }),
+    "POST /v1/bundleIdCapabilities": (b) => {
+      posted.push(b.data.attributes);
+      return { status: 201, body: { data: {} } };
+    },
+  });
+  await ensureCapabilities(api, { id: "B" }, [ICLOUD_CAPABILITY, "IN_APP_PURCHASE"], quiet);
+  assert.deepEqual(posted, [
+    {
+      capabilityType: "ICLOUD",
+      settings: [{ key: "ICLOUD_VERSION", options: [{ key: "XCODE_6", enabled: true }] }],
+    },
+  ]);
 });

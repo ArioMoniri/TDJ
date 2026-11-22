@@ -104,6 +104,9 @@ jobs:
       APPLE_APP_ID: ${{ vars.APPLE_APP_ID }}
       # the apps are standalone: no server address is built in; the Spotify Client ID is public (PKCE)
       TDJ_SPOTIFY_CLIENT_ID: ${{ vars.TDJ_SPOTIFY_CLIENT_ID }}
+      # docs/SYNC.md: the sync server the apps use by default (a variable, never committed; unset: none, the DJ
+      # may set one in Settings → Sync)
+      TDJ_SYNC_URL: ${{ vars.TDJ_SYNC_URL }}
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
       TAURI_UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
