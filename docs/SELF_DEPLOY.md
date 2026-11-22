@@ -51,6 +51,7 @@ pnpm tdj doctor     # what is installed and signed in, and the fix for each gap
 pnpm tdj init       # stage, region, optional Spotify app; saves the settings
 pnpm tdj deploy     # checks, pnpm install, build, sst deploy; prints the URL and the setup code
 pnpm tdj status     # the URL, the version it answers with, whether /admin still waits for you
+pnpm tdj connectors # Spotify, YouTube, Google, Dropbox, Pipedream: console steps, then the keys (docs/CONNECTORS.md)
 pnpm tdj guide      # this page, short, in the terminal
 pnpm tdj --help
 ```
@@ -128,6 +129,8 @@ Without AWS the settings live in memory (`/admin` works, but forgets on restart)
 2. Add the services you want (Spotify, Google, Dropbox, an AI key for everyone), next to the redirect addresses
    `/admin` shows. For Spotify, add `<url>/api/spotify/callback`, `<url>/callback` and `tdj://spotify-callback` as
    redirect URIs in the Spotify dashboard, and each DJ under *User Management* (5 seats in Development Mode).
+   Or from the terminal: `pnpm tdj connectors` (it also sets `YOUTUBE_API_KEY` and the optional Pipedream Connect
+   one-tap sign-in). Every console step, the env names and how to check them: [CONNECTORS.md](CONNECTORS.md).
 3. Optional: in the T-DJ app for Mac or iPad, Settings → Connections → Link a TDJ server → your URL.
 
 ## Nothing of the author's comes with it

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { apple } from "./apple.mjs";
 import { CliError } from "./config.mjs";
+import { connectors } from "./connectors.mjs";
 import { deploy } from "./deploy.mjs";
 import { destroy } from "./destroy.mjs";
 import { doctor } from "./doctor.mjs";
@@ -14,7 +15,18 @@ import { asciiOnly, banner, palette, prompter, useColor } from "./ui.mjs";
 
 const VERSION = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
-export const COMMANDS = ["start", "init", "deploy", "doctor", "status", "destroy", "guide", "apple", "help"];
+export const COMMANDS = [
+  "start",
+  "init",
+  "deploy",
+  "connectors",
+  "doctor",
+  "status",
+  "destroy",
+  "guide",
+  "apple",
+  "help",
+];
 
 export const HELP = `tdj ${VERSION} — your own T-DJ on your own AWS account
 
@@ -26,6 +38,9 @@ Commands
   init               check this computer, choose stage + region + optional Spotify app, save the settings
   init --github      the same for a GitHub fork: deploy role in AWS (OIDC) + repository settings, via gh
   deploy             checks, pnpm install, build, sst deploy; prints the URL and the /admin setup code
+  connectors         Spotify, YouTube, Google, Dropbox: what each unlocks, the console steps, your keys
+                     (secrets typed hidden → Parameter Store, GitHub secrets or apps/web/.env.local)
+  connectors --check which connector keys are set and whether the running app sees them
   doctor             what is missing or broken, and the fix for each (reads the last deploy log too)
   status             the app URL, the version it answers with, whether /admin still waits for you
   destroy            remove a stage (you type its name to confirm)
@@ -44,6 +59,9 @@ Options
                            from SPOTIFY_CLIENT_SECRET in the environment, never a flag
   --spotify-later          init: skip Spotify (set it in the app at /admin)
   --confirm STAGE          destroy with --yes: the stage name, typed out
+  --only LIST              connectors: some of spotify,youtube,google,dropbox,pipedream
+  --target WHERE           connectors: aws, github or local (default: your deploy route)
+  --check                  connectors: show what is set, change nothing
   -y, --yes                no questions: defaults for everything not given as a flag
   --dry-run                print every command instead of running it
   --no-color               plain output (also NO_COLOR=1; TDJ_ASCII=1 for a pure-ASCII banner)
@@ -61,6 +79,9 @@ const OPTIONS = /** @type {const} */ ({
   repo: { type: "string" },
   dir: { type: "string" },
   confirm: { type: "string" },
+  only: { type: "string" },
+  target: { type: "string" },
+  check: { type: "boolean" },
   "spotify-later": { type: "boolean" },
   "issuer-id": { type: "string" },
   "key-id": { type: "string" },
@@ -165,6 +186,8 @@ export async function main(argv, inject = {}) {
         return await init(ctx, flags);
       case "deploy":
         return await deploy(ctx, flags);
+      case "connectors":
+        return await connectors(ctx, flags);
       case "doctor":
         return doctor(ctx, flags);
       case "status":

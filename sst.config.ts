@@ -19,7 +19,7 @@ export default $config({
     };
   },
   async run() {
-    // Connector secrets (docs/DEPLOY.md → Connectors) travel from the GitHub Actions env into the function only
+    // Connector secrets (docs/CONNECTORS.md, docs/DEPLOY.md → Connectors) travel from the GitHub Actions env into the function only
     // when set; they never reach the client bundle. TDJ_SECRET signs the anonymous `tdj_uid` ids; without it the
     // function derives the key from the cookie secret kept in Parameter Store (never a literal fallback).
     const secrets = [
@@ -29,6 +29,7 @@ export default $config({
       "GOOGLE_CLIENT_SECRET",
       "DROPBOX_APP_KEY",
       "DROPBOX_APP_SECRET",
+      "YOUTUBE_API_KEY",
       "TDJ_COOKIE_SECRET",
       "TDJ_SECRET",
       "ANTHROPIC_API_KEY",

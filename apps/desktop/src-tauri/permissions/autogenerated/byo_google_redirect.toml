@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-byo-google-redirect"
+description = "Enables the byo_google_redirect command without any pre-configured scope."
+commands.allow = ["byo_google_redirect"]
+
+[[permission]]
+identifier = "deny-byo-google-redirect"
+description = "Denies the byo_google_redirect command without any pre-configured scope."
+commands.deny = ["byo_google_redirect"]

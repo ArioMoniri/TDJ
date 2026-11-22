@@ -31,6 +31,7 @@ import { AppConnections } from "@/components/AppConnections";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
 import { SilenceGroup } from "@/components/booth/SilenceSettings";
 import { TransitionTemplatesGroup } from "@/components/booth/TransitionTemplates";
+import { Connections } from "@/components/Connections";
 import { Connectors } from "@/components/Connectors";
 import { PopularitySwitch } from "@/components/db/DatabaseFavourites";
 import { FeaturedLearned } from "@/components/db/FeaturedLearned";
@@ -594,6 +595,8 @@ export default function Settings({ searchParams }: { searchParams: Promise<Searc
       <>
         {APP && <AppConnections />}
         <Connectors />
+        {/* 2026-11: every service, what it unlocks, your own keys and "Set up your own" (docs/CONNECTORS.md) */}
+        <Connections />
         {/* 2026-11: where song details look for lyrics (LRCLIB; opt-in Musixmatch and Genius with your key) */}
         <LyricsConnections />
         {/* 2026-11: a connected service's playlist (or a file) as a night (app/import) */}

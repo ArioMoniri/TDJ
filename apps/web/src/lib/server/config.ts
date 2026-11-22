@@ -19,6 +19,8 @@ export const CONFIG_KEYS = [
   "GOOGLE_CLIENT_SECRET",
   "DROPBOX_APP_KEY",
   "DROPBOX_APP_SECRET",
+  // 2026-11: a YouTube Data API key of the deployment's own (search without a Google sign-in, docs/CONNECTORS.md)
+  "YOUTUBE_API_KEY",
   "TDJ_COOKIE_SECRET",
   "NEXT_PUBLIC_APP_URL",
   "SETUP_CODE",

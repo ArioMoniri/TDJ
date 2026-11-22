@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-byo-oauth-exchange"
+description = "Enables the byo_oauth_exchange command without any pre-configured scope."
+commands.allow = ["byo_oauth_exchange"]
+
+[[permission]]
+identifier = "deny-byo-oauth-exchange"
+description = "Denies the byo_oauth_exchange command without any pre-configured scope."
+commands.deny = ["byo_oauth_exchange"]

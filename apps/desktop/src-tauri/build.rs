@@ -49,6 +49,12 @@ const COMMANDS: &[&str] = &[
     "midi_open",
     "midi_close",
     "midi_send",
+    // 2026-11: the DJ's own YouTube key, Dropbox app and Google client (src/byo.rs)
+    "byo_youtube_search",
+    "byo_google_redirect",
+    "byo_oauth_exchange",
+    "byo_oauth_access",
+    "byo_oauth_logout",
 ];
 
 /// `"spotifyClientId": "<letters and digits>"` from tdj-bundle.json (no JSON crate in the build script).

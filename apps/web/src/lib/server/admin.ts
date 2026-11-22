@@ -286,6 +286,8 @@ export interface PublicStatus {
   ai: { shared: boolean; dailyLimit: number };
   /** no owner passphrase yet: Settings points at /admin. Whether a setup code exists is not public. */
   setupNeeded: boolean;
+  /** 2026-11: the deployment has keys of its own beyond the logins (YouTube search without a sign-in) */
+  keys?: { youtube: boolean };
 }
 export async function publicStatus(): Promise<PublicStatus> {
   const c = await getConfig();
@@ -305,6 +307,7 @@ export async function publicStatus(): Promise<PublicStatus> {
       dropbox: { used: seats.dropbox.length, max: SEAT_LIMITS.dropbox },
     },
     ai: { shared: ai.configured, dailyLimit: ai.dailyLimit },
+    keys: { youtube: !!c.YOUTUBE_API_KEY },
   };
 }
 

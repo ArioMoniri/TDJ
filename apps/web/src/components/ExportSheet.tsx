@@ -5,6 +5,11 @@ import { ArrowRightLeft, Check, Cloud, FileDown, HardDrive, ListVideo, Radio, We
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { invoke } from "@/lib/app/native";
+import { APP } from "@/lib/app/target";
+import { useByo } from "@/lib/connections/byo";
+import { ownAccess } from "@/lib/connections/ownOAuth";
+import { driveUpload, dropboxUpload } from "@/lib/connections/ownUpload";
 import { coverAfterExport } from "@/lib/cover/spotify";
 import { downloadBlob } from "@/lib/download";
 import { type CheckView, checkView, fileCheckLine, uploadCheckLine } from "@/lib/exportCheckView";
@@ -160,7 +165,12 @@ export function ExportSheet({
   // direct connections (the deployment's own Google and Dropbox apps) come before the Pipedream accounts
   const googleOn = google?.hosted ?? false;
   const dropboxOn = dropbox?.hosted ?? false;
-  const hasFileTarget = googleOn || dropboxOn || fileAccounts.length > 0;
+  // 2026-11: else the DJ's own Dropbox app (web and apps) or Google client (apps), signed in on this device
+  // (Settings → Connections; lib/connections/ownOAuth.ts): the file goes straight to the provider
+  const byo = useByo();
+  const ownDropbox = !dropboxOn && !!byo.dropbox?.connected;
+  const ownDrive = APP && !googleOn && !!byo.google?.connected;
+  const hasFileTarget = googleOn || dropboxOn || ownDropbox || ownDrive || fileAccounts.length > 0;
   const [cloudBusy, setCloudBusy] = useState<string | null>(null);
   /** "Adding 20 of 83…" while the YouTube playlist fills batch by batch */
   const [ytProgress, setYtProgress] = useState<string | null>(null);
@@ -824,6 +834,45 @@ export function ExportSheet({
     return x.text();
   };
   const here = () => `${location.pathname}${location.search}`;
+  /** The chosen file to the DJ's own Dropbox app or Google client, from this device straight to the provider. */
+  const toOwn = async (target: "dropbox" | "google_drive") => {
+    if (!playlist) return;
+    const label = target === "dropbox" ? tx("exportSheet.dropbox") : tx("exportSheet.google_drive");
+    setCloudBusy(target);
+    try {
+      const access = await ownAccess(target === "dropbox" ? "dropbox" : "google", {
+        app: APP,
+        fetch: (...a) => fetch(...a),
+        invoke: (c, a) => invoke(c, a),
+      });
+      if (!access) throw new Error(tx("connections.signin_failed"));
+      const filename = `${playlist.name.replace(/[^a-z0-9-]+/gi, "_")}.${EXPORT_META[hookFormat].ext}`;
+      const text = await exportText(hookFormat);
+      const file = { filename, text, mime: EXPORT_META[hookFormat].mime, set: playlist.name };
+      const r = target === "dropbox" ? await dropboxUpload(access, file) : await driveUpload(access, file);
+      const fc = verifyFile(hookFormat, text, includeCortinas ? playlist : withoutCortinas(playlist), {
+        includeCortinas,
+        folder: folderFor(hookFormat),
+      });
+      setLog((l) => [
+        ...l,
+        tx("exportSheet.saved_to_2", {
+          label: EXPORT_META[hookFormat].label,
+          label1: label,
+          p1: ` (${r.path})`,
+        }),
+        fileCheckLine(tx("exportCheck.file_label", { label: EXPORT_META[hookFormat].label }), fc),
+      ]);
+      if (r.url) setResult({ label: tx("exportSheet.open_in", { label }), url: r.url });
+      toast(tx("exportSheet.saved_to", { label }));
+      haptic([10, 40, 10]);
+    } catch (e) {
+      setLog((l) => [...l, `Error: ${(e as Error).message}`]);
+      haptic([20, 30, 20]);
+    } finally {
+      setCloudBusy(null);
+    }
+  };
   /** Direct: the chosen file to Dropbox or Google Drive, or a playlist on YouTube, with the sealed-cookie session. */
   const toDirect = async (target: "dropbox" | "google_drive" | "youtube") => {
     if (!playlist) return;
@@ -1289,7 +1338,24 @@ export function ExportSheet({
             }
           />
         )}
-        {!dropboxOn && dropbox !== null && (
+        {ownDropbox && (
+          <Row
+            tile={
+              <Tile color="#0061ff">
+                <Cloud size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label={tx("exportSheet.save_to_dropbox")}
+            sub={tx("connections.own_app_sub")}
+            value={`.${EXPORT_META[hookFormat].ext}`}
+            chevron
+            onClick={() => void toOwn("dropbox")}
+            busy={cloudBusy === "dropbox"}
+            disabled={!!cloudBusy}
+            id="send-dropbox-own"
+          />
+        )}
+        {!dropboxOn && !ownDropbox && dropbox !== null && (
           <Row
             tile={
               <Tile color="#0061ff">
@@ -1321,7 +1387,24 @@ export function ExportSheet({
             id="send-dropbox"
           />
         )}
-        {!googleOn && google !== null && (
+        {ownDrive && (
+          <Row
+            tile={
+              <Tile color="#1fa463">
+                <HardDrive size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label={tx("exportSheet.save_to_google_drive")}
+            sub={tx("connections.own_app_sub")}
+            value={`.${EXPORT_META[hookFormat].ext}`}
+            chevron
+            onClick={() => void toOwn("google_drive")}
+            busy={cloudBusy === "google_drive"}
+            disabled={!!cloudBusy}
+            id="send-google_drive-own"
+          />
+        )}
+        {!googleOn && !ownDrive && google !== null && (
           <Row
             tile={
               <Tile color="#1fa463">
