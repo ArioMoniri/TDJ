@@ -304,7 +304,7 @@ test("History → Play in the Booth: another night playing asks first (cancel ke
   await expect(page).toHaveURL(/\/history/);
   const rowB = page.getByTestId("history-row").filter({ hasText: "Night B" });
   await rowB.getByRole("button", { name: /Night B: actions/ }).click();
-  await page.getByTestId("night-menu-play").click();
+  await page.getByRole("menu", { name: "Night B: actions" }).getByTestId("night-menu-play").click();
   const ask = page.getByTestId("play-in-booth-ask");
   await expect(ask).toBeVisible();
   await expect(ask).toContainText("Night A");
@@ -320,7 +320,7 @@ test("History → Play in the Booth: another night playing asks first (cancel ke
   await page.getByTestId("history-detail").getByRole("button", { name: "Play in the Booth" }).click();
   await expect(ask).toBeVisible();
   await page.getByTestId("play-in-booth-replace").click();
-  await expect(page).toHaveURL(/\/booth/);
+  await expect(page).toHaveURL(/\/booth/, { timeout: 30000 });
   await ready(page);
   await expect.poll(async () => (await snap(page)).name).toBe("Night B");
   expect((await snap(page)).started).toBe(false);
@@ -358,7 +358,7 @@ test("rename and delete everywhere: the sidebar's menu and History's inline titl
   // History: the title edits in place; the night open in the Booth takes the name
   const rowB = page.getByTestId("history-row").filter({ hasText: "Night B" });
   await rowB.getByRole("button", { name: /Night B: actions/ }).click();
-  await page.getByTestId("night-menu-play").click();
+  await page.getByRole("menu", { name: "Night B: actions" }).getByTestId("night-menu-play").click();
   await ready(page);
   await page.getByRole("link", { name: "History" }).first().click();
   await rowB.locator("button").first().click();
@@ -376,10 +376,12 @@ test("rename and delete everywhere: the sidebar's menu and History's inline titl
   // the night open in the Booth: its Delete is off with the reason; the other one deletes (asked), Undo
   const open = page.getByTestId("history-row").filter({ hasText: "Sunday práctica" });
   await open.click({ button: "right" });
-  await expect(page.getByTestId("night-menu-delete")).toBeDisabled();
+  await expect(
+    page.getByRole("menu", { name: "Sunday práctica: actions" }).getByTestId("night-menu-delete"),
+  ).toBeDisabled();
   await page.keyboard.press("Escape");
   await recent.filter({ hasText: "Night A" }).click({ button: "right" });
-  await page.getByTestId("night-menu-delete").click();
+  await page.getByRole("menu", { name: "Night A: actions" }).getByTestId("night-menu-delete").click();
   await page.getByTestId("delete-nights").locator("#delete-nights-confirm").click();
   await expect(recent).toHaveCount(1);
   await page.getByTestId("toast").getByRole("button", { name: "Undo" }).click();

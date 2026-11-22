@@ -243,8 +243,11 @@ export default function HistoryPage() {
    * Play in the Booth: the set becomes the current one (locks cleared) and /booth opens on it; when another night is
    * playing there, the one sheet asks first (lib/nightActions.ts: replace / cancel, never silently)
    */
-  const playNight = (s: HistorySnapshot) =>
+  const playNight = (s: HistorySnapshot) => {
+    // (the detail sheet closes first: the Booth opens on its own, or the one question comes up alone)
+    setOpenId(null);
     void playInBooth(s.playlist, { historyId: s.id, go: () => router.push("/booth") });
+  };
   const rowV = reduced ? reducedV.rise : rise;
   const exportAll = () =>
     downloadBlob("tdj-history.json", JSON.stringify(history, null, 2), "application/json");
