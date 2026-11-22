@@ -249,7 +249,7 @@ function Body({
       <div className="now-bg" aria-hidden>
         {entity && <Artwork entity={entity} orchestra={song?.orchestra ?? item?.artist ?? ""} size={320} />}
       </div>
-      <div className="now-view-bar">
+      <div className="now-view-bar" data-tauri-drag-region>
         <button
           type="button"
           className="icon-btn h-11 w-11"

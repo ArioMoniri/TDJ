@@ -116,7 +116,12 @@ async function spotifyMe(_req: Request, d: AppDeps): Promise<Response> {
       ...(s.scopes?.length ? { scopes: s.scopes } : {}),
     });
   } catch (e) {
-    return jsonNoStore({ hosted, user: null, error: (e as Error).message });
+    // a Spotify app in Development Mode answers 403 for a DJ it has not listed ("User not registered in the
+    // Developer Dashboard"): Settings explains it and offers "Use my own Spotify app"
+    const status = (e as { status?: number }).status;
+    const msg = (e as Error).message ?? "";
+    const notListed = status === 403 || /not (be )?registered|developer dashboard/i.test(msg);
+    return jsonNoStore({ hosted, user: null, error: msg, ...(notListed ? { notListed: true } : {}) });
   }
 }
 

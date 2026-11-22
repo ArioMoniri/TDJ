@@ -286,6 +286,9 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "about.update_available": "Güncelleme var",
   "about.update_toast": "T-DJ'nin yeni sürümü çıktı. Gece bitince sayfayı yenileyin.",
   "about.updates_dmg": "Uygulama, güncellemeyi yüklemeden önce size sorar",
+  "about.check_updates": "Güncellemeleri denetle",
+  "about.check_updates_sub": "Yenilikleri gösterir, yüklemeden önce sorar, sonra yeniden başlatır",
+  "about.update_check_failed": "T-DJ güncellemeleri denetleyemedi. Daha sonra yeniden deneyin.",
   "about.updates_store": "Güncellemeler App Store'dan ya da TestFlight'tan gelir",
   "about.version": "Sürüm",
   "about.web_app": "Web'de T-DJ",
@@ -2128,6 +2131,30 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "connectors.your_automation": "Otomasyonunuz",
   "connectors.your_own_app": "Kendi uygulamanız",
   "connectors.your_own_spotify_app": "Kendi Spotify uygulamanız",
+  "spotify_own.title": "Kendi Spotify uygulamamı kullan",
+  "spotify_own.why":
+    "Spotify, geliştirme modundaki bir uygulamayla yalnızca listedeki 5 hesabın giriş yapmasına izin verir. Ücretsiz kendi Spotify uygulamanızla giriş yaparsınız; kopyalanacak gizli bir şey yoktur.",
+  "spotify_own.step_create":
+    "developer.spotify.com/dashboard adresini açın ve Create app'i seçin (ad ve açıklama serbest).",
+  "spotify_own.step_redirect": "Redirect URIs bölümüne tam olarak şunu ekleyin: {uris}",
+  "spotify_own.step_bundle": "iOS bölümüne paket kimliğini ekleyin: {bundle}.",
+  "spotify_own.step_apis": "Web API ve Web Playback SDK'yı işaretleyin, koşulları kabul edip kaydedin.",
+  "spotify_own.step_users":
+    "Uygulamanın Settings → User Management bölümüne adınızı ve Spotify hesabınızın e-postasını ekleyin.",
+  "spotify_own.step_copy":
+    "Basic Information'daki Client ID'yi kopyalayıp aşağıya yapıştırın. İstemci sırrı gerekmez: onu hiçbir yere yapıştırmayın.",
+  "spotify_own.server_redirect":
+    "Kendi TDJ sunucunuzu mu çalıştırıyorsunuz? Onun girişi için ayrıca {uri} gerekir.",
+  "spotify_own.open_dashboard": "Spotify panelini aç",
+  "spotify_own.kept_on_device":
+    "Yalnızca bu cihazda saklanır. Boş bırakılırsa T-DJ'nin uygulaması kullanılır.",
+  "spotify_own.not_a_client_id": "Bu bir Spotify Client ID'sine benzemiyor (32 harf ve rakam).",
+  "spotify_own.saved": "Spotify uygulamanız kaydedildi. Kullanmak için Spotify ile giriş yapın.",
+  "spotify_own.using_own": "Kendi uygulamanız",
+  "spotify_own.using_built_in": "T-DJ'nin uygulaması",
+  "spotify_own.signs_in_with": "Giriş yapan uygulama",
+  "spotify_own.not_listed_own":
+    "Ya da kendi Spotify uygulamanızı kullanın: developer.spotify.com'da birkaç dakika, ücretsiz; listede yalnızca sizin olmanız yeterli.",
   "connectors.youtube": "YouTube",
   "connectors.youtube_playlist": "YouTube çalma listesi",
   "context.after_midnight": "Gece yarısından sonra",

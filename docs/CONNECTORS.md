@@ -46,40 +46,63 @@ address to copy. Logins with the server's apps stay under **Settings → Account
 
 ## Spotify
 
-**What it unlocks:** "Log in with Spotify", playlists of a night, full tracks in Listen and the live view, ISRC
-matching.
 
-**Two ways to sign in:**
+Every T-DJ (the Mac app, the iPhone and iPad app, the web and a self-hosted server) signs in to Spotify with
+Authorization Code + PKCE: a public client, so **no client secret is ever needed or asked for**.
 
-- **The server's app** (hosted login): the server holds `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`; every DJ
-  presses *Log in with Spotify*.
-- **Your own Spotify app** (bring your own): only the **Client ID**, no secret. On the web and in the apps, enter it under
-  **Settings → Accounts and services → Spotify → Advanced → Client ID**. T-DJ signs in with Authorization Code + PKCE
-  straight from your device; tokens stay on it (the Keychain in the apps).
+### Which Spotify app signs you in
 
-### Set up a Spotify app
+| Setting | What signs you in |
+|---|---|
+| Your own Client ID in Settings → Connections → Spotify → Advanced | your own Spotify app |
+| nothing there | the app's built-in Spotify app (`TDJ_SPOTIFY_CLIENT_ID`, baked in at build time) |
 
-1. Open the **[Spotify developer dashboard](https://developer.spotify.com/dashboard)** and sign in (the account that
-   owns the app needs **Spotify Premium** while the app is in Development Mode).
-2. **Create app**: any name and description (for example "T-DJ for our milonga"); Website optional.
-   **Which API/SDKs are you planning to use?** tick **Web API** and **Web Playback SDK**.
-3. **Redirect URIs**: add each of these, exactly (Spotify compares them character for character and rejects
-   `localhost`; use `127.0.0.1` for a local run):
+Your own Client ID is kept **on this device only**: in the Keychain in the Mac, iPhone and iPad apps
+(`spotify.client_id`, `apps/desktop/src-tauri/src/secrets.rs`), in this browser's local storage on the web.
 
-   | Used by | Redirect URI |
-   |---|---|
-   | the server's login | `https://your-app.example/api/spotify/callback` |
-   | your own Client ID on the web | `https://your-app.example/callback` |
-   | the Mac, iPad and iPhone apps | `tdj://spotify-callback` |
-   | a local run (`pnpm dev`) | `http://127.0.0.1:3000/api/spotify/callback` and `http://127.0.0.1:3000/callback` |
+Why: since February 2026 a Spotify app in Development Mode admits **5 listed users**, and Extended Quota needs an
+organisation with 250k+ monthly active users. Past those 5, a DJ signs in with a free Spotify app of their own.
+When Spotify refuses an account ("User not registered in the Developer Dashboard", `invalid_client`, a 403 from
+`/v1/me`), Settings says so in plain words and offers **Use my own Spotify app**.
 
-4. **iOS / Android** (only for the apps): tick **iOS** and enter the bundle ID **`com.ariomoniri.tdj`** (or your own
-   build's bundle ID).
-5. **Save**. Then **Settings → Basic information**: copy the **Client ID** (and, for a server, **View client secret** →
-   the **Client secret**).
-6. **User Management**: add the name and Spotify e-mail of **every person who will log in**. In Development Mode an
-   app serves **at most 5 users** (the owner included); a sixth person sees Spotify's "not registered" error, which T-DJ
-   explains in Settings with a ready-to-send request to the organiser.
+### Use my own Spotify app: the steps
+
+1. Open <https://developer.spotify.com/dashboard> and choose **Create app** (any name and description).
+2. Under **Redirect URIs**, add exactly:
+   - the Mac, iPhone and iPad apps: `tdj://spotify-callback`
+   - the web app in your browser: `<origin>/callback` (for example `https://tdj.example.org/callback`)
+   - a self-hosted TDJ server's own "Log in with Spotify": also `<origin>/api/spotify/callback`
+3. Apps only: under **iOS**, add the bundle ID `com.ariomoniri.tdj`.
+4. Tick **Web API** and **Web Playback SDK**, accept the terms and save.
+5. In the app's **Settings → User Management**, add your name and the email of your Spotify account.
+6. Copy the **Client ID** from **Basic Information** and paste it in T-DJ under Settings → Connections → Spotify →
+   Advanced. No client secret: never paste it anywhere.
+
+Then **Log in with Spotify**. Settings lists the same steps (`apps/web/src/lib/spotifyOwnApp.ts`).
+
+### How the apps' sign-in works
+
+1. The page makes the PKCE verifier, challenge and state (`apps/web/src/lib/app/pkce.ts`) and hands the verifier
+   and state to the native side (`spotify_begin`) before it opens the system browser.
+2. Spotify redirects to `tdj://spotify-callback?code=…&state=…`. The deep-link plugin delivers it once
+   (`links.rs` `Recent`); the native side checks the state (a mismatch is refused), exchanges the code at
+   `accounts.spotify.com/api/token`, keeps the refresh token in the Keychain and the access token in memory
+   (`apps/desktop/src-tauri/src/spotify.rs`, `commands.rs`).
+3. The window opens `next?connected=spotify` (or `?error=spotify_denied|spotify_not_listed|spotify_state|…`); the
+   page reads the session back from the native side (`syncAppSpotify`, also on every launch) and Settings shows
+   "Logged in as …". A token the Keychain no longer backs is dropped, so nothing shows "connected" without one.
+4. A sign-in begun before the app restarted is finished by the page's `/callback` with what it kept.
+
+Release builds must carry the built-in Client ID: `release-apps.yml` passes the repository variable
+`TDJ_SPOTIFY_CLIENT_ID`, and `scripts/release/mac-build.sh` stops when it is missing (`TDJ_ALLOW_NO_SPOTIFY=1` builds
+without it) and checks that the bundle and the DMG's binary carry it.
+
+### A self-hosted server's own login
+
+A server can also offer **Log in with Spotify** with its own Spotify app for every DJ: the dashboard steps above, then
+**View client secret** in Basic Information, stored as `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` on the server
+([below](#for-self-hosters-environment-variables)), never in an app. For a local run add
+`http://127.0.0.1:3000/api/spotify/callback` and `http://127.0.0.1:3000/callback` (Spotify rejects `localhost`).
 
 ### Development Mode and extended quota
 

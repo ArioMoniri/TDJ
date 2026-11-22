@@ -67,6 +67,9 @@ export async function installTauriMock(ctx: BrowserContext, o: MockOptions): Pro
           apiBase: o.linked?.apiBase ?? "tdjapi://localhost",
           appStore: false,
           updater: false,
+          // no Spotify app in a check: nothing signs in, nothing leaves the machine
+          spotifyClientId: null,
+          ownSpotifyClientId: secrets.get("spotify.client_id") ?? null,
         };
       case "plugin:sql|load":
         return args.db;
