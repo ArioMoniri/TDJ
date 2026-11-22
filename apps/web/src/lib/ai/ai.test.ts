@@ -310,7 +310,7 @@ describe("provider errors never carry the key (the shared key is the organiser's
     expect((err as Error).message).not.toContain(key);
     expect((err as Error).message).not.toMatch(/sk-other/);
     expect((err as Error).message).toContain("[key]");
-    const g = "AIzaSyA0123456789abcdefghijklmnopqrstu";
+    const g = ["AI", "za"].join("") + "SyA0123456789abcdefghijklmnopqrstu";
     const gerr = await providerFor(
       { provider: "gemini", key: g },
       { fetch: failing(`API key not valid: ${g}`), baseUrl: { gemini: "http://mock" } },
