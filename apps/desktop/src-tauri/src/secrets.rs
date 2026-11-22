@@ -8,11 +8,12 @@ use std::sync::Mutex;
 /// The Keychain service every TDJ item lives under.
 pub const SERVICE: &str = "com.ariomoniri.tdj";
 
-/// Names the page may write: one model key per provider. Spotify tokens are written by `net.rs` only.
+/// Names the page may write: one model key per provider, and the DJ's own YouTube key (byo.rs). Spotify tokens and
+/// the Dropbox / Google refresh tokens are written by `net.rs` and `byo.rs` only.
 pub fn page_may_write(name: &str) -> bool {
     matches!(
         name,
-        "ai.anthropic" | "ai.openai" | "ai.gemini" | "ai.openrouter"
+        "ai.anthropic" | "ai.openai" | "ai.gemini" | "ai.openrouter" | "byo.youtube"
     )
 }
 
@@ -100,6 +101,8 @@ mod tests {
         assert_eq!(s.get("ai.anthropic").as_deref(), Some("sk-ant-x"));
         assert!(page_set(&s, SPOTIFY_REFRESH, "stolen").is_err());
         assert!(page_set(&s, "ai.other", "x").is_err());
+        assert!(page_set(&s, "byo.youtube", "AIza-fake").is_ok());
+        assert!(page_set(&s, "byo.dropbox.refresh", "stolen").is_err());
         assert!(page_set(&s, "ai.openai", "a\nb").is_err());
         page_set(&s, "ai.anthropic", "").unwrap();
         assert!(s.get("ai.anthropic").is_none());

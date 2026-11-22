@@ -235,6 +235,8 @@ const LOCAL: Record<string, Partial<Record<Method, Handler>>> = {
 const VIA_LINKED_SERVER = [
   "/api/google/",
   "/api/dropbox/",
+  // 2026-11: the server's own YouTube key (GET /api/youtube/search); the DJ's own key needs no server
+  "/api/youtube/",
   "/api/connect/",
   "/api/rooms",
   "/api/night",

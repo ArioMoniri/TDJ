@@ -74,11 +74,11 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["tdj"]
+        "schemes": ["tdj", "com.ariomoniri.tdj"]
       },
       "mobile": [
         {
-          "scheme": ["tdj"],
+          "scheme": ["tdj", "com.ariomoniri.tdj"],
           "appLink": false
         }
       ]

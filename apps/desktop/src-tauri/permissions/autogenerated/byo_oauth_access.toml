@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-byo-oauth-access"
+description = "Enables the byo_oauth_access command without any pre-configured scope."
+commands.allow = ["byo_oauth_access"]
+
+[[permission]]
+identifier = "deny-byo-oauth-access"
+description = "Denies the byo_oauth_access command without any pre-configured scope."
+commands.deny = ["byo_oauth_access"]

@@ -16,6 +16,8 @@ mod apple;
 mod apple_audio;
 mod audio;
 mod bridge;
+// 2026-11: the DJ's own YouTube key, Dropbox app and Google client (Settings → Connections)
+mod byo;
 mod commands;
 #[cfg_attr(mobile, allow(dead_code))] // folder picking on iPad: Swift plugin, see folders.rs
 mod folders;
@@ -431,6 +433,14 @@ const REMOTE_COMMANDS: &[&str] = &[
 ];
 
 fn handle_link(app: &AppHandle, raw: &str) {
+    // the DJ's own Google client comes back through the bundle ID's scheme (byo.rs): opened like `tdj://open`
+    if let Some(path) = byo::callback_path(raw, &app.config().identifier) {
+        let open = format!(
+            "tdj://open?path={}",
+            url::form_urlencoded::byte_serialize(path.as_bytes()).collect::<String>()
+        );
+        return handle_link(app, &open);
+    }
     let Some(link) = links::parse(raw) else {
         log::warn!("ignored deep link");
         return;
@@ -703,6 +713,11 @@ pub fn run() {
             midi::midi_open,
             midi::midi_close,
             midi::midi_send,
+            byo::byo_youtube_search,
+            byo::byo_google_redirect,
+            byo::byo_oauth_exchange,
+            byo::byo_oauth_access,
+            byo::byo_oauth_logout,
         ])
         .build(tauri::generate_context!())
         .expect("error while building TDJ")

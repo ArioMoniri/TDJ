@@ -21,6 +21,20 @@ export const stage = check(
 );
 export const spotifyClientId = check(/^[0-9a-f]{32}$/, "A Spotify Client ID is 32 hexadecimal characters.");
 export const spotifySecret = check(/^[0-9a-f]{32}$/, "A Spotify Client secret is 32 hexadecimal characters.");
+export const googleClientId = check(
+  /^\d{6,}-[a-z0-9]{8,}\.apps\.googleusercontent\.com$/,
+  "A Google client ID ends in .apps.googleusercontent.com (Credentials → your OAuth client).",
+);
+export const googleSecret = check(
+  /^[A-Za-z0-9_-]{20,64}$/,
+  "A Google client secret is 20–64 letters, digits, - or _ (it usually starts with GOCSPX-).",
+);
+export const dropboxAppKey = check(/^[a-z0-9]{15}$/, "A Dropbox App key is 15 lowercase letters and digits.");
+export const dropboxSecret = check(/^[a-z0-9]{15}$/, "A Dropbox App secret is 15 lowercase letters and digits.");
+export const youtubeKey = check(
+  /^AIza[0-9A-Za-z_-]{35}$/,
+  "A YouTube Data API key starts with AIza and is 39 characters long.",
+);
 export const ascKeyId = check(
   /^[A-Z0-9]{10}$/,
   "The Key ID is 10 capital letters and digits (the row of the key).",

@@ -2,6 +2,10 @@
 import type { Song } from "@tdj/core";
 import { ExternalLink, Search, Video } from "lucide-react";
 import { useState } from "react";
+import { invoke, nativeInfo } from "@/lib/app/native";
+import { APP } from "@/lib/app/target";
+import { readByo } from "@/lib/connections/byo";
+import { findVideos } from "@/lib/connections/youtube";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 import { loadMatches, saveMatches, videoIdOf } from "@/lib/youtubeMatches";
@@ -18,8 +22,9 @@ export const videoQuery = (s: Pick<Song, "title" | "orchestra" | "singer">) =>
 
 /**
  * 2026-11 — the Now playing view's Video tab: the side's matched YouTube video, muted and following the Booth's
- * second (SyncedVideo); without one, "Find a video" searches YouTube with the DJ's Google connection (five candidates
- * to pick from) or — not connected — opens YouTube's own search, and a pasted link is taken too. The pick is saved
+ * second (SyncedVideo); without one, "Find a video" searches YouTube (five candidates to pick from) with the DJ's own
+ * YouTube key, the deployment's key or the DJ's Google connection, in that order (lib/connections/youtube.ts), or —
+ * none of them — opens YouTube's own search, and a pasted link is taken too. The pick is saved
  * as the side's match on this device (lib/youtubeMatches.ts), as the YouTube export's are.
  */
 export function NowVideo({
@@ -35,7 +40,7 @@ export function NowVideo({
   const [video, setVideo] = useState<string | null>(() => loadMatches()[song.id] ?? null);
   const [finding, setFinding] = useState(false);
   const [found, setFound] = useState<Found[] | null>(null);
-  const [state, setState] = useState<"idle" | "busy" | "connect" | "none" | "error">("idle");
+  const [state, setState] = useState<"idle" | "busy" | "connect" | "none" | "error" | "quota" | "key">("idle");
   const [paste, setPaste] = useState("");
   const pick = (id: string) => {
     saveMatches({ ...loadMatches(), [song.id]: id });
@@ -47,20 +52,16 @@ export function NowVideo({
   const search = async () => {
     setFinding(true);
     setState("busy");
-    try {
-      const r = await fetch("/api/google/youtube", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ search: videoQuery(song) }),
-      });
-      if (r.status === 401 || r.status === 403 || r.status === 404) return setState("connect");
-      if (!r.ok) return setState("error");
-      const j = (await r.json()) as { videos?: Found[] };
-      setFound(j.videos ?? []);
-      setState(j.videos?.length ? "idle" : "none");
-    } catch {
-      setState("error");
-    }
+    const r = await findVideos(videoQuery(song), {
+      app: APP,
+      byo: readByo(),
+      fetch: (...a) => fetch(...a),
+      invoke: (c, a) => invoke(c, a),
+      linkedServer: APP ? !!(await nativeInfo()).linkedServer : false,
+    });
+    if (!r.ok) return setState(r.error);
+    setFound(r.videos);
+    setState(r.videos.length ? "idle" : "none");
   };
   if (roomVideo) return <p className="section-foot">{t("song.video_in_dock")}</p>;
   return (
@@ -103,7 +104,12 @@ export function NowVideo({
               )}
               {state === "connect" && (
                 <div className="cell text-footnote text-[var(--label-2)]" data-testid="now-video-connect">
-                  {t("now.video_connect")}
+                  {t("now.video_connect_or_key")}
+                </div>
+              )}
+              {(state === "quota" || state === "key") && (
+                <div className="cell text-footnote text-[var(--label-2)]" data-testid="now-video-key">
+                  {state === "quota" ? t("now.video_quota") : t("now.video_key_bad")}
                 </div>
               )}
               {state === "none" && (

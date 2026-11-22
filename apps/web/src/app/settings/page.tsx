@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { About } from "@/components/About";
 import { AppConnections } from "@/components/AppConnections";
+import { Connections } from "@/components/Connections";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
 import { SilenceGroup } from "@/components/booth/SilenceSettings";
 import { TransitionTemplatesGroup } from "@/components/booth/TransitionTemplates";
@@ -650,6 +651,8 @@ export default function Settings() {
 
         {APP && <AppConnections />}
         <Connectors />
+        {/* 2026-11: every service, what it unlocks, your own keys and "Set up your own" (docs/CONNECTORS.md) */}
+        <Connections />
         {/* 2026-11: where song details look for lyrics (LRCLIB; opt-in Musixmatch and Genius with your key) */}
         <LyricsConnections />
         {/* 2026-11: a connected service's playlist (or a file) as a night (app/import) */}
