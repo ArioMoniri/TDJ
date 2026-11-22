@@ -7,7 +7,8 @@ import { t } from "@/lib/i18n";
  */
 export const SPOTIFY_DASHBOARD = "https://developer.spotify.com/dashboard";
 export const APP_REDIRECT = "tdj://spotify-callback";
-export const BUNDLE_ID = "com.ariomoniri.tdj";
+/** the apps' bundle ID (root package.json release.bundleId, set at build time; empty in a build without apps) */
+export const BUNDLE_ID = process.env.NEXT_PUBLIC_TDJ_BUNDLE_ID ?? "";
 
 /** The redirect URIs a DJ adds: the apps' deep link, or this browser's PKCE page (and a server's hosted login). */
 export function ownAppRedirects(o: { app: boolean; origin?: string }): { uris: string[]; server?: string } {
@@ -22,7 +23,7 @@ export function ownAppSteps(o: { app: boolean; origin?: string }): string[] {
   return [
     t("spotify_own.step_create"),
     t("spotify_own.step_redirect", { uris: r.uris.join(", ") }),
-    ...(o.app ? [t("spotify_own.step_bundle", { bundle: BUNDLE_ID })] : []),
+    ...(o.app && BUNDLE_ID ? [t("spotify_own.step_bundle", { bundle: BUNDLE_ID })] : []),
     t("spotify_own.step_apis"),
     t("spotify_own.step_users"),
     t("spotify_own.step_copy"),
