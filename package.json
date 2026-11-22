@@ -7,6 +7,7 @@
   "release": {
     "repo": "ArioMoniri/TDJ",
     "appStoreId": "6834924534",
+    "bundleId": "com.ariomoniri.tdj",
     "appStoreLive": false,
     "testflightUrl": "",
     "webUrl": ""

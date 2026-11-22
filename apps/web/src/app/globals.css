@@ -134,6 +134,7 @@
      them (set on `html.titlebar-overlay` by the app, 0 in full screen and on the web). Every top-anchored bar starts
      at `--chrome-top` and adds its own spacing below it: `max(0.75rem, inset)` gave no room under the inset. */
   --safe-top: env(safe-area-inset-top, 0px);
+  --titlebar-inset: 0px;
   --titlebar-h: 0px;
   --traffic-left: 0px;
   --chrome-top: max(var(--safe-top), var(--titlebar-h));
@@ -302,13 +303,33 @@ html[data-sidebar-resizing] main {
 html[data-scroll-lock] {
   overflow: hidden;
 }
+/* The Mac app (Tauri, `titleBarStyle: Overlay` + hidden title): the page runs under a transparent 28 pt title bar
+   whose traffic lights sit at its leading edge. `--titlebar-inset` is that strip (0 on the web, iPad, iPhone and in
+   full screen); every full-window surface starts at `--chrome-top` (= max(status bar, title bar)) so nothing lies
+   under the lights, and `.titlebar-drag` (layout.tsx) is the strip itself, above every layer, as the window's drag
+   region (Tauri's drag script; `core:window:allow-start-dragging` in capabilities/default.json). */
 html.titlebar-overlay {
-  --titlebar-h: 28px;
+  --titlebar-inset: 28px;
+  --titlebar-h: var(--titlebar-inset);
   --traffic-left: 78px;
 }
 html.titlebar-overlay[data-fullscreen] {
+  --titlebar-inset: 0px;
   --titlebar-h: 0px;
   --traffic-left: 0px;
+}
+.titlebar-drag {
+  display: none;
+}
+html.titlebar-overlay:not([data-fullscreen]) .titlebar-drag {
+  display: block;
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--titlebar-inset);
+  /* over the Now playing view, sheets, the Floor screen (z 200) and toasts: a drag, never a click on what lies under */
+  z-index: 2147483000;
+  -webkit-user-select: none;
+  user-select: none;
 }
 :focus-visible {
   outline: 2px solid var(--tint);

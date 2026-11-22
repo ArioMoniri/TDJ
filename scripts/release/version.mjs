@@ -62,6 +62,7 @@ export function readRelease(root = ROOT) {
     version: pkg.version,
     repo,
     appStoreId,
+    bundleId: String(r.bundleId ?? ""),
     appStoreUrl: appStoreId ? `https://apps.apple.com/app/id${appStoreId}` : "",
     macAppStoreUrl: appStoreId ? `https://apps.apple.com/app/id${appStoreId}?platform=mac` : "",
     testflightUrl: r.testflightUrl ?? "",
@@ -97,6 +98,7 @@ export function releaseEnv(root = ROOT, env = process.env) {
     NEXT_PUBLIC_TDJ_TESTFLIGHT_URL: r.testflightUrl,
     NEXT_PUBLIC_TDJ_WEB_URL: r.webUrl,
     NEXT_PUBLIC_TDJ_REPO: r.repo,
+    NEXT_PUBLIC_TDJ_BUNDLE_ID: r.bundleId,
   };
 }
 

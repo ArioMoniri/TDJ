@@ -1,6 +1,12 @@
 //! Self-update for the Developer ID (DMG) build only: `latest.json` on the newest GitHub Release
 //! (scripts/release/latest-json.mjs), signed with the Tauri updater key. The dialog shows the release notes,
-//! installs, then relaunches. Never prompts while the Booth is playing (keep-awake held).
+//! installs, then relaunches. Never prompts while the Booth is playing (keep-awake held). Checked on launch and from
+//! Settings → About → "Check for Updates" (`check_updates`) or the app menu.
+//!
+//! The bundle was renamed TDJ.app → T-DJ.app in 1.0.1 (`productName`). The updater unpacks the archive's one
+//! top-level `*.app` into the path of the app that is running (tauri-plugin-updater drops the first path component),
+//! so an installed TDJ.app is replaced in place and keeps its name; what must not change is the executable inside
+//! (`mainBinaryName`: Contents/MacOS/TDJ), which `restart` relaunches through its bundle. Tests below pin both.
 
 use tauri::AppHandle;
 
@@ -35,8 +41,19 @@ pub fn check(app: AppHandle, manual: bool) {
                         "Later".into(),
                     ))
                     .blocking_show();
-                if yes && update.download_and_install(|_, _| {}, || {}).await.is_ok() {
-                    app.restart();
+                if !yes {
+                    return;
+                }
+                match update.download_and_install(|_, _| {}, || {}).await {
+                    Ok(()) => app.restart(),
+                    Err(e) => {
+                        app.dialog()
+                            .message(format!(
+                                "T-DJ couldn't install the update: {e}\n\nDownload it from the T-DJ page on GitHub instead."
+                            ))
+                            .kind(MessageDialogKind::Warning)
+                            .blocking_show();
+                    }
                 }
             }
             Ok(None) if manual => {
@@ -91,5 +108,34 @@ mod tests {
         );
         let long = "x".repeat(5000);
         assert_eq!(super::trim_notes(&long).chars().count(), 1201);
+    }
+
+    /// The updater replaces the running bundle in place (an installed TDJ.app stays TDJ.app with T-DJ inside) and
+    /// relaunches its executable: the executable's name and the bundle ID must never change between versions.
+    #[test]
+    fn an_installed_tdj_app_is_replaced_in_place() {
+        let conf: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        assert_eq!(conf["productName"], "T-DJ");
+        assert_eq!(
+            conf["mainBinaryName"], "TDJ",
+            "1.0.0 shipped Contents/MacOS/TDJ: keep it, or installed copies relaunch nothing"
+        );
+        assert_eq!(conf["identifier"], "com.ariomoniri.tdj");
+        // the committed config never names an updater endpoint or key: only the DMG build adds them
+        // (scripts/release/mac-build.sh → --features updater + plugins.updater), so store builds cannot update
+        assert!(conf["plugins"].get("updater").is_none());
+        let script = include_str!("../../../../scripts/release/mac-build.sh");
+        assert!(script.contains("--features updater"));
+        assert!(script.contains("releases/latest/download/latest.json"));
+        // the Mac App Store and iOS builds are built without the feature
+        for line in script
+            .lines()
+            .filter(|l| l.contains("tauri build") || l.contains("tauri ios build"))
+        {
+            if line.contains("mas.json") || line.contains("ios build") {
+                assert!(!line.contains("updater"), "{line}");
+            }
+        }
     }
 }
