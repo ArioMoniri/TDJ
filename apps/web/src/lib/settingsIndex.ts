@@ -400,6 +400,13 @@ export const SETTINGS: SettingEntry[] = [
     syn: "spotify account login log in premium hesap giriş",
   },
   {
+    id: "spotify-own-app",
+    section: "connections",
+    label: "spotify_own.title",
+    target: ["#connector-spotify"],
+    syn: "spotify own app client id developer dashboard redirect kendi uygulama geliştirici",
+  },
+  {
     id: "google",
     section: "connections",
     label: "connectors.google",
@@ -564,7 +571,16 @@ export const SETTINGS: SettingEntry[] = [
     section: "about",
     label: "about.about",
     target: ["#settings-about"],
-    syn: "about version update credits licence hakkında sürüm güncelleme",
+    syn: "about version credits licence hakkında sürüm",
+  },
+  {
+    id: "check-updates",
+    section: "about",
+    label: "about.check_updates",
+    help: "about.check_updates_sub",
+    target: ["#about-check-updates", "#settings-about"],
+    syn: "update upgrade new version download güncelle güncelleme yeni sürüm",
+    only: "app",
   },
 ];
 

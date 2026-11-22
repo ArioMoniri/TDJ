@@ -85,6 +85,12 @@ describe("searchSettings", () => {
     for (const x of g) for (const e of x.entries) expect(e.section).toBe(x.section);
   });
 
+  it("finds the merged rows: my own Spotify app, Check for updates (the apps)", () => {
+    expect(first("own spotify app")).toBe("spotify-own-app");
+    expect(ids("check for updates", true)).toContain("check-updates");
+    expect(ids("check for updates")).not.toContain("check-updates");
+  });
+
   it("an app-only setting shows only in the apps", () => {
     expect(ids("server")).not.toContain("tdj-server");
     expect(ids("server", true)).toContain("tdj-server");

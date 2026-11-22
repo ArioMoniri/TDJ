@@ -229,7 +229,7 @@ test.describe("top chrome and the scroll edge", () => {
       });
     });
     const lights = { x: 0, y: 0, width: 78, height: 28 };
-    await page.goto("/settings");
+    await page.goto("/settings?section=connections");
     await expect(page.locator("html")).toHaveClass(/titlebar-overlay/);
     // the window's drag strip: the whole title bar, over every layer
     const strip = page.getByTestId("titlebar-drag");
