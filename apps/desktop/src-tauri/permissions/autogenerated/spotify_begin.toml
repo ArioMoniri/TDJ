@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-spotify-begin"
+description = "Enables the spotify_begin command without any pre-configured scope."
+commands.allow = ["spotify_begin"]
+
+[[permission]]
+identifier = "deny-spotify-begin"
+description = "Denies the spotify_begin command without any pre-configured scope."
+commands.deny = ["spotify_begin"]

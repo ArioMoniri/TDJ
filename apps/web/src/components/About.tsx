@@ -2,12 +2,13 @@
 import { AppWindow, Download, Globe, Info, RefreshCw, Smartphone } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { nativeInfo } from "@/lib/app/native";
+import { invoke, nativeInfo } from "@/lib/app/native";
 import { APP } from "@/lib/app/target";
 import { t as tx } from "@/lib/i18n";
 import { isSaving } from "@/lib/power";
 import {
   type Channel,
+  canSelfUpdate,
   channelOf,
   LINKS,
   type Remote,
@@ -53,12 +54,22 @@ export function useRemoteVersion(): Remote | null {
   return remote;
 }
 
-function useChannel(): Channel {
+function useChannel(): { channel: Channel; selfUpdate: boolean } {
   const [channel, setChannel] = useState<Channel>(APP ? "ios" : "web");
+  const [selfUpdate, setSelfUpdate] = useState(false);
   useEffect(() => {
-    if (APP) void nativeInfo().then((i) => setChannel(channelOf(true, i)));
+    if (!APP) return;
+    void nativeInfo().then((i) => {
+      setChannel(channelOf(true, i));
+      setSelfUpdate(canSelfUpdate(true, i));
+    });
   }, []);
-  return channel;
+  return { channel, selfUpdate };
+}
+
+/** The DMG's own updater (src-tauri updates.rs): checks GitHub Releases, shows the notes, asks, installs, relaunches. */
+function checkForUpdates() {
+  void invoke("check_updates").catch(() => toast(tx("about.update_check_failed")));
 }
 
 const CHANNEL_LABEL: Record<Channel, () => string> = {
@@ -91,7 +102,7 @@ export function UpdateWatch() {
 /** Settings → About: this copy's version, where it came from, a newer one if there is, and where else T-DJ runs. */
 export function About() {
   const remote = useRemoteVersion();
-  const channel = useChannel();
+  const { channel, selfUpdate } = useChannel();
   const state = updateState(remote);
   const link = updateLink(channel);
   // a Mac App Store or iPhone/iPad build links to the App Store only (no outside download from a store app)
@@ -144,6 +155,21 @@ export function About() {
           }
           onClick={() => location.reload()}
           tip={tx("about.reload_when_over")}
+          chevron
+        />
+      )}
+      {selfUpdate && (
+        <Row
+          data-testid="about-check-updates"
+          id="about-check-updates"
+          tile={
+            <Tile color="#34c759">
+              <RefreshCw size={16} strokeWidth={2} />
+            </Tile>
+          }
+          label={tx("about.check_updates")}
+          sub={tx("about.check_updates_sub")}
+          onClick={checkForUpdates}
           chevron
         />
       )}
