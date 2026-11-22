@@ -28,6 +28,7 @@ mod net;
 mod power;
 mod secrets;
 mod settings;
+mod spotify;
 mod system;
 mod updates;
 
@@ -65,6 +66,10 @@ pub struct AppState {
     pub agents: agents::Agents,
     /// the Spotify access token in memory (the refresh token stays in the Keychain)
     pub spotify: Mutex<Option<net::SpotifyAccess>>,
+    /// a Spotify sign-in waiting for `tdj://spotify-callback` (spotify.rs)
+    pub spotify_pending: Mutex<Option<spotify::Pending>>,
+    /// links handled in the last few seconds: each one is acted on once (links.rs `Recent`)
+    pub recent_links: links::Recent,
     tickets: Mutex<Option<(String, bool)>>,
 }
 
@@ -431,28 +436,108 @@ const REMOTE_COMMANDS: &[&str] = &[
     "power_saver",
 ];
 
+/// The app's own origin: the main window's, or the platform's default while it has none yet (a link that launched
+/// the app arrives before the first page has loaded).
+fn app_base(current: Option<Url>) -> Url {
+    current.filter(app_origin).unwrap_or_else(|| {
+        Url::parse(if cfg!(any(windows, target_os = "android")) {
+            "http://tauri.localhost/"
+        } else {
+            "tauri://localhost/"
+        })
+        .expect("app origin")
+    })
+}
+
+/// Opens an in-app path in the main window: a native navigation (it works while the page is still loading, unlike a
+/// script), the linked server's page in remote mode.
+fn open_path(app: &AppHandle, path: &str) {
+    let state = app.state::<AppState>();
+    let Some(main) = app.get_webview_window(MAIN) else {
+        return;
+    };
+    if state.bundled {
+        match app_base(main.url().ok()).join(path) {
+            Ok(u) => {
+                let _ = main.navigate(u);
+            }
+            Err(_) => {
+                let _ = main.eval(format!(
+                    "location.assign({})",
+                    serde_json::to_string(path).unwrap()
+                ));
+            }
+        }
+    } else if let Ok(u) = Url::parse(&format!(
+        "{}{path}",
+        state.bridge.server().unwrap_or_default()
+    )) {
+        let _ = main.navigate(u);
+    }
+}
+
+/// `tdj://spotify-callback`: the sign-in this device started is finished here (spotify.rs), then the window opens
+/// where the DJ started with `connected=spotify`; one it did not see begin goes to the page's `/callback`.
+fn spotify_callback(app: &AppHandle, query: String, callback: spotify::Callback) {
+    let state = app.state::<AppState>();
+    let outcome = spotify::settle(
+        &mut state.spotify_pending.lock().unwrap(),
+        &callback,
+        std::time::Instant::now(),
+    );
+    match outcome {
+        spotify::Outcome::Page => open_path(app, &format!("/callback?{query}")),
+        spotify::Outcome::Rejected => {
+            log::warn!("Spotify callback with an unknown or expired state: refused");
+            open_path(app, &spotify::arrival("/settings", false, "state"));
+        }
+        spotify::Outcome::Failed { next, why } => {
+            open_path(app, &spotify::arrival(&next, false, why))
+        }
+        spotify::Outcome::Exchange {
+            client_id,
+            form,
+            next,
+        } => {
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                let state = app.state::<AppState>();
+                let path = match commands::spotify_exchange(&state, &client_id, form).await {
+                    Ok(_) => spotify::arrival(&next, true, ""),
+                    Err(e) => {
+                        log::warn!("Spotify code exchange failed: {} ({})", e.message, e.status);
+                        spotify::arrival(
+                            &next,
+                            false,
+                            spotify::exchange_reason(e.status, &e.message),
+                        )
+                    }
+                };
+                open_path(&app, &path);
+            });
+        }
+    }
+}
+
 fn handle_link(app: &AppHandle, raw: &str) {
+    let state = app.state::<AppState>();
+    if !state
+        .recent_links
+        .first_time(raw, std::time::Instant::now())
+    {
+        return; // the same link a second time (plugin event + launch URL): already handled
+    }
     let Some(link) = links::parse(raw) else {
         log::warn!("ignored deep link");
         return;
     };
-    let state = app.state::<AppState>();
     let server = state.bridge.server().unwrap_or_default();
     let bundled = state.bundled;
     let Some(main) = app.get_webview_window(MAIN) else {
         return;
     };
     let _ = main.set_focus();
-    let go = |path: &str| {
-        if bundled {
-            let _ = main.eval(format!(
-                "location.assign({})",
-                serde_json::to_string(path).unwrap()
-            ));
-        } else if let Ok(u) = Url::parse(&format!("{server}{path}")) {
-            let _ = main.navigate(u);
-        }
-    };
+    let go = |path: &str| open_path(app, path);
     match link {
         links::DeepLink::AuthTicket {
             provider,
@@ -483,7 +568,9 @@ fn handle_link(app: &AppHandle, raw: &str) {
                 let _ = main.navigate(u);
             }
         }
-        links::DeepLink::SpotifyCallback { query } => go(&format!("/callback?{query}")),
+        links::DeepLink::SpotifyCallback { query, callback } => {
+            spotify_callback(app, query, callback)
+        }
         links::DeepLink::Open { path } => go(&path),
         links::DeepLink::Night { fragment } => go(&format!("/night#{fragment}")),
         links::DeepLink::Sync { code } => go(&format!("/settings#sync={code}")),
@@ -618,6 +705,8 @@ pub fn run() {
                     .build()
                     .expect("http client"),
                 spotify: Mutex::new(None),
+                spotify_pending: Mutex::new(None),
+                recent_links: links::Recent::default(),
                 agents: agents::Agents::default(),
                 tickets: Mutex::new(None),
             });
@@ -675,6 +764,7 @@ pub fn run() {
             commands::acp_write,
             commands::acp_read,
             commands::acp_kill,
+            commands::spotify_begin,
             commands::spotify_token,
             commands::spotify_access,
             commands::spotify_logout,
@@ -714,13 +804,9 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building TDJ")
         .run(|app, event| {
-            // a .tdjnight opened from Finder, Files or AirDrop (bundle.fileAssociations)
-            #[cfg(any(target_os = "macos", target_os = "ios"))]
-            if let tauri::RunEvent::Opened { urls } = &event {
-                for u in urls {
-                    handle_link(app, u.as_str());
-                }
-            }
+            // `RunEvent::Opened` (a `tdj://` link, or a .tdjnight opened from Finder, Files or AirDrop) is not handled
+            // here: the deep-link plugin turns every one into `on_open_url` above. Handling it here as well acted on
+            // each link twice (a Spotify sign-in's single-use code among them).
             if let tauri::RunEvent::Exit = event {
                 let state = app.state::<AppState>();
                 state.keep_awake.set(false);
@@ -732,6 +818,8 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
+    use tauri::Url;
+
     #[test]
     fn remote_commands_are_a_subset_of_the_manifest() {
         let manifest = include_str!("../build.rs");
@@ -766,6 +854,7 @@ mod tests {
             "net-fetch",
             "model-fetch",
             "acp-spawn",
+            "spotify-begin",
             "spotify-token",
         ] {
             assert!(
@@ -774,6 +863,24 @@ mod tests {
             );
         }
         assert!(default.contains("\"sql:allow-execute\""));
+        // the title-bar strip and every `data-tauri-drag-region` move the window (macOS overlay title bar): Tauri's
+        // drag script calls `start_dragging`, which `core:default` does not grant
+        assert!(default.contains("\"core:window:allow-start-dragging\""));
+    }
+
+    #[test]
+    fn links_open_on_the_app_origin_even_before_the_first_page() {
+        let base = super::app_base(None);
+        assert!(super::app_origin(&base));
+        assert_eq!(
+            base.join("/settings?connected=spotify").unwrap().path(),
+            "/settings"
+        );
+        let here = Url::parse("tauri://localhost/booth").unwrap();
+        assert_eq!(super::app_base(Some(here.clone())), here);
+        // never a remote page's origin
+        let remote = Url::parse("https://evil.example/x").unwrap();
+        assert!(super::app_origin(&super::app_base(Some(remote))));
     }
 
     #[test]
@@ -788,6 +895,7 @@ mod tests {
             "acp_read",
             "acp_kill",
             "net_fetch",
+            "spotify_begin",
             "spotify_token",
             "spotify_access",
             "unlink_server",

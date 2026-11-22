@@ -14,6 +14,7 @@ const COMMANDS: &[&str] = &[
     "acp_write",
     "acp_read",
     "acp_kill",
+    "spotify_begin",
     "spotify_token",
     "spotify_access",
     "spotify_logout",
@@ -56,6 +57,19 @@ const COMMANDS: &[&str] = &[
     "icloud_remove",
 ];
 
+/// `"spotifyClientId": "<letters and digits>"` from tdj-bundle.json (no JSON crate in the build script).
+fn bundle_client_id(text: &str) -> Option<String> {
+    let rest = &text[text.find("\"spotifyClientId\"")? + "\"spotifyClientId\"".len()..];
+    let rest = rest
+        .trim_start()
+        .strip_prefix(':')?
+        .trim_start()
+        .strip_prefix('"')?;
+    let id: String = rest.chars().take_while(|c| *c != '"').collect();
+    (!id.is_empty() && id.len() <= 64 && id.chars().all(|c| c.is_ascii_alphanumeric()))
+        .then_some(id)
+}
+
 fn main() {
     // `ui/dist` is the frontendDist. `node scripts/build-ui.mjs` fills it with the bundled UI; without it
     // (Rust-only checks, `cargo test`) the app's own pages are enough to compile and run in remote mode.
@@ -74,6 +88,18 @@ fn main() {
     println!("cargo:rerun-if-changed=../ui/dist/tdj-bundle.json");
     println!("cargo:rerun-if-env-changed=TDJ_APP_STORE");
     println!("cargo:rerun-if-env-changed=TDJ_SPOTIFY_CLIENT_ID");
+    // The Spotify Client ID (public, PKCE): from the environment, else from the bundle marker that
+    // scripts/build-ui.mjs wrote from the same variable: `tauri ios build` runs the Rust build from Xcode's build
+    // phase, which need not see the release shell's own variables. The page reads the same value from the bundle.
+    let from_env = std::env::var("TDJ_SPOTIFY_CLIENT_ID").unwrap_or_default();
+    if from_env.trim().is_empty() {
+        if let Some(id) = std::fs::read_to_string(dist.join("tdj-bundle.json"))
+            .ok()
+            .and_then(|t| bundle_client_id(&t))
+        {
+            println!("cargo:rustc-env=TDJ_SPOTIFY_CLIENT_ID={id}");
+        }
+    }
     tauri_build::try_build(
         tauri_build::Attributes::new()
             .app_manifest(tauri_build::AppManifest::new().commands(COMMANDS)),

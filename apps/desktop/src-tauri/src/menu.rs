@@ -439,7 +439,12 @@ mod tests {
         // 2026-11: ⌘Y redoes through the page (web lib/keymap.ts edit.redo); a menu item on it would swallow it
         for c in COMMANDS {
             assert_ne!(c.accel, Some("CmdOrCtrl+Y"), "{} steals ⌘Y (redo)", c.id);
-            assert_ne!(c.accel, Some("CmdOrCtrl+Shift+Z"), "{} steals ⇧⌘Z (redo)", c.id);
+            assert_ne!(
+                c.accel,
+                Some("CmdOrCtrl+Shift+Z"),
+                "{} steals ⇧⌘Z (redo)",
+                c.id
+            );
         }
     }
 

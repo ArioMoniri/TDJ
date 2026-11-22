@@ -11,9 +11,11 @@
 //! 4. The app loads `<server>/api/app/redeem?provider=…&ticket=…` in its own web view, which sets the normal
 //!    first-party cookie in the app's cookie jar.
 //!
-//! `tdj://spotify-callback` is the redirect URI for the Spotify iOS SDK and for a DJ's own Spotify app (PKCE);
-//! the app forwards its query to `<server>/callback`, the page that already finishes the PKCE exchange.
+//! `tdj://spotify-callback` is the redirect URI of the apps' own Spotify sign-in (PKCE, a public client): the native
+//! side settles it (spotify.rs) and, for a sign-in it did not see begin, hands the query to the page's `/callback`.
 
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use url::Url;
 
 pub const SCHEME: &str = "tdj";
@@ -27,8 +29,11 @@ pub enum DeepLink {
         ticket: String,
         next: String,
     },
-    /// `tdj://spotify-callback?code=…&state=…` (or `?error=…`): the raw query, re-validated.
-    SpotifyCallback { query: String },
+    /// `tdj://spotify-callback?code=…&state=…` (or `?error=…`): its fields, and the query re-built from them alone.
+    SpotifyCallback {
+        query: String,
+        callback: crate::spotify::Callback,
+    },
     /// `tdj://server?url=https://…` (QR code / link on a self-hosted server's /admin page)
     Server { url: String },
     /// `tdj://open?path=/booth`
@@ -121,19 +126,31 @@ pub fn parse(raw: &str) -> Option<DeepLink> {
             })
         }
         "spotify-callback" => {
-            let has_code_or_error = get("code").is_some() || get("error").is_some();
-            let clean: Vec<(String, String)> = url
-                .query_pairs()
-                .filter(|(k, _)| matches!(k.as_ref(), "code" | "state" | "error"))
-                .map(|(k, v)| (k.into_owned(), v.into_owned()))
-                .collect();
-            if !has_code_or_error {
+            // one value per field, bounded; control characters never reach the page
+            let field =
+                |k: &str| get(k).filter(|v| v.len() <= 2048 && !v.chars().any(|c| c.is_control()));
+            let callback = crate::spotify::Callback {
+                code: field("code"),
+                state: field("state"),
+                error: field("error"),
+            };
+            if callback.code.is_none() && callback.error.is_none() {
                 return None;
             }
-            let query = url::form_urlencoded::Serializer::new(String::new())
-                .extend_pairs(clean)
-                .finish();
-            Some(DeepLink::SpotifyCallback { query })
+            let mut q = url::form_urlencoded::Serializer::new(String::new());
+            for (k, v) in [
+                ("code", &callback.code),
+                ("state", &callback.state),
+                ("error", &callback.error),
+            ] {
+                if let Some(v) = v {
+                    q.append_pair(k, v);
+                }
+            }
+            Some(DeepLink::SpotifyCallback {
+                query: q.finish(),
+                callback,
+            })
         }
         "server" => get("url").map(|url| DeepLink::Server { url }),
         "open" => get("path")
@@ -163,6 +180,27 @@ pub fn parse(raw: &str) -> Option<DeepLink> {
             Some(DeepLink::Room { server, code })
         }
         _ => None,
+    }
+}
+
+/// macOS and iOS can hand the app one link more than once (the deep-link plugin's event, the launch URL read at
+/// start-up): the same link within a few seconds is acted on once. A Spotify code in particular is single-use, and a
+/// second `/callback` load used to replace the first one's "connected" with "this sign-in was not started".
+#[derive(Default)]
+pub struct Recent(Mutex<Vec<(String, Instant)>>);
+
+pub const RECENT_WINDOW: Duration = Duration::from_secs(5);
+
+impl Recent {
+    /// True the first time `raw` arrives within `RECENT_WINDOW`.
+    pub fn first_time(&self, raw: &str, now: Instant) -> bool {
+        let mut seen = self.0.lock().unwrap();
+        seen.retain(|(_, at)| now.saturating_duration_since(*at) < RECENT_WINDOW);
+        if seen.iter().any(|(r, _)| r == raw) {
+            return false;
+        }
+        seen.push((raw.to_string(), now));
+        true
     }
 }
 
@@ -283,15 +321,43 @@ mod tests {
     }
 
     #[test]
-    fn spotify_callback_keeps_only_oauth_fields() {
-        let l = parse("tdj://spotify-callback?code=AQB&state=xyz&inject=1").unwrap();
+    fn spotify_callback_parses_code_and_state_and_keeps_only_oauth_fields() {
+        let l = parse("tdj://spotify-callback?inject=1&state=xyz&code=AQB-_.~9").unwrap();
         assert_eq!(
             l,
             DeepLink::SpotifyCallback {
-                query: "code=AQB&state=xyz".into()
+                query: "code=AQB-_.%7E9&state=xyz".into(),
+                callback: crate::spotify::Callback {
+                    code: Some("AQB-_.~9".into()),
+                    state: Some("xyz".into()),
+                    error: None,
+                },
             }
         );
+        let denied = parse("tdj://spotify-callback?error=access_denied&state=xyz").unwrap();
+        assert!(matches!(
+            denied,
+            DeepLink::SpotifyCallback { ref callback, ref query }
+                if callback.error.as_deref() == Some("access_denied")
+                    && callback.code.is_none()
+                    && query == "state=xyz&error=access_denied"
+        ));
         assert_eq!(parse("tdj://spotify-callback?state=only"), None);
+        assert_eq!(parse("tdj://spotify-callback"), None);
+        // a control character in a field drops the field: no code, no link
+        assert_eq!(parse("tdj://spotify-callback?code=a%0Ab&state=xyz"), None);
+    }
+
+    #[test]
+    fn the_same_link_twice_is_acted_on_once() {
+        let r = Recent::default();
+        let t = Instant::now();
+        let link = "tdj://spotify-callback?code=AQB&state=xyz";
+        assert!(r.first_time(link, t));
+        assert!(!r.first_time(link, t + Duration::from_millis(30)));
+        assert!(r.first_time("tdj://open?path=/booth", t));
+        // a new sign-in later is a new link
+        assert!(r.first_time(link, t + RECENT_WINDOW + Duration::from_secs(1)));
     }
 
     #[test]

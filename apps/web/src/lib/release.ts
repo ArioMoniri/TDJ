@@ -37,6 +37,18 @@ export function channelOf(
   return "web";
 }
 
+/**
+ * Settings → About → "Check for updates": the Developer ID (DMG) Mac app only, the one build compiled with the
+ * updater (src-tauri `--features updater`, `latest.json` on the newest GitHub Release). Never the Mac App Store,
+ * iPhone/iPad or the web: their updates come from the App Store, TestFlight or a reload.
+ */
+export function canSelfUpdate(
+  app: boolean,
+  native?: { platform?: string; appStore?: boolean; updater?: boolean } | null,
+): boolean {
+  return app && channelOf(app, native) === "dmg" && native?.updater === true;
+}
+
 const SEMVER = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
 
 /** -1, 0 or 1; null when either is not a version. A pre-release sorts before its release. */

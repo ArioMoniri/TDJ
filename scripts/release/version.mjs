@@ -62,6 +62,7 @@ export function readRelease(root = ROOT) {
     version: pkg.version,
     repo,
     appStoreId,
+    bundleId: String(r.bundleId ?? ""),
     appStoreUrl: appStoreId ? `https://apps.apple.com/app/id${appStoreId}` : "",
     macAppStoreUrl: appStoreId ? `https://apps.apple.com/app/id${appStoreId}?platform=mac` : "",
     testflightUrl: r.testflightUrl ?? "",
@@ -100,6 +101,7 @@ export function releaseEnv(root = ROOT, env = process.env) {
     // docs/SYNC.md: the sync server the apps use by default (empty: none; the DJ may set one in Settings → Sync).
     // Never committed: the owner's builds take it from the TDJ_SYNC_URL repository variable.
     NEXT_PUBLIC_TDJ_SYNC_URL: syncUrl(env),
+    NEXT_PUBLIC_TDJ_BUNDLE_ID: r.bundleId,
   };
 }
 

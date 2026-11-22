@@ -25,7 +25,8 @@ if (APP && typeof window !== "undefined") {
     isApi(input instanceof Request ? input.url : String(input))
       ? adapter.then((a) => a.request(input, init))
       : base(input, init);
-  void import("./login");
+  // the sign-ins, and the page's view of the Spotify session read back from the Keychain-held one on launch
+  void import("./login").then((m) => m.syncAppSpotify());
   // the Mac app starts local ACP agents (Settings → Models → Keys and agents)
   void import("./ai").then((m) => m.registerDeviceAgents()).catch(() => {});
   // the animation player's WebAssembly ships in the app (apps/desktop/scripts/build-ui.mjs), not from a CDN
