@@ -281,7 +281,8 @@ test.describe("Import a playlist", () => {
     await expect(page).toHaveURL(/\/import/, { timeout: 60_000 });
     await page.goto("/history");
     await page.getByRole("button", { name: /More/ }).first().click();
-    await expect(page.getByRole("menuitem", { name: "Import a playlist" })).toBeVisible();
+    // 2026-11: History's entry is "Import a night" (the sheet: e2e/import-night.spec.ts)
+    await expect(page.getByRole("menuitem", { name: "Import a night" })).toBeVisible();
     await page.keyboard.press("Escape");
     await page.goto("/rooms");
     await expect(page.getByText("Import a playlist").first()).toBeVisible({ timeout: 60_000 });

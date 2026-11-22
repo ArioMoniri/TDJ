@@ -22,6 +22,7 @@ import {
   Ellipsis,
   Eraser,
   Hand,
+  ListChecks,
   ListPlus,
   LoaderCircle,
   Lock,
@@ -68,6 +69,7 @@ import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
 import { playInBooth } from "@/lib/nightActions";
 import { nightEraLabel, nightSub, nightTitle } from "@/lib/nightName";
+import { startReview } from "@/lib/nightReview";
 import { nightItems, PlayListContext } from "@/lib/playback";
 import { usePlayer } from "@/lib/player";
 import { requestFavourites } from "@/lib/popularity";
@@ -116,6 +118,8 @@ import {
   SwitchRow,
 } from "./Form";
 import { Gramophone } from "./Gramophone";
+import { ImportNightSheet, openImportNight } from "./importNight/ImportNight";
+import { ReviewPanel } from "./importNight/ReviewPanel";
 import { LazyHydrate } from "./LazyHydrate";
 import { Menu, type MenuItem, MenuList } from "./Menu";
 import { NightCover } from "./NightCover";
@@ -1908,6 +1912,7 @@ export function Composer() {
 
   return (
     <div>
+      <ImportNightSheet />
       <PageHeader
         title={tx("composer.compose")}
         trailing={
@@ -1968,8 +1973,17 @@ export function Composer() {
                   { label: tx("composer.copy_seed"), icon: Copy, onClick: copySeed },
                   { label: tx("composer.written_review"), icon: MessageSquareText, onClick: explain },
                   { label: tx("composer.play_the_night"), icon: Play, onClick: playHere },
-                  // 2026-11: Import a playlist (app/import)
-                  { label: tx("import.entry"), icon: ListPlus, onClick: () => router.push("/import") },
+                  // 2026-11: Import a night (components/importNight: the picker, then the review here)
+                  {
+                    label: tx("importNight.entry"),
+                    icon: ListPlus,
+                    onClick: () => openImportNight("compose"),
+                  },
+                  {
+                    label: tx("review.title"),
+                    icon: ListChecks,
+                    onClick: () => startReview(playlist.id, "compose"),
+                  },
                   {
                     label: tx("composer.tell_the_dj"),
                     icon: SlidersHorizontal,
@@ -2110,6 +2124,11 @@ export function Composer() {
             <Tip text={tx("import.subtitle")} className="w-full">
               <Link
                 href="/import"
+                onClick={(e) => {
+                  // 2026-11: the Import a night sheet (the full Import page stays one tap away in it)
+                  e.preventDefault();
+                  openImportNight("compose");
+                }}
                 className="cell cell-tap w-full text-left"
                 data-leading="tile"
                 data-testid="first-run-import"
@@ -2142,6 +2161,8 @@ export function Composer() {
                 if (n >= 1) setInspected(n - 1);
               }}
             >
+              {/* 2026-11: the review of an imported night (components/importNight/ReviewPanel) */}
+              <ReviewPanel />
               <Group
                 header={tx("composer.tonight_s_set")}
                 footer={
@@ -2608,7 +2629,12 @@ export function Composer() {
           <MenuList
             items={[
               { label: tx("composer.play_the_night"), icon: Play, onClick: playHere },
-              { label: tx("import.entry"), icon: ListPlus, onClick: () => router.push("/import") },
+              { label: tx("importNight.entry"), icon: ListPlus, onClick: () => openImportNight("compose") },
+              {
+                label: tx("review.title"),
+                icon: ListChecks,
+                onClick: () => startReview(playlist.id, "compose"),
+              },
               {
                 label: tx("composer.tell_the_dj"),
                 icon: MessageSquareText,

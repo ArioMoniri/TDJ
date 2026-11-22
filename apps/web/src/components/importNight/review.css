@@ -1,0 +1,64 @@
+/* 2026-11 — the review of an imported night (ReviewPanel / ReviewBanner): content on surface, never glass */
+.review-finding {
+  align-items: flex-start;
+  gap: 10px;
+}
+.review-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 999px;
+}
+.review-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.review-grip {
+  min-width: 44px;
+  min-height: 44px;
+  cursor: grab;
+  touch-action: none;
+  color: var(--label-3);
+}
+.review-panel [data-reorder-row][data-dragging] {
+  opacity: 0.5;
+}
+.review-panel [data-reorder-row][data-drop-before]::before {
+  content: "";
+  position: absolute;
+  inset: -1px 16px auto;
+  height: 2px;
+  background: var(--tint);
+}
+.review-banner {
+  margin: 0 0 12px;
+  background: rgb(var(--surface));
+}
+/* the Booth's head row: a round 44 px button; its words only where the row has room for them */
+.booth-rules-btn {
+  height: 44px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+@media (max-width: 1439.98px) {
+  .booth-head-row .booth-rules-btn {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .booth-head-row .booth-rules-btn .booth-rules-label {
+    display: none;
+  }
+}
+@media (max-width: 599.98px) {
+  .review-finding {
+    flex-wrap: wrap;
+  }
+  .review-actions {
+    width: 100%;
+  }
+}

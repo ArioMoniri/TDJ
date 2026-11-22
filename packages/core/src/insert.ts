@@ -329,6 +329,63 @@ export function moveTanda(p: Playlist, from: number, to: number, deps: ComposeDe
   return { playlist: withTandas(p, tandas) };
 }
 
+/**
+ * 2026-11 ("Import a night" review): the tandas in a new order — `order[k]` is the tanda (an index of the night as
+ * given) that plays at place k. As `moveTanda`, every place keeps its plan (the arc's target, the phase), the old
+ * última leaves its closing cortina, the new última takes the closing format's, and every gap keeps one cortina, never
+ * two alike in a row. A DJ's import is pinned and locked as the DJ's: the reorder is the DJ's own choice (the review
+ * offers it, the DJ applies it), so a lock does not hold a tanda in place here; the Booth passes only the order of the
+ * tandas still to come.
+ */
+export function reorderTandas(p: Playlist, order: readonly number[], deps: ComposeDeps): EditResult {
+  const n = p.tandas.length;
+  if (
+    order.length !== n ||
+    new Set(order).size !== n ||
+    order.some((i) => !Number.isInteger(i) || i < 0 || i >= n)
+  )
+    return { playlist: p, reason: "not an order of the night's tandas" };
+  if (order.every((i, k) => i === k)) return { playlist: p, reason: "no such move" };
+  const lastCortina = p.tandas[n - 1]?.cortina ?? null;
+  let tandas = order.map((i, k) => {
+    const t = p.tandas[i]!;
+    return {
+      ...t,
+      targetEnergy: p.tandas[k]!.targetEnergy,
+      phase: p.tandas[k]!.phase,
+      ...(i === n - 1 && k !== n - 1 ? { cortina: null } : {}),
+    };
+  });
+  if (order[n - 1] !== n - 1 && tandas[n - 1])
+    tandas[n - 1] = { ...tandas[n - 1]!, cortina: cortinaWanted(p) && p.closing ? lastCortina : null };
+  tandas = mendLastCortina(p, tandas, deps, lastCortina);
+  const gaps = order.flatMap((i, k) => (i === k ? [] : [k - 1, k]));
+  tandas = mendCortinas(p, tandas, gaps, deps);
+  return { playlist: withTandas(p, tandas) };
+}
+
+/**
+ * 2026-11 ("Import a night" review): the La Cumparsita that would close this night by its rules — the harmony setting
+ * (the última's orchestra near its years) or the classic one (another orchestra, from the night's years), or null.
+ */
+export function closingSuggestion(p: Playlist, deps: ComposeDeps): Song | null {
+  const last = p.tandas.at(-1);
+  if (!last) return null;
+  const harmony = closingFormatOf(p.options) === "in-tanda" || !!p.options.rules?.cumparsitaHarmony;
+  if (harmony) {
+    const r = closingFor(deps.catalog, p.options, last, p.opening ?? null);
+    if (r.song) return r.song;
+  }
+  return classicClosing(p, deps);
+}
+
+/** 2026-11 ("Import a night" review): the La Cumparsita that would open this night (matching its first tanda), or null */
+export function openingSuggestion(p: Playlist, deps: ComposeDeps): Song | null {
+  const first = p.tandas[0];
+  if (!first) return null;
+  return openingCumparsita(deps.catalog, p.options, first, p.closing ?? null).song ?? null;
+}
+
 /* ---------- suggestions for a spot ---------- */
 
 export interface SpotOption extends SwapOption {

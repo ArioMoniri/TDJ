@@ -1,7 +1,10 @@
 import {
   applyGuideFix,
   applyNightSettings,
+  applyReviewFix,
+  applySafeFixes,
   CLOSING_FORMATS,
+  type ComposeOptions,
   changeNightEnd,
   editGuide,
   type GuideFix,
@@ -12,10 +15,15 @@ import {
   mendNightCortinas,
   type NightSettingsPatch,
   type Playlist,
+  REVIEW_SETTING_KEYS,
+  type ReviewFix,
   removeSong,
   removeTanda,
+  reorderTandas,
+  reviewNight,
   type Song,
   type SpotOption,
+  withNightRules,
 } from "@tdj/core";
 import { forWire, swapWire } from "@/lib/server/wire";
 import type { AppOverrides } from "@/lib/types";
@@ -36,6 +44,10 @@ import { externalSide } from "./tandaSet";
  * - `end` { playlist, from, targetSec } → the Booth's "Change the end…" (the night, the new end, what changed)
  * - `mend` { playlist, cumparsitas? } → the night's cortinas set right after any edit (rooms, lib/roomCortinas.ts)
  * - `settings` { playlist, patch } → a room's Night settings applied, the cortinas re-mended (RoomNightSettings)
+ * - `review` { playlist, settings?, level?, fixedBefore? } → { findings, reorder, counts } ("Import a night": core
+ *   review.ts, the night read against the DJ's Compose settings) · `reviewFix` { playlist, fix, settings? } → the night
+ *   with a finding's fix · `safeFixes` { playlist, settings?, fixedBefore? } → every safe fix at once (`applied`) ·
+ *   `reorder` { playlist, order } → the tandas in a new order (the review's diff, a drag of the tanda list)
  *
  * An edit comes back re-timed and re-scored with `changed`, or `reason` (409); the browser's rule check (gateEdit)
  * judges it before it applies, and the guide (`guide`) says what it did to the night.
@@ -61,6 +73,35 @@ const FIXES = new Set([
   "opening",
   "closing",
 ]);
+
+const REVIEW_FIXES = new Set(["side", "removeSide", "order", "guide"]);
+/** the DJ's Compose settings a review follows (only the night and tanda rules; anything else is dropped) */
+export function reviewSettings(x: unknown): Partial<ComposeOptions> | undefined {
+  if (!x || typeof x !== "object") return undefined;
+  const v = x as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const k of REVIEW_SETTING_KEYS) if (v[k] !== undefined && v[k] !== null) out[k] = v[k];
+  return Object.keys(out).length ? (out as Partial<ComposeOptions>) : undefined;
+}
+/** a review fix as the route takes it (its shape checked; the engine refuses what does not fit the night) */
+export function reviewFixOf(x: unknown): ReviewFix | null {
+  if (!x || typeof x !== "object") return null;
+  const f = x as Record<string, unknown>;
+  if (!REVIEW_FIXES.has(String(f.kind))) return null;
+  if (f.kind === "guide") {
+    const g = f.fix as GuideFix | undefined;
+    return g && FIXES.has(String(g.kind)) ? { kind: "guide", fix: g } : null;
+  }
+  if (f.kind === "order")
+    return Array.isArray(f.order) && f.order.length <= 400
+      ? { kind: "order", order: f.order.map(int) }
+      : null;
+  if (f.kind === "side")
+    return typeof f.songId === "string"
+      ? { kind: "side", tanda: int(f.tanda), side: int(f.side), songId: f.songId.slice(0, 160) }
+      : null;
+  return { kind: "removeSide", tanda: int(f.tanda), side: int(f.side) };
+}
 
 const PATTERNS = ["classic", "TTVTTM", "TTVTTM-strict", "TVTM", "TMTV", "tango-only"];
 const strs = (x: unknown) =>
@@ -155,6 +196,39 @@ export async function spot(req: Request, d: ApiDeps): Promise<Response> {
       if (!patch) return bad("patch required");
       const r = applyNightSettings(playlist, patch, deps);
       return json({ ...forWire(r), changed: true });
+    }
+    // 2026-11: "Import a night" — the review of a night against the DJ's Compose settings, and its fixes. A fix is
+    // worked out on the night read with those settings (a cortina, a La Cumparsita by the DJ's rules) and comes back
+    // with the night's own options: the review never changes the night's settings.
+    case "review": {
+      const settings = reviewSettings(b!.settings);
+      const level = b!.level === "booth" ? "booth" : "compose";
+      const fixedBefore = Math.max(0, int(b!.fixedBefore) || 0);
+      return json(reviewNight(playlist, deps, { settings, level, fixedBefore }));
+    }
+    case "reviewFix": {
+      const fix = reviewFixOf(b!.fix);
+      if (!fix) return bad("fix required");
+      const ruled = withNightRules(playlist, reviewSettings(b!.settings));
+      const r = applyReviewFix(ruled, fix, deps);
+      return edit(
+        playlist,
+        r.playlist === ruled
+          ? { playlist, reason: r.reason }
+          : { playlist: { ...r.playlist, options: playlist.options } },
+      );
+    }
+    case "safeFixes": {
+      const settings = reviewSettings(b!.settings);
+      const fixedBefore = Math.max(0, int(b!.fixedBefore) || 0);
+      const ruled = withNightRules(playlist, settings);
+      const r = applySafeFixes(ruled, deps, { settings, fixedBefore });
+      const after = r.applied ? { ...r.playlist, options: playlist.options } : playlist;
+      return json({ ...forWire(after), changed: r.applied > 0, applied: r.applied });
+    }
+    case "reorder": {
+      if (!Array.isArray(b!.order)) return bad("order required");
+      return edit(playlist, reorderTandas(playlist, b!.order.slice(0, 400).map(int), deps));
     }
     case "end": {
       const targetSec = Number(b!.targetSec);

@@ -36,6 +36,8 @@ import { SongSheet } from "@/components/booth/SongSheet";
 import { hasTransition, TransitionSheet } from "@/components/booth/TransitionSheet";
 import { EmptyState } from "@/components/EmptyState";
 import { ActionRow, Group } from "@/components/Form";
+import { ImportNightButton, ImportNightSheet, openImportNight } from "@/components/importNight/ImportNight";
+import { BoothNightRulesButton, ReviewBanner } from "@/components/importNight/ReviewPanel";
 import { type MenuItem, MenuList } from "@/components/Menu";
 import { PageHeader } from "@/components/PageHeader";
 import { usePowerMenuItem } from "@/components/PowerSaver";
@@ -534,6 +536,7 @@ function Booth() {
               >
                 {t("booth.load.menu")}
               </button>
+              <ImportNightButton target="booth" />
               <Link href="/" className="btn btn-ghost">
                 {t("booth.compose")}
               </Link>
@@ -552,6 +555,7 @@ function Booth() {
           <LoadNightChoices inline />
         </div>
         <LoadNightSheet />
+        <ImportNightSheet />
       </div>
     );
 
@@ -577,6 +581,12 @@ function Booth() {
       onClick: toggleControls,
     },
     { label: t("booth.load.menu"), testId: "booth-menu-load", onClick: openLoadNight },
+    // 2026-11: Import a night (components/importNight: loads here, then only what matters most)
+    {
+      label: t("importNight.entry"),
+      testId: "booth-menu-import-night",
+      onClick: () => openImportNight("booth"),
+    },
     { label: t("booth.set_up_source_output_night"), onClick: () => setOnboarding(true) },
     // (a phone's transport has Previous / Next now; Next at gap and Mix live here)
     started && phone && { label: t("booth.connect.skip_next_menu"), onClick: () => b.next() },
@@ -653,8 +663,12 @@ function Booth() {
       <div className="booth-head-row">
         <PlayerToolbar rehearsal={rehearsal} />
         <BoothSongSearch onGoTo={showInSet} />
+        {/* 2026-11: the Compose tab's night rules as a sheet (the review follows them) */}
+        <BoothNightRulesButton />
       </div>
       <Banners />
+      {/* 2026-11: an imported night's most important fixes only (components/importNight/ReviewPanel) */}
+      <ReviewBanner />
       <div className="booth-grid">
         <div className="booth-deck" data-testid="booth-deck-col" ref={deckRef}>
           <NowCard onInfo={(i) => setSong(i)} onPlay={tapRow} />
@@ -801,6 +815,7 @@ function Booth() {
       <FindFileSheet item={find} onClose={() => setFind(null)} />
       <ResumeSheet />
       <LoadNightSheet />
+      <ImportNightSheet />
     </div>
   );
 }
