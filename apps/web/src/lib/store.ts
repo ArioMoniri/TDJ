@@ -7,8 +7,8 @@ import { APP } from "./app/target";
 import {
   clearHistoryStore,
   historyAfter,
-  isSnapshot,
   loadHistoryLocal,
+  mergeHistory,
   restoreVersion,
   saveHistory,
 } from "./history";
@@ -130,6 +130,13 @@ function idleLocalStorage<T>(): PersistStorage<T> | undefined {
   };
 }
 
+/**
+ * History saves before the user's database answered stay in this browser: the server row (the device's SQLite in the
+ * apps) is replaced by what a save sends, and an early list holds only this load's nights. Boot merges and saves.
+ */
+const saveMode = (s: Pick<State, "overridesReady" | "storageMode">): StorageMode =>
+  s.overridesReady ? s.storageMode : "browser";
+
 export const useStore = create<State>()(
   persist(
     (set, get) => ({
@@ -153,7 +160,7 @@ export const useStore = create<State>()(
         set({ history: next, currentEntry: currentId });
         // a new night is written now, not after the debounce: opening History right after composing (or leaving
         // the page) lost it, because a write started in pagehide is not guaranteed to finish
-        saveHistory(next, get().storageMode, true);
+        saveHistory(next, saveMode(get()), true);
       },
       recordNightEdit: (p, label, source = "swap") => {
         const { list: next, currentId } = historyAfter(get().history, get().currentEntry, {
@@ -164,7 +171,7 @@ export const useStore = create<State>()(
           source,
         });
         set({ history: next, currentEntry: currentId });
-        saveHistory(next, get().storageMode, true);
+        saveHistory(next, saveMode(get()), true);
       },
       setCurrentEntry: (currentEntry) => set({ currentEntry }),
       restoreEntryVersion: (entryId, versionId) => {
@@ -173,18 +180,18 @@ export const useStore = create<State>()(
         if (!back) return null;
         const next = get().history.map((h) => (h.id === entryId ? back : h));
         set({ history: next });
-        saveHistory(next, get().storageMode, true);
+        saveHistory(next, saveMode(get()), true);
         return back;
       },
       updateSnapshot: (id, patch) => {
         const next = get().history.map((h) => (h.id === id ? { ...h, ...patch } : h));
         set({ history: next });
-        saveHistory(next, get().storageMode, true);
+        saveHistory(next, saveMode(get()), true);
       },
       removeSnapshot: (id) => {
         const next = get().history.filter((h) => h.id !== id);
         set({ history: next });
-        saveHistory(next, get().storageMode, true);
+        saveHistory(next, saveMode(get()), true);
       },
       clearHistory: async () => {
         set({ history: [], currentEntry: null });
@@ -220,14 +227,18 @@ export const useStore = create<State>()(
         if (get().overridesReady) return;
         const { overrides, memory, mode, history: serverHistory } = await loadOverrides();
         const local = await loadHistoryLocal();
-        // the server row keeps a bounded copy; the browser keeps up to 50: merge by id, newest first
-        const merged = [...(serverHistory ?? []).filter(isSnapshot), ...local]
-          .filter((h, i, arr) => arr.findIndex((x) => x.id === h.id) === i)
-          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-          .slice(0, 50);
+        // 2026-11: a night composed or imported before the database answered is in memory only (its save stayed
+        // local: sent to the server then, the device's list would have been replaced by it alone)
+        const early = get().history;
+        const merged = mergeHistory(early, serverHistory ?? [], local);
         set({ overrides, memory, history: merged, storageMode: mode, overridesReady: true });
         // apps: a night kept only in the web view's cache (written before the database answered) joins the device database
-        if (APP && mode === "server" && merged.length > (serverHistory?.length ?? 0))
+        // (and a night made before it answered joins the user's server row / the device database too)
+        if (
+          mode === "server" &&
+          (APP || early.length > 0) &&
+          merged.some((h) => !(serverHistory ?? []).some((x) => (x as HistorySnapshot)?.id === h.id))
+        )
           saveHistory(merged, mode, true);
       },
       updateOverrides: (fn) => {

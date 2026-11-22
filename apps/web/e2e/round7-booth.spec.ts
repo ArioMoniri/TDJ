@@ -284,7 +284,7 @@ test("the plan equals the export cue points (M3U8 stop/start lines) and History'
   // History → Play the night
   await page.goto("/history");
   await page.locator('[id^="history-"]').first().click();
-  await page.getByTestId("history-detail").getByRole("button", { name: "Play the night" }).click();
+  await page.getByTestId("history-detail").getByRole("button", { name: "Play in the Booth" }).click();
   await expect(page).toHaveURL(/\/booth/);
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 15000 });
   // the playhead settles on the first playable item once the sources resolve: Now and the set agree on it

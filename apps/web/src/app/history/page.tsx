@@ -26,6 +26,7 @@ import { FeaturedCard } from "@/components/FeaturedCard";
 import { ActionRow, Group, Row } from "@/components/Form";
 import { Menu } from "@/components/Menu";
 import { NightCover } from "@/components/NightCover";
+import { NightRowMenu } from "@/components/NightRowMenu";
 import { PageHeader } from "@/components/PageHeader";
 import { Sheet } from "@/components/Sheet";
 import { SwipeRow } from "@/components/SwipeRow";
@@ -35,13 +36,21 @@ import { Tip } from "@/components/ui/Tip";
 import { APP } from "@/lib/app/target";
 import { downloadBlob } from "@/lib/download";
 import { verdictText } from "@/lib/engineText";
+import { asExampleNight } from "@/lib/exampleNight";
 import { haptic } from "@/lib/haptics";
 import { changeLabel, eraLabel, groupByDay, nightLogSummary, versionsOf } from "@/lib/history";
 import { useMediaQuery } from "@/lib/hooks";
 import { fmtTime, lazy, t as tx } from "@/lib/i18n";
 import { nightMusicSec } from "@/lib/lengths";
 import { reduced as reducedV, rise } from "@/lib/motion";
-import { askDeleteNights, boothNight, deleteLabel, protectedReason } from "@/lib/nightDelete";
+import { askRename, canRename, playInBooth, renameNight, reopenNight } from "@/lib/nightActions";
+import {
+  askDeleteNights,
+  boothNight,
+  deleteLabel,
+  isFeaturedEntry,
+  protectedReason,
+} from "@/lib/nightDelete";
 import { lengthText } from "@/lib/nightName";
 import { nightItems, PlayListContext } from "@/lib/playback";
 import { useStore } from "@/lib/store";
@@ -141,18 +150,8 @@ function Sparkline({ scores }: { scores: number[] }) {
 }
 
 export default function HistoryPage() {
-  const {
-    history,
-    overridesReady,
-    updateSnapshot,
-    setPlaylist,
-    replaceOptions,
-    playlist,
-    currentEntry,
-    setCurrentEntry,
-    restoreEntryVersion,
-    storageMode,
-  } = useStore();
+  const { history, overridesReady, setPlaylist, playlist, currentEntry, restoreEntryVersion, storageMode } =
+    useStore();
   // the apps keep History in the device's own database; the web keeps it in this browser unless a server row syncs it
   const onDevice = APP || storageMode === "browser";
   const router = useRouter();
@@ -171,10 +170,12 @@ export default function HistoryPage() {
   }, []);
   const [compareWith, setCompareWith] = useState<HistorySnapshot | null>(null);
   const [picking, setPicking] = useState(false);
-  const [renaming, setRenaming] = useState(false);
+  // 2026-11: the open night's title, edited in place (lib/nightActions.ts renameNight: Compose and the Booth follow)
   const [draft, setDraft] = useState("");
   const [exporting, setExporting] = useState(false);
   const open = history.find((h) => h.id === openId) ?? null;
+  const openTitle = open?.title ?? "";
+  useEffect(() => setDraft(openTitle), [openTitle]);
   /** the night the Booth holds (read each render: it never deletes) */
   const booth = boothNight();
   const groups = useMemo(() => groupByDay(history), [history]);
@@ -223,10 +224,7 @@ export default function HistoryPage() {
     } else toast(tx("history.is_the_current_version_of_this", { label }));
   };
   const reopen = (s: HistorySnapshot) => {
-    setCurrentEntry(s.id);
-    setPlaylist({ ...s.playlist, tandas: s.playlist.tandas.map((t) => ({ ...t, locked: false })) });
-    replaceOptions({ ...s.options, seed: s.playlist.options.seed });
-    toast(tx("history.reopened_in_compose", { title: s.title }));
+    reopenNight(s);
     router.push("/#result");
   };
   /** "4 h · 22 tandas · Golden age · Two peaks · rehearsed 06:36" (no ISO dates, no repeat of the title) */
@@ -241,13 +239,12 @@ export default function HistoryPage() {
         ? ` · ${nightLogSummary(s.nightLog)}`
         : ` ${tx("history.composed", { p1: time(s.createdAt) })}`,
     });
-  /** Booth: the set becomes the current one (locks cleared) and /booth opens on it. */
-  const playNight = (s: HistorySnapshot) => {
-    setCurrentEntry(s.id);
-    setPlaylist({ ...s.playlist, tandas: s.playlist.tandas.map((t) => ({ ...t, locked: false })) });
-    replaceOptions({ ...s.options, seed: s.playlist.options.seed });
-    router.push("/booth");
-  };
+  /**
+   * Play in the Booth: the set becomes the current one (locks cleared) and /booth opens on it; when another night is
+   * playing there, the one sheet asks first (lib/nightActions.ts: replace / cancel, never silently)
+   */
+  const playNight = (s: HistorySnapshot) =>
+    void playInBooth(s.playlist, { historyId: s.id, go: () => router.push("/booth") });
   const rowV = reduced ? reducedV.rise : rise;
   const exportAll = () =>
     downloadBlob("tdj-history.json", JSON.stringify(history, null, 2), "application/json");
@@ -365,10 +362,6 @@ export default function HistoryPage() {
                     className={editing ? "flex items-center" : undefined}
                     data-testid="history-row"
                     data-protected={why ? "" : undefined}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      remove(s);
-                    }}
                     onKeyDown={(e) => {
                       if (e.key !== "Delete" && e.key !== "Backspace") return;
                       if ((e.target as HTMLElement).closest("input, textarea")) return;
@@ -390,7 +383,14 @@ export default function HistoryPage() {
                         {on ? <CheckSquare size={22} aria-hidden /> : <Square size={22} aria-hidden />}
                       </button>
                     )}
-                    <div className={editing ? "min-w-0 flex-1" : undefined}>
+                    {/* 2026-11: each row's own menu (•••, right-click, a long press): Play in the Booth, Reopen,
+                        Rename…, Delete (components/NightRowMenu.tsx) */}
+                    <NightRowMenu
+                      entry={s}
+                      className={editing ? "flex-1" : ""}
+                      menuClassName={editing ? "hidden" : ""}
+                      before={() => setOpenId(null)}
+                    >
                       <SwipeRow
                         leading="art"
                         actions={[
@@ -445,7 +445,7 @@ export default function HistoryPage() {
                           id={`history-${s.id}`}
                         />
                       </SwipeRow>
-                    </div>
+                    </NightRowMenu>
                   </motion.div>
                 );
               })}
@@ -502,13 +502,10 @@ export default function HistoryPage() {
                   onClick: () => setPicking(true),
                   disabled: history.length < 2,
                 },
-                {
+                !isFeaturedEntry(open) && {
                   label: tx("history.rename_2"),
                   icon: Pencil,
-                  onClick: () => {
-                    setDraft(open.title);
-                    setRenaming(true);
-                  },
+                  onClick: () => askRename(open.id),
                 },
                 {
                   label: tx("history.copy_seed"),
@@ -546,6 +543,32 @@ export default function HistoryPage() {
       >
         {open && (
           <>
+            {/* 2026-11 (the owner: "rename everywhere"): the title edits in place (the featured night keeps its own) */}
+            {canRename(open.id) && (
+              <Group footer={tx("nights.rename_footer")}>
+                <label htmlFor="history-title-edit" className="cell gap-2">
+                  <span className="sr-only">{tx("history.name")}</span>
+                  <Pencil size={16} className="shrink-0 text-[var(--label-2)]" aria-hidden />
+                  <input
+                    id="history-title-edit"
+                    className="field text-headline"
+                    data-testid="history-title-edit"
+                    value={draft}
+                    maxLength={80}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onBlur={() => renameNight(open.id, draft)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        (e.target as HTMLInputElement).blur();
+                      }
+                      if (e.key === "Escape") setDraft(open.title);
+                    }}
+                    autoComplete="off"
+                  />
+                </label>
+              </Group>
+            )}
             <Group
               footer={tx("history.composed_seed_under", {
                 p1: when(open.createdAt),
@@ -598,19 +621,22 @@ export default function HistoryPage() {
             {/* 2026-11: a tap on any row plays it; the mini player steps through this night */}
             <PlayListContext.Provider value={{ label: open.title, items: nightItems(open.playlist) }}>
               <div className="grid min-w-0 grid-cols-1 gap-3">
-                {open.playlist.tandas.map((t, i) => (
-                  <TandaCard
-                    cues={open.playlist.booth?.songCues}
-                    key={`${open.id}-${t.index}`}
-                    t={t}
-                    i={i}
-                    onSwap={noop}
-                    onSwapTrack={noop}
-                    onLock={noop}
-                    playlists={NO_PLAYLISTS}
-                    readOnly
-                  />
-                ))}
+                {/* (the featured night reads as the example night here too, lib/exampleNight.ts) */}
+                {(isFeaturedEntry(open) ? asExampleNight(open.playlist) : open.playlist).tandas.map(
+                  (t, i) => (
+                    <TandaCard
+                      cues={open.playlist.booth?.songCues}
+                      key={`${open.id}-${t.index}`}
+                      t={t}
+                      i={i}
+                      onSwap={noop}
+                      onSwapTrack={noop}
+                      onLock={noop}
+                      playlists={NO_PLAYLISTS}
+                      readOnly
+                    />
+                  ),
+                )}
               </div>
             </PlayListContext.Provider>
           </>
@@ -653,33 +679,6 @@ export default function HistoryPage() {
         testId="history-compare"
       >
         {open && compareWith && <Compare a={open} b={compareWith} />}
-      </Sheet>
-
-      <Sheet
-        open={renaming}
-        onClose={() => setRenaming(false)}
-        title={tx("history.rename")}
-        trailing={tx("history.save")}
-        onTrailing={() => {
-          if (open && draft.trim()) updateSnapshot(open.id, { title: draft.trim().slice(0, 80) });
-          setRenaming(false);
-        }}
-        detents={["medium"]}
-      >
-        <Group>
-          <label htmlFor="history-rename" className="cell">
-            <span className="sr-only">{tx("history.name")}</span>
-            <input
-              id="history-rename"
-              className="field"
-              data-autofocus
-              value={draft}
-              maxLength={80}
-              onChange={(e) => setDraft(e.target.value)}
-              autoComplete="off"
-            />
-          </label>
-        </Group>
       </Sheet>
 
       <ExportSheet open={exporting} onClose={() => setExporting(false)} playlist={open?.playlist ?? null} />

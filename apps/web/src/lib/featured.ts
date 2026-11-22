@@ -1,5 +1,6 @@
 "use client";
 import { t } from "@/lib/i18n";
+import { asExampleNight } from "./exampleNight";
 import { nightEraLabel } from "./nightName";
 import type { Playlist } from "./types";
 
@@ -42,7 +43,8 @@ export function loadFeatured(id: FeaturedId): Promise<Playlist> {
       .then(async (j: Playlist & { seed?: number }) => {
         if (!j || !Array.isArray(j.tandas) || !j.tandas.length || !j.options)
           throw new Error("not a playlist");
-        if (Array.isArray(j.tandas[0]?.songs) && j.id) return j;
+        // 2026-11: the owner's night, shown to everyone as a neutral example night (lib/exampleNight.ts)
+        if (Array.isArray(j.tandas[0]?.songs) && j.id) return asExampleNight(j);
         const { explicit: _e, ...opts } = j.options;
         const seed = j.seed ?? j.options.seed;
         const r = await fetch("/api/compose", {
@@ -52,7 +54,7 @@ export function loadFeatured(id: FeaturedId): Promise<Playlist> {
         });
         const full = (await r.json()) as Playlist & { error?: string };
         if (!r.ok || full.error) throw new Error(full.error ?? "compose failed");
-        return full;
+        return asExampleNight(full);
       });
     cache.set(id, p);
     p.catch(() => cache.delete(id));

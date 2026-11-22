@@ -2951,7 +2951,7 @@ export const en = {
     "Percent per factor; the delta is coloured only when it moves 5 points or more.",
   "history.pick_the_second_set_scores_side":
     "Pick the second set: scores side by side, factor by factor, then the orchestras each one uses.",
-  "history.play_the_night": "Play the night",
+  "history.play_the_night": "Play in the Booth",
   "history.played_unfinished": "played (unfinished)",
   "history.re_export": "Re-export…",
   "history.removes_every_kept_set_from_this":
@@ -6130,6 +6130,50 @@ export const en = {
   "song.lyrics_source_yours": "Your lyrics",
   "song.lyrics_credits": "Lyrics credits",
   "song.lyrics_not_synced_short": "Not synced — shown without timing",
+  // 2026-11: the Booth's Night menu, Play in the Booth, rename everywhere, the example night
+  "nights.menu": "Night",
+  "nights.menu_tip": "Load, import, reset or close the night",
+  "nights.import_spotify": "Import from Spotify…",
+  "nights.import_spotify_sub": "A playlist link, or one of your playlists",
+  "nights.import_other": "Import another way…",
+  "nights.import_youtube": "Import from YouTube…",
+  "nights.import_file": "A DJ app's file…",
+  "nights.import_file_sub": "A playlist file or a music folder",
+  "nights.import_text": "Paste a list…",
+  "nights.connectors": "Connectors",
+  "nights.connectors_sub": "Connect Spotify, YouTube or a drive to import from",
+  "nights.reset": "Reset the night",
+  "nights.reset_sub": "Back to its start, nothing playing",
+  "nights.reset_title": "Reset the night?",
+  "nights.reset_footer":
+    "The music stops and the night's log goes to History; the same night waits at its start. Undo puts it back where it was.",
+  "nights.reset_fade": "Fade out and reset",
+  "nights.reset_now": "Stop now and reset",
+  "nights.reset_done": "The night is back at its start",
+  "nights.close": "Close the night",
+  "nights.close_sub": "The music stops; its log goes to History",
+  "nights.close_title": "Close the night?",
+  "nights.close_footer":
+    "The music stops, the night's log goes to History and the Booth empties; Compose keeps the night. Undo brings it back where it was.",
+  "nights.closed": "Night closed",
+  "nights.replaced": "Now in the Booth: {name}",
+  "nights.renamed": "Renamed “{title}”",
+  "nights.rename_footer": "The new name shows in History, Compose and the Booth.",
+  "nights.actions": "Night actions",
+  "nights.actions_of": "{title}: actions",
+  "nights.play_ask_title": "Another night is playing",
+  "nights.play_ask_footer":
+    "“{playing}” is playing in the Booth. Replace it with “{name}”? The night that plays ends and its log goes to History; Undo brings it back.",
+  "nights.play_ask_cancel": "Cancel",
+  "nights.play_ask_replace": "Replace it",
+  "settings.booth.always_dark": "Always dark in the Booth",
+  "settings.booth.always_dark_tip":
+    "Off: the Booth follows Appearance like every page. On: the Booth stays dark, for a dim room.",
+  "tandaCard.example_pick": "Hand-picked",
+  "tandaCard.example_pick_tip":
+    "Chosen by hand for this example night: the rules leave it unchanged, on this night only",
+  "tandaCard.example_swap_unpin": "Swap tanda (hand-picked: unpin it first)",
+  "tandaCard.example_unpin_first": "a hand-picked tanda: unpin it first",
 } as const;
 
 export type MsgKey = keyof typeof en;

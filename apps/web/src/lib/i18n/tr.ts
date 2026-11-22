@@ -3133,7 +3133,7 @@ export const tr: Partial<Record<MsgKey, string>> = {
     "Etken başına yüzde; fark yalnızca 5 puan ya da daha fazla değiştiğinde renklenir.",
   "history.pick_the_second_set_scores_side":
     "İkinci seti seçin: puanlar yan yana, etken etken, ardından her birinin kullandığı orkestralar.",
-  "history.play_the_night": "Geceyi çal",
+  "history.play_the_night": "Kabinde çal",
   "history.played_unfinished": "çalındı (bitmedi)",
   "history.re_export": "Yeniden aktar…",
   "history.removes_every_kept_set_from_this":
@@ -6334,4 +6334,48 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "song.lyrics_source_yours": "Kendi sözlerin",
   "song.lyrics_credits": "Söz kaynakları",
   "song.lyrics_not_synced_short": "Eşzamanlı değil — zamanlama olmadan",
+  // 2026-11: the Booth's Night menu, Play in the Booth, rename everywhere, the example night
+  "nights.menu": "Gece",
+  "nights.menu_tip": "Geceyi yükle, içe aktar, baştan al ya da kapat",
+  "nights.import_spotify": "Spotify'dan içe aktar…",
+  "nights.import_spotify_sub": "Bir çalma listesi bağlantısı ya da kendi listelerinden biri",
+  "nights.import_other": "Başka yoldan içe aktar…",
+  "nights.import_youtube": "YouTube'dan içe aktar…",
+  "nights.import_file": "Bir DJ uygulamasının dosyası…",
+  "nights.import_file_sub": "Bir çalma listesi dosyası ya da müzik klasörü",
+  "nights.import_text": "Bir liste yapıştır…",
+  "nights.connectors": "Bağlantılar",
+  "nights.connectors_sub": "İçe aktarmak için Spotify, YouTube ya da bir sürücü bağla",
+  "nights.reset": "Geceyi baştan al",
+  "nights.reset_sub": "Başına döner, hiçbir şey çalmaz",
+  "nights.reset_title": "Gece baştan alınsın mı?",
+  "nights.reset_footer":
+    "Müzik durur ve gecenin kaydı Geçmiş'e gider; aynı gece başında bekler. Geri al onu kaldığı yere koyar.",
+  "nights.reset_fade": "Kısarak baştan al",
+  "nights.reset_now": "Hemen durdur ve baştan al",
+  "nights.reset_done": "Gece başına döndü",
+  "nights.close": "Geceyi kapat",
+  "nights.close_sub": "Müzik durur; kaydı Geçmiş'e gider",
+  "nights.close_title": "Gece kapatılsın mı?",
+  "nights.close_footer":
+    "Müzik durur, gecenin kaydı Geçmiş'e gider ve Kabin boşalır; Gece oluştur geceyi saklar. Geri al onu kaldığı yere getirir.",
+  "nights.closed": "Gece kapatıldı",
+  "nights.replaced": "Artık Kabinde: {name}",
+  "nights.renamed": "Yeni adı: “{title}”",
+  "nights.rename_footer": "Yeni ad Geçmiş'te, Gece oluştur'da ve Kabin'de görünür.",
+  "nights.actions": "Gece işlemleri",
+  "nights.actions_of": "{title}: işlemler",
+  "nights.play_ask_title": "Başka bir gece çalıyor",
+  "nights.play_ask_footer":
+    "Kabinde “{playing}” çalıyor. Yerine “{name}” gelsin mi? Çalan gece biter ve kaydı Geçmiş'e gider; Geri al onu geri getirir.",
+  "nights.play_ask_cancel": "Vazgeç",
+  "nights.play_ask_replace": "Yerine koy",
+  "settings.booth.always_dark": "Kabin hep koyu",
+  "settings.booth.always_dark_tip":
+    "Kapalı: Kabin her sayfa gibi Görünüm'ü izler. Açık: loş bir salon için Kabin hep koyu kalır.",
+  "tandaCard.example_pick": "Elle seçilmiş",
+  "tandaCard.example_pick_tip":
+    "Bu örnek gece için elle seçildi: kurallar onu yalnızca bu gece için değiştirmez",
+  "tandaCard.example_swap_unpin": "Tandayı değiştir (elle seçilmiş: önce sabitlemeyi kaldır)",
+  "tandaCard.example_unpin_first": "elle seçilmiş tanda: önce sabitlemeyi kaldır",
 };

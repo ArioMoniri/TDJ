@@ -69,9 +69,10 @@ async function route(page: Page) {
 }
 
 async function openBooth(page: Page, o: { controls?: boolean } = {}) {
+  // 2026-11: the Booth follows the app's appearance (Auto here): the device's scheme picks its theme
+  await page.emulateMedia({ colorScheme: "dark" });
   await page.addInitScript((controls) => {
     try {
-      localStorage.setItem("tdj-booth-theme", "dark");
       localStorage.setItem("tdj-booth-controls", controls ? "1" : "0");
     } catch {}
     document.addEventListener("DOMContentLoaded", () => {

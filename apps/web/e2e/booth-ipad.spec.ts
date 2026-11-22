@@ -64,11 +64,10 @@ const DEVICES: Array<[string, BrowserContextOptions, { collapse?: boolean }]> = 
 ];
 
 async function openBooth(page: Page, o: { light?: boolean; ipad?: boolean } = {}) {
+  // 2026-11: the Booth follows the app's appearance (Auto here): the device's scheme picks its theme
+  await page.emulateMedia({ colorScheme: o.light ? "light" : "dark" });
   await page.addInitScript(
-    ([light, ipad]) => {
-      try {
-        localStorage.setItem("tdj-booth-theme", light ? "light" : "dark");
-      } catch {}
+    ([, ipad]) => {
       if (ipad) Object.defineProperty(Navigator.prototype, "maxTouchPoints", { get: () => 5 });
       document.addEventListener("DOMContentLoaded", () => {
         const s = document.createElement("style");

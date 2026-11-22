@@ -43,10 +43,9 @@ function toneWav(): Buffer {
 const WAV = toneWav();
 
 async function quiet(page: Page) {
+  // 2026-11: the Booth follows the app's appearance (Auto here): the device's scheme picks its theme
+  await page.emulateMedia({ colorScheme: "dark" });
   await page.addInitScript(() => {
-    try {
-      localStorage.setItem("tdj-booth-theme", "dark");
-    } catch {}
     document.addEventListener("DOMContentLoaded", () => {
       const s = document.createElement("style");
       s.textContent = "nextjs-portal{display:none!important}";

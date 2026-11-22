@@ -49,6 +49,7 @@ import {
   spotifySignedIn,
   youtubePlaylists,
 } from "@/lib/importFlow";
+import { playInBooth } from "@/lib/nightActions";
 import type { PlaylistSummary } from "@/lib/playlistSources";
 import { ruleText } from "@/lib/ruleCheck";
 import { useStore } from "@/lib/store";
@@ -211,9 +212,13 @@ export default function ImportView() {
   const keep = (to: "compose" | "booth" | "room") => {
     if (!night || !r) return;
     haptic(10);
-    keepImported(night, r.entries);
+    const entry = keepImported(night, r.entries);
     toast(tx("import.kept", { name: night.playlist.name }));
-    router.push(to === "compose" ? "/#result" : to === "booth" ? "/booth" : "/rooms");
+    // 2026-11: Play in the Booth goes through the one way every place uses (lib/nightActions.ts): another night
+    // playing there is never replaced silently — the sheet asks first (the import stays in History either way)
+    if (to === "booth")
+      void playInBooth(night.playlist, { historyId: entry, go: () => router.push("/booth") });
+    else router.push(to === "compose" ? "/#result" : "/rooms");
   };
   const learn = () => {
     if (!night) return;

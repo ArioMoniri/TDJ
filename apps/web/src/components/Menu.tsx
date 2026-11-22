@@ -231,13 +231,61 @@ export function Menu({
 
   useEffect(() => {
     const el = contextRef?.current;
-    if (!el || !window.matchMedia("(hover: hover)").matches) return;
-    const onCtx = (e: MouseEvent) => {
-      e.preventDefault();
-      setOpen(true);
+    if (!el) return;
+    if (window.matchMedia("(hover: hover)").matches) {
+      const onCtx = (e: MouseEvent) => {
+        e.preventDefault();
+        setOpen(true);
+      };
+      el.addEventListener("contextmenu", onCtx);
+      return () => el.removeEventListener("contextmenu", onCtx);
+    }
+    // 2026-11 (touch): a long press (½ s, the finger still) opens the menu; the tap it ends in does nothing
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let at: { x: number; y: number } | null = null;
+    let fired = false;
+    const cancel = () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      at = null;
     };
-    el.addEventListener("contextmenu", onCtx);
-    return () => el.removeEventListener("contextmenu", onCtx);
+    const down = (e: PointerEvent) => {
+      if (e.pointerType === "mouse") return;
+      fired = false;
+      at = { x: e.clientX, y: e.clientY };
+      timer = setTimeout(() => {
+        timer = null;
+        fired = true;
+        haptic(8);
+        setFocus(-1);
+        setOpen(true);
+      }, 500);
+    };
+    const move = (e: PointerEvent) => {
+      if (at && Math.hypot(e.clientX - at.x, e.clientY - at.y) > 10) cancel();
+    };
+    const click = (e: MouseEvent) => {
+      if (!fired) return;
+      fired = false;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    const ctx = (e: Event) => e.preventDefault();
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", cancel);
+    el.addEventListener("pointercancel", cancel);
+    el.addEventListener("click", click, true);
+    el.addEventListener("contextmenu", ctx);
+    return () => {
+      cancel();
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", cancel);
+      el.removeEventListener("pointercancel", cancel);
+      el.removeEventListener("click", click, true);
+      el.removeEventListener("contextmenu", ctx);
+    };
   }, [contextRef]);
 
   const run = (it: MenuItem) => {
@@ -312,8 +360,13 @@ export function Menu({
                 onMouseEnter={() => setFocus(i)}
                 onClick={() => run(it)}
                 className="menu-item"
+                data-testid={it.testId}
+                title={it.subtitle}
               >
                 <span className="min-w-0 flex-1 truncate">{it.label}</span>
+                {it.checked && (
+                  <Check size={16} strokeWidth={2.25} className="text-[var(--tint)]" aria-label="✓" />
+                )}
                 {it.shortcut && (
                   <span className="text-footnote text-[var(--label-3)]" aria-hidden>
                     {it.shortcut}

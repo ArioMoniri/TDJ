@@ -22,6 +22,7 @@ import { analyseTanda } from "@/lib/analyze";
 import { cohesionWith, patchedSong } from "@/lib/audio";
 import { tandaNote } from "@/lib/djMessage";
 import { toneFeel, toneMode, toneText } from "@/lib/engineText";
+import { isExamplePin } from "@/lib/exampleNight";
 import { haptic } from "@/lib/haptics";
 import { useMediaQuery } from "@/lib/hooks";
 import { lazy, lower, t as tx } from "@/lib/i18n";
@@ -229,7 +230,9 @@ function TandaCardImpl({
     };
   // wave 2: a greyed-out action says why
   const swapWhy = t.pinned
-    ? tx("tandaCard.swap_tanda_kept_as_is_unpin")
+    ? isExamplePin(t)
+      ? tx("tandaCard.example_swap_unpin")
+      : tx("tandaCard.swap_tanda_kept_as_is_unpin")
     : t.locked
       ? tx("tandaCard.swap_tanda_unlock_it_first")
       : busy
@@ -340,7 +343,18 @@ function TandaCardImpl({
                   {tx("play.songs_total", { n: t.songs.length, total: totalText(total) })}
                 </span>
                 {/* round 21: the DJ's tanda — the rules leave it alone, its exceptions are the DJ's */}
-                {t.pinned && (
+                {/* 2026-11: the example night's (the featured night's) pinned tandas say what they are, not whose */}
+                {t.pinned && isExamplePin(t) && (
+                  <Tip text={tx("tandaCard.example_pick_tip")}>
+                    <span
+                      className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
+                      data-testid="tanda-pinned"
+                    >
+                      {tx("tandaCard.example_pick")}
+                    </span>
+                  </Tip>
+                )}
+                {t.pinned && !isExamplePin(t) && (
                   <Tip text={tandaNote(t.pinned.reason ?? "") || tx("tandaCard.your_tanda_kept_as_is")}>
                     <span
                       className="text-caption1 inline-flex rounded-full bg-[color-mix(in_srgb,var(--system-gold)_18%,transparent)] px-2 py-0.5 font-medium text-[var(--label)]"
@@ -547,7 +561,9 @@ function TandaCardImpl({
                     readOnly
                       ? tx("tandaCard.open_the_night_in_compose_to")
                       : t.pinned
-                        ? tx("tandaCard.the_tanda_is_kept_as_is")
+                        ? isExamplePin(t)
+                          ? tx("tandaCard.example_unpin_first")
+                          : tx("tandaCard.the_tanda_is_kept_as_is")
                         : t.locked
                           ? tx("tandaCard.unlock_the_tanda_first")
                           : undefined

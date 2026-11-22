@@ -752,7 +752,6 @@ test("design review: the editor follows the light theme; disabled Save and None 
   browser,
 }) => {
   const ctx = await browser.newContext({ ...touch(1180, 820), colorScheme: "light" });
-  await ctx.addInitScript(() => localStorage.setItem("tdj-booth-theme", "light"));
   const page = await ctx.newPage();
   await openBooth(page);
   const i = await song4(page);

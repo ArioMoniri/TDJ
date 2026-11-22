@@ -1,6 +1,7 @@
 "use client";
 import { t } from "@/lib/i18n";
 import { loadNight, NIGHT_MAX_AGE_MS } from "./booth/persist";
+import { asExampleNight, needsExample } from "./exampleNight";
 import { FEATURED, loadFeatured } from "./featured";
 import { useStore } from "./store";
 import { toast } from "./toast";
@@ -45,7 +46,14 @@ export async function syncFeaturedNight() {
   if (!local) return;
   for (const f of FEATURED) {
     const shipped = await loadFeatured(f.id).catch(() => null);
-    if (!shipped || !isOlderCopy(local, shipped)) continue;
+    if (!shipped) continue;
+    // 2026-11: the same featured night kept from before it read as the example night (the owner's notes, "Your
+    // tanda · kept as is"): only its words change, silently — the music, the DJ's order and its edits stay
+    if (local.id === shipped.id && !isOlderCopy(local, shipped) && needsExample(local)) {
+      useStore.getState().setPlaylist(asExampleNight(local));
+      return;
+    }
+    if (!isOlderCopy(local, shipped)) continue;
     // a night the booth is playing (or paused mid-way, or holds to resume) is never swapped under the DJ: the update
     // waits for the DJ's tap, after the night
     if (await nightInProgress(local.id)) {

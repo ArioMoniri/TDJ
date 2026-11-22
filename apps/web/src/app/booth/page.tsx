@@ -10,7 +10,12 @@ import { ControlStrip } from "@/components/booth/ControlStrip";
 import { ControlsPanel, loadControlsOpen, saveControlsOpen } from "@/components/booth/ControlsPanel";
 import { EnergyRail } from "@/components/booth/EnergyRail";
 import { HintLayer } from "@/components/booth/HintLayer";
-import { LoadNightSheet } from "@/components/booth/LoadNightSheet";
+import {
+  LoadNightChoices,
+  LoadNightSheet,
+  NightMenu,
+  openLoadNight,
+} from "@/components/booth/LoadNightSheet";
 import { NextCard } from "@/components/booth/NextCard";
 import { NightBar } from "@/components/booth/NightBar";
 import { NowCard } from "@/components/booth/NowCard";
@@ -48,7 +53,6 @@ import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 
-const THEME_KEY = "tdj-booth-theme";
 /** the Booth's own keys (lib/keymap.ts); the edit keys are EditKeys' */
 const BOOTH_KEYS: ActionId[] = [
   "booth.pause",
@@ -72,9 +76,11 @@ const BOOTH_KEYS: ActionId[] = [
 ];
 
 /**
- * /booth (round7-booth.md §1): the night, played from the app. Dark forced while mounted (per-device choice in
- * localStorage), nothing on the content layer is glass, no layout animation; the page is interactive before the
- * DJ's first tap (no LazyHydrate). Opens on the current set; without one, "Compose a night first".
+ * /booth (round7-booth.md §1): the night, played from the app. It follows the app's appearance (Settings → Appearance:
+ * Auto, Light, Dark) like every page — 2026-11 (the owner: "the Booth tab is always in dark mode"): "Always dark in
+ * the Booth" is an opt-in setting (components/ThemeSync.tsx) —, nothing on the content layer is glass, no layout
+ * animation; the page is interactive before the DJ's first tap (no LazyHydrate). Opens on the current set; without
+ * one, the ways to load a night (the header's Night menu has them too).
  */
 /**
  * The deck's cards under an open Controls panel (two columns): every card shows whole or not at all. The Now card
@@ -160,8 +166,12 @@ function Booth() {
   // 2026-11: the Booth can be cleared (Compose keeps its night) and loads another night (LoadNightSheet)
   const cleared = useBoothLoad((s) => s.cleared);
   const loadSeq = useBoothLoad((s) => s.seq);
-  const playlist = cleared ? null : composed;
-  const [loadOpen, setLoadOpen] = useState(false);
+  // 2026-11 ("never silently"): a night that plays stays on the Booth when Compose opens another meanwhile (a new
+  // compose, an import opened in Compose); "Load a night…" offers Compose's, and asks first
+  const boothNight = useBooth((s) => s.playlist);
+  const nightPlays = useBooth((s) => s.started && s.state !== "stopped" && s.state !== "idle");
+  const playlist =
+    nightPlays && boothNight && boothNight.id !== composed?.id ? boothNight : cleared ? null : composed;
   const router = useRouter();
   const params = useSearchParams();
   const rehearsalParam = params.get("rehearsal") === "1";
@@ -182,7 +192,6 @@ function Booth() {
   const [breakOpen, setBreakOpen] = useState(false);
   const [find, setFind] = useState<{ id: string; title: string } | null>(null);
   const [jump, setJump] = useState<number | null>(null);
-  const [light, setLight] = useState(false);
   const [levels, setLevels] = useState(false);
   const [stopOpen, setStopOpen] = useState(false);
   const [cortina, setCortina] = useState<number | null>(null);
@@ -246,10 +255,9 @@ function Booth() {
     if (phone) setSetOpen(true);
     setJump(i);
   };
-  // the stored theme, read at mount: the persisting effect waits until `light` holds it (round 18: with the booth
-  // already ready at mount, its first run wrote "dark" over a stored "light" before setLight(true) landed)
-  const storedLight = useRef<boolean | null>(null);
-  const themeSynced = useRef(false);
+  // 2026-11: "Always dark in the Booth" (opt-in, Settings → Booth; ThemeSync applies it while the Booth is open)
+  const boothDark = useStore((s) => s.settings.boothDark === true);
+  const setSettings = useStore((s) => s.setSettings);
 
   // 2026-11: in a room, the playing song goes to the room and its dancers' hearts come back (dancer favourites)
   useEffect(() => startRoomHearts(), []);
@@ -325,42 +333,16 @@ function Booth() {
     };
   }, [phone, ready]);
 
-  // dark forced while mounted; the DJ's per-device choice overrides it
+  // the Booth's own page marker (its tokens, the hidden tab bar); the theme is ThemeSync's (the app's appearance)
   useEffect(() => {
     const el = document.documentElement;
-    const prev = el.dataset.theme;
-    const prevDark = el.classList.contains("dark");
-    let wantLight = false;
-    try {
-      wantLight = localStorage.getItem(THEME_KEY) === "light";
-    } catch {}
-    storedLight.current = wantLight;
-    setLight(wantLight);
-    el.dataset.theme = wantLight ? "light" : "dark";
-    el.classList.toggle("dark", !wantLight);
     el.dataset.booth = "1";
     usePlayer.getState().close();
     return () => {
-      if (prev) el.dataset.theme = prev;
-      else delete el.dataset.theme;
-      el.classList.toggle("dark", prevDark);
       delete el.dataset.booth;
       useBooth.getState().leave();
     };
   }, []);
-  useEffect(() => {
-    if (!ready || storedLight.current === null) return;
-    if (!themeSynced.current) {
-      if (light !== storedLight.current) return;
-      themeSynced.current = true;
-    }
-    const el = document.documentElement;
-    el.dataset.theme = light ? "light" : "dark";
-    el.classList.toggle("dark", !light);
-    try {
-      localStorage.setItem(THEME_KEY, light ? "light" : "dark");
-    } catch {}
-  }, [light, ready]);
 
   // boot per set (by id): the booth writes its plan back into the set, which must not re-boot it
   const playlistId = playlist?.id ?? null;
@@ -369,7 +351,15 @@ function Booth() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: loadSeq is the trigger, not read
   useEffect(() => {
     const p = useStore.getState().playlist;
-    if (p && p.id === playlistId && !cleared) void boot(p, { rehearsal: rehearsalParam });
+    if (!p || p.id !== playlistId || cleared) return;
+    void boot(p, { rehearsal: rehearsalParam }).then(() => {
+      // an Undo or a Reset puts the playhead back where it was (nothing plays)
+      const at = useBoothLoad.getState().resumeAt;
+      if (at === null) return;
+      useBoothLoad.setState({ resumeAt: null });
+      const b = useBooth.getState();
+      if (!b.started) b.select(at);
+    });
   }, [playlistId, boot, rehearsalParam, cleared, loadSeq]);
 
   // the plan for tests and the console (nothing secret: the set the DJ composed)
@@ -531,15 +521,15 @@ function Booth() {
 
   if (!playlist)
     return (
-      <div data-testid="booth-empty">
-        <PageHeader title={t("booth.booth")} />
+      <div data-testid="booth-empty" className="booth-empty">
+        <PageHeader title={t("booth.booth")} trailing={<NightMenu />} />
         <EmptyState
           action={
             <span className="flex flex-wrap justify-center gap-2">
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => setLoadOpen(true)}
+                onClick={openLoadNight}
                 data-testid="booth-empty-load"
               >
                 {t("booth.load.menu")}
@@ -557,7 +547,11 @@ function Booth() {
             {cleared ? t("booth.load.empty_text") : t("booth.the_booth_plays_the_set_on")}
           </span>
         </EmptyState>
-        <LoadNightSheet open={loadOpen} onClose={() => setLoadOpen(false)} />
+        {/* 2026-11: the choices in place, not only behind a button (the owner: "import from Spotify is not seen") */}
+        <div className="booth-empty-choices mx-auto max-w-[560px] pb-24" data-testid="booth-empty-choices">
+          <LoadNightChoices inline />
+        </div>
+        <LoadNightSheet />
       </div>
     );
 
@@ -582,7 +576,7 @@ function Booth() {
       testId: "booth-controls-toggle",
       onClick: toggleControls,
     },
-    { label: t("booth.load.menu"), testId: "booth-menu-load", onClick: () => setLoadOpen(true) },
+    { label: t("booth.load.menu"), testId: "booth-menu-load", onClick: openLoadNight },
     { label: t("booth.set_up_source_output_night"), onClick: () => setOnboarding(true) },
     // (a phone's transport has Previous / Next now; Next at gap and Mix live here)
     started && phone && { label: t("booth.connect.skip_next_menu"), onClick: () => b.next() },
@@ -622,7 +616,13 @@ function Booth() {
       testId: "booth-menu-floor",
       onClick: () => void showFloorScreen(),
     },
-    { label: light ? t("booth.dark_theme") : t("booth.light_theme"), onClick: () => setLight((v) => !v) },
+    // 2026-11: the Booth follows the app's appearance; "Always dark in the Booth" is the DJ's opt-in
+    {
+      label: t("settings.booth.always_dark"),
+      checked: boothDark,
+      testId: "booth-menu-dark",
+      onClick: () => setSettings({ boothDark: !boothDark }),
+    },
     // (a phone has no tab bar on the booth: this is its way out, before the night too)
     (started || phone) && {
       label: t("booth.leave_the_booth"),
@@ -648,7 +648,7 @@ function Booth() {
       data-controls={ctlOpen ? "open" : undefined}
     >
       {/* the title keeps one width; the mode is a chip under it (round8-ux.md §2 Booth) */}
-      <PageHeader title={t("booth.booth")} />
+      <PageHeader title={t("booth.booth")} trailing={<NightMenu />} />
       {/* the chips under the title and "Find songs" share one row */}
       <div className="booth-head-row">
         <PlayerToolbar rehearsal={rehearsal} />
@@ -800,7 +800,7 @@ function Booth() {
       <BreakSheet open={breakOpen} onClose={() => setBreakOpen(false)} />
       <FindFileSheet item={find} onClose={() => setFind(null)} />
       <ResumeSheet />
-      <LoadNightSheet open={loadOpen} onClose={() => setLoadOpen(false)} />
+      <LoadNightSheet />
     </div>
   );
 }

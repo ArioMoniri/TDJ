@@ -15,6 +15,7 @@ import { LocaleRoot } from "@/components/LocaleRoot";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import { Motion } from "@/components/Motion";
 import { Nav } from "@/components/Nav";
+import { NightActions } from "@/components/NightActions";
 import { ToolbarProvider } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
 import { PlaylistSync } from "@/components/PlaylistSync";
@@ -67,7 +68,7 @@ export const viewport: Viewport = {
 /* Applies the saved theme / reduce-transparency choice before first paint so there is no flash; then the macOS
    window's title bar (the app draws under it) and the sidebar's saved width / collapsed state; and (wave 3) hides
    the page until the LocaleRoot renders it in Turkish when the language setting (or Auto) asks for Turkish. */
-const themeScript = `try{var s=JSON.parse(localStorage.getItem("tdj-v1")).state.settings;var e=document.documentElement;if(s.theme&&s.theme!=="auto")e.dataset.theme=s.theme;if(s.theme==="dark")e.classList.add("dark");if(s.reduceGlass)e.classList.add("reduce-glass")}catch(_){}try{var n=window.__TDJ_NATIVE__;if(n&&n.titleBar==="overlay")document.documentElement.classList.add("titlebar-overlay")}catch(_){}try{var b=JSON.parse(localStorage.getItem("tdj-sidebar"));var r=document.documentElement;if(b.collapsed)r.dataset.sidebar="collapsed";if(b.w>=200&&b.w<=360)r.style.setProperty("--sidebar-open-w",b.w+"px")}catch(_){}try{var l=(JSON.parse(localStorage.getItem("tdj-v1")||"{}").state||{}).settings;l=l&&l.language;var z=l==="tr"||l==="en"?l:"en";if(!l||l==="auto"){var g=(navigator.languages||[navigator.language]);for(var i=0;i<g.length;i++){var c=String(g[i]).toLowerCase().split(/[-_]/)[0];if(c==="tr"||c==="en"){z=c;break}}}if(z!=="en"){document.documentElement.classList.add("i18n-pending");document.documentElement.lang=z;setTimeout(function(){document.documentElement.classList.remove("i18n-pending")},4000)}}catch(_){}`;
+const themeScript = `try{var s=JSON.parse(localStorage.getItem("tdj-v1")).state.settings;var e=document.documentElement;if(s.theme&&s.theme!=="auto")e.dataset.theme=s.theme;if(s.theme==="dark")e.classList.add("dark");if(s.boothDark&&location.pathname.indexOf("/booth")===0){e.dataset.theme="dark";e.classList.add("dark")}if(s.reduceGlass)e.classList.add("reduce-glass")}catch(_){}try{var n=window.__TDJ_NATIVE__;if(n&&n.titleBar==="overlay")document.documentElement.classList.add("titlebar-overlay")}catch(_){}try{var b=JSON.parse(localStorage.getItem("tdj-sidebar"));var r=document.documentElement;if(b.collapsed)r.dataset.sidebar="collapsed";if(b.w>=200&&b.w<=360)r.style.setProperty("--sidebar-open-w",b.w+"px")}catch(_){}try{var l=(JSON.parse(localStorage.getItem("tdj-v1")||"{}").state||{}).settings;l=l&&l.language;var z=l==="tr"||l==="en"?l:"en";if(!l||l==="auto"){var g=(navigator.languages||[navigator.language]);for(var i=0;i<g.length;i++){var c=String(g[i]).toLowerCase().split(/[-_]/)[0];if(c==="tr"||c==="en"){z=c;break}}}if(z!=="en"){document.documentElement.classList.add("i18n-pending");document.documentElement.lang=z;setTimeout(function(){document.documentElement.classList.remove("i18n-pending")},4000)}}catch(_){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -111,6 +112,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <EditGuide />
             <InsertSheet />
             <DeleteNights />
+            <NightActions />
           </ToolbarProvider>
         </LocaleRoot>
       </body>

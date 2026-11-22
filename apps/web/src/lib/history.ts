@@ -1,5 +1,6 @@
 "use client";
 import { del, delMany, get, getMany, keys, setMany } from "idb-keyval";
+import { APP } from "@/lib/app/target";
 import { coverSeedOf } from "@/lib/cover/seed";
 import { fmtDate, lazy, plural, t as tx } from "@/lib/i18n";
 import { nightMusicSec } from "./lengths";
@@ -259,6 +260,18 @@ export function historyAfter(
   return { list: list.map((h) => (h.id === cur.id ? next : h)), currentId: cur.id };
 }
 
+/** the in-memory entries (newer edits win), the server row and this browser's copy: by id, newest first, ≤ 50 */
+export function mergeHistory(
+  memory: HistorySnapshot[],
+  server: unknown[],
+  local: HistorySnapshot[],
+): HistorySnapshot[] {
+  return [...memory, ...server.filter(isSnapshot), ...local]
+    .filter((h, i, arr) => arr.findIndex((x) => x.id === h.id) === i)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, HISTORY_MAX);
+}
+
 /** The newest snapshots whose JSON fits the byte budget (server storage). */
 export function boundedHistory(list: HistorySnapshot[], budget = SERVER_HISTORY_BYTES): HistorySnapshot[] {
   const out: HistorySnapshot[] = [];
@@ -270,6 +283,18 @@ export function boundedHistory(list: HistorySnapshot[], budget = SERVER_HISTORY_
     out.push(s);
   }
   return out;
+}
+
+/**
+ * What a save sends to `/api/db`. The web's server row is one DynamoDB item: the newest snapshots that fit its budget.
+ * 2026-11 (the owner: "History is empty in the Mac app"): the apps answer `/api/db` from the on-device SQLite, which
+ * REPLACES its history table with what it is sent (lib/app/store.ts putHistory). The byte budget was applied there
+ * too, so a night whose snapshot (its playlist plus its kept versions) was over 300 KB — a 4 h night with a few edits
+ * — was sent as an empty list, the device's History was wiped on every save, and the sidebar's Recent nights (which
+ * shows only when History has nights) disappeared with it. The device has no item limit: it keeps the whole list.
+ */
+export function historyForServer(list: HistorySnapshot[], onDevice = APP): HistorySnapshot[] {
+  return onDevice ? list.filter(isSnapshot).slice(0, HISTORY_MAX) : boundedHistory(list);
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -294,13 +319,16 @@ export function saveHistory(list: HistorySnapshot[], mode: StorageMode, immediat
     try {
       await writeLocal(list);
     } catch {}
-    if (mode === "server")
+    if (mode === "server") {
+      const body = JSON.stringify({ history: historyForServer(list) });
       await fetch("/api/db", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ history: boundedHistory(list) }),
-        keepalive: true,
+        body,
+        // (a keepalive request over 64 KB is refused outright: a larger list goes as a plain request)
+        keepalive: body.length < 60_000,
       }).catch(() => {});
+    }
   };
   // a rename or a delete is one small record: write it now, so a reload right after keeps it
   if (immediate) flush();

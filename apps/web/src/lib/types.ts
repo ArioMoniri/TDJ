@@ -171,6 +171,11 @@ export interface UserSettings {
    */
   boothConfirm?: boolean;
   /**
+   * 2026-11 (the owner: "the Booth tab is always in dark mode"): the Booth follows the app's appearance like every
+   * page; on, it is always dark while open (the old forced dark, now the DJ's choice). Unset = off.
+   */
+  boothDark?: boolean;
+  /**
    * 2026-11 (Settings → Booth → Gaps): a side's own silent head / tail and the gap. "gap" (unset): the silence
    * counts as part of the gap, so the room hears exactly the gap; "after": the gap starts after the music ends (the
    * tail is trimmed, the head kept); "off": files play to their edges, then the gap.
