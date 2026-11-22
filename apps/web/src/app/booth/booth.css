@@ -2137,44 +2137,68 @@ html[data-booth] .sheet-material {
     align-items: stretch;
   }
 }
-/* ---------- the tanda header on a grid: the title across the top (it truncates), the type and total under it, the
-   actions at the header's right edge (the rows' action column: both inset 8 px), centred on that second line — no
-   longer a third line of their own. A wide column puts them beside both lines. ---------- */
+/* ---------- the tanda header (2026-11, the owner: the number tile, Skip tonight, ••• and swap squeezed beside
+   "Vocal · Fr…" on one line): three bands that never collide and never cut a word —
+   1. the title across the header (it wraps onto a second line rather than end in an ellipsis);
+   2. the type and the total (the singer's name wraps under the rhythm when it must);
+   3. the actions on their own row, at the rows' right edge (both inset 8 px), every button 44 px and 8 px apart.
+   A column wide enough for the text and the actions side by side (640 px) puts the actions beside both lines,
+   centred on them. ---------- */
 .booth-tanda-head {
   display: grid;
-  grid-template-columns: minmax(8rem, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  column-gap: 8px;
-  row-gap: 0;
+  column-gap: 12px;
+  row-gap: 2px;
 }
 .booth-tanda-head > .booth-tanda-text {
   display: contents;
 }
 .booth-set .booth-tanda .booth-tanda-head .booth-tanda-title {
-  grid-column: 1 / -1;
+  grid-column: 1;
   grid-row: 1;
   min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  text-wrap: pretty;
 }
 .booth-tanda-head .booth-tanda-meta {
   grid-column: 1;
   grid-row: 2;
   align-self: center;
+  margin-top: 2px;
+}
+.booth-tanda-head .booth-tanda-meta > .tanda-type {
+  flex-wrap: wrap;
+  row-gap: 2px;
+  white-space: normal;
 }
 .booth-tanda-head .booth-tanda-meta .tanda-type-mode {
-  white-space: nowrap;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  line-height: 1.3;
 }
 .booth-tanda-head > .booth-tanda-acts {
-  grid-column: 2;
-  grid-row: 2;
-  margin-left: 0;
+  grid-column: 1;
+  grid-row: 3;
   justify-self: end;
+  justify-content: flex-end;
+  margin: 4px 0 0;
+  gap: 8px;
+  max-width: 100%;
 }
-@container booth-set (min-width: 520px) {
-  .booth-set .booth-tanda .booth-tanda-head .booth-tanda-title {
-    grid-column: 1;
+@container booth-set (min-width: 640px) {
+  .booth-tanda-head {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
   .booth-tanda-head > .booth-tanda-acts {
+    grid-column: 2;
     grid-row: 1 / span 2;
+    align-self: center;
+    margin: 0;
   }
 }
 

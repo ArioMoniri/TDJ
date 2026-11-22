@@ -5,7 +5,7 @@
  * left in the side bar"). On a desktop, an iPad landscape, an iPad portrait and a phone:
  * - the night plays on another page in ONE player (the sidebar's where there is one, the bottom bar otherwise) and it
  *   controls the night (Pause asks mid-night, Resume, Next, Mute, volume); no second player anywhere;
- * - collapsing the sidebar turns it into the gramophone; the ring advances; a tap opens Now playing;
+ * - collapsing the sidebar turns it into the gramophone; the ring advances; a tap opens its card (Now playing on it);
  * - drag (snaps to an edge / corner, clear of the tab bar), the resize handle and a pinch, the gramophone below a
  *   card's width; dragging (even from Pause) never pauses the room; the place is kept on the device;
  * - Reduce Motion stops the record; nothing overflows at 393 px.
@@ -384,9 +384,13 @@ for (const v of VIEWS) {
       await playing(page);
       expect((await snap(page)).cur).toBe(cur);
 
-      // a tap: Now playing, in the Booth
+      // a tap: the player's card in place (2026-11, the owner: it jumped straight to Now playing); Now playing is on
+      // the card
       await disc.click();
-      await expect(page).toHaveURL(/\/booth/);
+      await expect(dock(page)).toHaveAttribute("data-quick", "true");
+      await expect(page).toHaveURL(/\/library/);
+      await page.getByTestId("booth-mini-now").click();
+      await expect(page).toHaveURL(/\/booth/, { timeout: 20000 });
       await expect(page.getByTestId("now-view")).toBeVisible({ timeout: 15000 });
       await playing(page);
       await shot(page, `${v.name}-5-now-playing`);

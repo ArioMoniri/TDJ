@@ -45,20 +45,12 @@ const sideTitles = (tanda: Locator) =>
         (e.querySelector('[data-testid="row-play"] .truncate') as HTMLElement | null)?.textContent?.trim(),
       ),
     );
-/** the Add panel: inline on a desktop, a sheet on a phone */
-async function addPanel(page: Page, phone: boolean) {
-  if (phone && !(await page.getByTestId("build-add-sheet").isVisible()))
-    await page.getByTestId("build-add-open").click();
-  const panel = phone ? page.getByTestId("build-add-sheet") : page.getByTestId("build-add-panel");
-  await expect(panel).toBeVisible();
-  return panel;
+/** the search and What comes next: on the page at every size (2026-11: the search is the page's centre) */
+async function addPanel(page: Page, _phone: boolean) {
+  await expect(page.getByTestId("build-add-panel")).toBeVisible();
+  return page.getByTestId("build-layout");
 }
-async function closePanel(page: Page, phone: boolean) {
-  if (!phone) return;
-  const sheet = page.getByTestId("build-add-sheet");
-  if (await sheet.isVisible()) await sheet.getByRole("button", { name: "Done" }).first().click();
-  await expect(sheet).toBeHidden();
-}
+async function closePanel(_page: Page, _phone: boolean) {}
 /** Fill → Fill everything → the guide's preview → Apply (2026-11: Fill is a menu, previewed before it applies) */
 async function fillAll(page: Page) {
   await page.getByTestId("build-fill").getByRole("button").click();
@@ -243,13 +235,17 @@ for (const [name, opts] of DEVICES) {
 
 test.describe("iPad landscape", () => {
   test.use(ipad);
-  test("iPad landscape: the night and the Add panel side by side", async ({ page }) => {
+  test("iPad landscape: the search across the top, the night and the guidance side by side under it", async ({
+    page,
+  }) => {
     await fresh(page);
     await expect(page.getByTestId("build-add-panel")).toBeVisible();
     await expect(page.getByTestId("build-add-open")).toHaveCount(0);
     const a = (await page.getByTestId("build-guide").boundingBox())!;
+    const n = (await page.getByTestId("build-night").boundingBox())!;
     const b = (await page.getByTestId("build-add-panel").boundingBox())!;
-    expect(b.x).toBeGreaterThan(a.x + a.width - 2);
+    expect(a.x).toBeGreaterThan(n.x + n.width - 2);
+    expect(n.y).toBeGreaterThan(b.y + b.height - 2);
     await fillAll(page);
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/ipad-landscape.png` });
   });

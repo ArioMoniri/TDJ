@@ -4,6 +4,14 @@ import { LayoutGroup, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type KeyboardEvent, type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  COMPACT_H,
+  readSidePlayer,
+  SIDE_PLAYER_KEY,
+  settleSidePlayer,
+  sidePlayerFit,
+} from "@/lib/dock/sidePlayer";
+import { useDock } from "@/lib/dock/store";
 import { haptic } from "@/lib/haptics";
 import { fmtDate, t as tx } from "@/lib/i18n";
 import { nightMusicSec } from "@/lib/lengths";
@@ -345,6 +353,78 @@ export function Sidebar() {
   };
   const recent = history.slice(0, 5);
 
+  /* ——— the player's share of the sidebar (2026-11, the owner: "the lower part takes too much space from the nav"):
+     a handle between the nav and the docked player sets its height (kept on this device); a short window takes it
+     down to what leaves the nav its room; below the whole player's height it is the compact row (lib/dock/sidePlayer) */
+  const docked = useDock((d) => d.place === "side");
+  const [chosen, setChosen] = useState(() => readSidePlayer(null));
+  const [liveH, setLiveH] = useState<number | null>(null);
+  const [room, setRoom] = useState(100_000);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const slotRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    try {
+      setChosen(readSidePlayer(localStorage.getItem(SIDE_PLAYER_KEY)));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    const a = scrollRef.current;
+    const b = slotRef.current;
+    if (!docked || !a || !b || typeof ResizeObserver !== "function") return;
+    // the nav's and the player's height together (the nav scrolls, so it gives up what the player takes)
+    const read = () => setRoom(Math.round(a.clientHeight + b.getBoundingClientRect().height));
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(a);
+    ro.observe(b);
+    return () => ro.disconnect();
+  }, [docked]);
+  const fit = sidePlayerFit(liveH ?? chosen, room);
+  const keep = (h: number) => {
+    const v = settleSidePlayer(h);
+    setChosen(v);
+    try {
+      localStorage.setItem(SIDE_PLAYER_KEY, String(v));
+    } catch {}
+  };
+  const split = useRef<{ y: number; h: number; now: number } | null>(null);
+  const onSplitDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    split.current = { y: e.clientY, h: fit.height, now: fit.height };
+  };
+  const onSplitMove = (e: PointerEvent<HTMLDivElement>) => {
+    const d = split.current;
+    if (!d) return;
+    d.now = Math.max(COMPACT_H, d.h + (d.y - e.clientY));
+    setLiveH(d.now);
+  };
+  const onSplitUp = () => {
+    const d = split.current;
+    if (!d) return;
+    split.current = null;
+    setLiveH(null);
+    haptic(4);
+    keep(sidePlayerFit(d.now, room).height);
+  };
+  const onSplitKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const step = e.shiftKey ? 60 : 20;
+    const h =
+      e.key === "ArrowUp"
+        ? fit.height + step
+        : e.key === "ArrowDown"
+          ? fit.height - step
+          : e.key === "Home"
+            ? COMPACT_H
+            : e.key === "End"
+              ? room
+              : null;
+    if (h === null) return;
+    e.preventDefault();
+    keep(sidePlayerFit(h, room).height);
+  };
+
   return (
     <>
       <aside
@@ -356,6 +436,7 @@ export function Sidebar() {
         aria-label={tx("sidebar.sidebar")}
         data-testid="sidebar"
         data-collapsed={state.collapsed || undefined}
+        data-player={docked ? fit.mode : undefined}
       >
         {/* the title-bar strip (traffic lights on the Mac app) is the window's drag region */}
         <div
@@ -386,7 +467,7 @@ export function Sidebar() {
           </Tip>
         </div>
 
-        <div className="side-scroll min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+        <div ref={scrollRef} className="side-scroll min-h-0 flex-1 overflow-y-auto px-3 pb-3">
           <nav aria-label={tx("sidebar.primary_sidebar")}>
             <h2 className="side-head">{NAV_MAIN_TITLE()}</h2>
             <LayoutGroup id="sidebar-nav">
@@ -569,11 +650,46 @@ export function Sidebar() {
           )}
         </div>
 
-        <div className="shrink-0 border-t border-[var(--separator)] px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+        <div className="side-foot shrink-0 border-t border-[var(--separator)] px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+          {/* the handle between the nav and the docked player: drag (or arrow keys) to share the height, double-click
+              for the compact row or the whole player */}
+          {docked && (
+            // biome-ignore lint/a11y/useSemanticElements: a focusable window splitter (WAI-ARIA separator pattern)
+            <div
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label={tx("sidebar.resize_player")}
+              aria-valuemin={COMPACT_H}
+              aria-valuemax={Math.max(COMPACT_H, room)}
+              aria-valuenow={fit.height}
+              aria-valuetext={
+                fit.mode === "compact" ? tx("sidebar.player_compact") : tx("sidebar.player_full")
+              }
+              tabIndex={0}
+              className="side-split"
+              data-testid="sidebar-split"
+              data-dragging={liveH !== null || undefined}
+              onPointerDown={onSplitDown}
+              onPointerMove={onSplitMove}
+              onPointerUp={onSplitUp}
+              onPointerCancel={onSplitUp}
+              onDoubleClick={() => keep(fit.mode === "compact" ? readSidePlayer(null) : COMPACT_H)}
+              onKeyDown={onSplitKey}
+            >
+              <span className="side-split-bar" aria-hidden />
+            </div>
+          )}
           {/* 2026-11 (the owner: "the player … all on the left in the side bar"): the one player docks here
               (components/player/PlayerDock.tsx portals into this slot); it was a now-playing card here and a
               second player at the page's foot */}
-          <div id="sidebar-player" className="side-player" data-testid="sidebar-player" />
+          <div
+            ref={slotRef}
+            id="sidebar-player"
+            className="side-player"
+            data-testid="sidebar-player"
+            data-mode={docked ? fit.mode : undefined}
+            style={docked && fit.mode === "full" ? { maxHeight: `${fit.height}px` } : undefined}
+          />
           <LayoutGroup id="sidebar-foot">
             <div className="flex flex-col gap-0.5">
               {pinned.map((it) => (

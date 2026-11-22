@@ -1408,13 +1408,15 @@ for (const locale of ["en-US", "tr-TR"] as const) {
     expect(a.type?.text).toMatch(/Tango|Vals|Milonga/);
     const s = a.set!;
     expect(s.cut, "the set list ends on a whole row").toBe(0);
-    // the tanda header: the actions at the rows' right edge, centred on the type / total line, under the title
+    // the tanda header (2026-11, the owner: the actions squeezed beside a cut "Vocal · Fr…"): the actions at the rows'
+    // right edge, on their own row under the type / total line in a narrow column, beside both lines in a wide one
     expect(Math.abs(s.head.acts.right - s.head.rowsRight)).toBeLessThanOrEqual(1);
-    expect(s.head.acts.top).toBeGreaterThanOrEqual(s.head.title.bottom - 1);
-    expect(s.head.acts.top).toBeLessThan(s.head.meta.bottom);
-    expect(
-      Math.abs((s.head.acts.top + s.head.acts.bottom) / 2 - (s.head.meta.top + s.head.meta.bottom) / 2),
-    ).toBeLessThanOrEqual(4);
+    if (s.head.acts.left > s.head.meta.right) {
+      expect(s.head.acts.top).toBeLessThan(s.head.meta.bottom);
+    } else {
+      expect(s.head.acts.top).toBeGreaterThanOrEqual(s.head.meta.bottom - 1);
+      expect(s.head.meta.top).toBeGreaterThanOrEqual(s.head.title.bottom - 1);
+    }
     // the gap pills start on the rows' content edge
     expect(s.gaps.length).toBeGreaterThan(0);
     for (const g of s.gaps)

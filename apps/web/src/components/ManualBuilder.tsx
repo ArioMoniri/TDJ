@@ -324,7 +324,6 @@ export function ManualBuilder() {
   const shiftRef = useRef(false);
   const [multi, setMulti] = useState(false);
   const [picked, setPicked] = useState<DraftSong[]>([]);
-  const [addOpen, setAddOpen] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const [newRhythm, setNewRhythm] = useState<"tango" | "vals" | "milonga">("tango");
   const [cortinaAt, setCortinaAt] = useState<number | null>(null);
@@ -811,7 +810,6 @@ export function ManualBuilder() {
     [draft, plan, minutes, meta.cortinas],
   );
   const showAdd = (focus: "search" | "suggest") => {
-    if (!wide) setAddOpen(true);
     requestAnimationFrame(() =>
       (focus === "search" ? searchRef : suggestRef).current?.scrollIntoView({
         behavior: "smooth",
@@ -891,73 +889,10 @@ export function ManualBuilder() {
     [hits],
   );
 
-  const addPanel = (
-    <div className="min-w-0" data-testid="build-add-panel">
-      <div ref={searchRef} className="scroll-mt-24" data-testid="build-search-first">
-        <h2 className="section-head">{tx("manualBuilder.search")}</h2>
-        {place && (
-          <p
-            className="text-footnote mb-2 flex items-center gap-2 px-4 text-[var(--tint)]"
-            data-testid="build-place"
-          >
-            <span className="min-w-0 flex-1">
-              {place.kind === "tanda"
-                ? tx("build.place_tanda", { n: place.tanda + 1 })
-                : tx("build.place_song", { n: place.tanda + 1, at: place.at + 1 })}
-            </span>
-            <button type="button" className="btn-plain min-h-11" onClick={() => setPlace(null)}>
-              {tx("build.place_cancel")}
-            </button>
-          </p>
-        )}
-        {/* 2026-11 (the owner: "just search songs and add them, with the orchestra, singer, timing and the versions as a
-            guide"): the plain smart search leads — typing shows the versions by work; Add puts one in the tanda (Enter),
-            "New tanda" starts one with it (Shift+Enter); the line under each says what it does to that tanda */}
-        <div
-          onKeyDownCapture={(e) => {
-            if (e.key === "Enter") shiftRef.current = e.shiftKey;
-          }}
-        >
-          <SmartSearchField
-            s={smart}
-            id="build-search"
-            prefix="build"
-            placeholder={tx("manualBuilder.title_orchestra_singer_or_year")}
-            label={tx("manualBuilder.search_for_a_song_to_add")}
-            onEnter={(v) => addVersion(v)}
-          />
-        </div>
-        <p className="text-caption1 mt-1 px-4 text-[var(--label-2)]" data-testid="build-search-hint">
-          {tx("build.search_hint", {
-            where: place
-              ? place.kind === "tanda"
-                ? tx("build.place_short_tanda", { n: place.tanda + 1 })
-                : tx("build.place_short_song", { n: place.tanda + 1 })
-              : selLabel,
-          })}
-        </p>
-        {smart.works && (
-          <SmartSearchResults
-            s={smart}
-            id="build-search"
-            prefix="build"
-            chips={false}
-            onPick={(v) => addVersion(v)}
-            rowTestId="build-version"
-            renderVersion={(v, ctx) =>
-              v.hit ? (
-                <BuildVersionRow
-                  v={v}
-                  ctx={ctx}
-                  fit={fitOf(v)}
-                  onAdd={() => addVersion(v)}
-                  more={versionMenu(v)}
-                />
-              ) : null
-            }
-          />
-        )}
-      </div>
+  // 2026-11 (the owner: "the song search should be in the middle, as the main part of the page"): the search and
+  // its results are the page's centre; the night, the guidance and What comes next stand beside it (build.css)
+  const nextPanel = (
+    <div className="min-w-0" data-testid="build-next-panel">
       <div ref={suggestRef} className="scroll-mt-24">
         <h2 className="section-head">{tx("manualBuilder.what_comes_next")}</h2>
         <Group
@@ -1027,7 +962,76 @@ export function ManualBuilder() {
           </Group>
         )}
       </div>
+    </div>
+  );
 
+  const addPanel = (
+    <div className="min-w-0" data-testid="build-add-panel">
+      <div ref={searchRef} className="scroll-mt-24" data-testid="build-search-first">
+        <h2 className="section-head">{tx("manualBuilder.search")}</h2>
+        {place && (
+          <p
+            className="text-footnote mb-2 flex items-center gap-2 px-4 text-[var(--tint)]"
+            data-testid="build-place"
+          >
+            <span className="min-w-0 flex-1">
+              {place.kind === "tanda"
+                ? tx("build.place_tanda", { n: place.tanda + 1 })
+                : tx("build.place_song", { n: place.tanda + 1, at: place.at + 1 })}
+            </span>
+            <button type="button" className="btn-plain min-h-11" onClick={() => setPlace(null)}>
+              {tx("build.place_cancel")}
+            </button>
+          </p>
+        )}
+        {/* 2026-11 (the owner: "just search songs and add them, with the orchestra, singer, timing and the versions as a
+            guide"): the plain smart search leads — typing shows the versions by work; Add puts one in the tanda (Enter),
+            "New tanda" starts one with it (Shift+Enter); the line under each says what it does to that tanda */}
+        <div
+          onKeyDownCapture={(e) => {
+            if (e.key === "Enter") shiftRef.current = e.shiftKey;
+          }}
+        >
+          <SmartSearchField
+            s={smart}
+            id="build-search"
+            prefix="build"
+            placeholder={tx("manualBuilder.title_orchestra_singer_or_year")}
+            label={tx("manualBuilder.search_for_a_song_to_add")}
+            onEnter={(v) => addVersion(v)}
+          />
+        </div>
+        <p className="text-caption1 mt-1 px-4 text-[var(--label-2)]" data-testid="build-search-hint">
+          {tx("build.search_hint", {
+            where: place
+              ? place.kind === "tanda"
+                ? tx("build.place_short_tanda", { n: place.tanda + 1 })
+                : tx("build.place_short_song", { n: place.tanda + 1 })
+              : selLabel,
+          })}
+        </p>
+        {smart.works && (
+          <SmartSearchResults
+            s={smart}
+            id="build-search"
+            prefix="build"
+            chips={false}
+            onPick={(v) => addVersion(v)}
+            rowTestId="build-version"
+            renderVersion={(v, ctx) =>
+              v.hit ? (
+                <BuildVersionRow
+                  v={v}
+                  ctx={ctx}
+                  fit={fitOf(v)}
+                  onAdd={() => addVersion(v)}
+                  more={versionMenu(v)}
+                />
+              ) : null
+            }
+          />
+        )}
+      </div>
       <div className="scroll-mt-24">
         <h2 className="section-head">{tx("build.judged_search")}</h2>
         <fieldset className="mt-2 flex flex-wrap items-center gap-1.5 border-0 p-0" data-testid="build-chips">
@@ -1277,7 +1281,7 @@ export function ManualBuilder() {
 
   const targetMin = plan?.minutes ?? Math.round((options.hours ?? 4) * 60);
   return (
-    <div className="mx-auto max-w-[1180px]">
+    <div className="build-page mx-auto max-w-[1180px]">
       <PageHeader
         title={tx("manualBuilder.build_by_hand")}
         subtitle={
@@ -1343,214 +1347,203 @@ export function ManualBuilder() {
         }
       />
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-x-6 min-[1024px]:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
-        <section aria-label={tx("manualBuilder.your_night")} className="build-stack min-w-0">
-          <h2 className="section-head">{tx("manualBuilder.your_night")}</h2>
-          {/* the night at a glance: its length against the target, the energy, and the guidance lines */}
-          <Group data-testid="build-summary">
-            <div className="cell flex-col items-stretch gap-1 py-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-headline tabular-nums" data-testid="build-length">
-                  {tx("builder.length_of", { minutes, target: targetMin })}
-                </span>
-                <span className="text-footnote tabular-nums text-[var(--label-2)]">
-                  {tx("builder.tandas_of", { n: draft.length, of: plan?.slots.length ?? "–" })}
-                </span>
-              </div>
-              <span
-                className="block h-1.5 overflow-hidden rounded-full bg-[var(--fill-3)]"
-                role="progressbar"
-                aria-label={tx("builder.night_length")}
-                aria-valuemin={0}
-                aria-valuemax={targetMin}
-                aria-valuenow={Math.min(minutes, targetMin)}
-              >
-                <span
-                  className="block h-full rounded-full bg-[var(--tint)]"
-                  style={{ width: `${Math.min(100, (minutes / Math.max(1, targetMin)) * 100)}%` }}
-                />
-              </span>
-              <Sparkline
-                values={draft.map(tandaEnergy)}
-                targets={(plan?.slots ?? [])
-                  .slice(0, Math.max(draft.length + 1, 2))
-                  .map((s) => s.targetEnergy)}
-              />
-            </div>
-          </Group>
-          <Group header={tx("builder.guidance")} data-testid="build-guide">
-            {fillShown && (
-              <FillPreviewCard
-                p={fillShown}
-                title={fillLabel(fillShown.scope)}
-                before={draft.length}
-                onApply={applyFill}
-                onCancel={() => setPreview(null)}
-              />
-            )}
-            {lines.map((l) => (
-              <GuideRow key={l.key} line={l} onFix={runFix} busy={filling && l.fix?.kind === "fill"} />
-            ))}
-          </Group>
-
-          <PlayListContext.Provider value={nightList}>
-            <Group>
-              <SwitchRow
-                label={tx("builder.opening_cumparsita")}
-                sub={tx("builder.opening_sub")}
-                checked={meta.opening}
-                onChange={(v) => setMeta((m) => ({ ...m, opening: v }))}
-              />
-            </Group>
-            {!draft.length && (
-              <Group footer={tx("manualBuilder.start_with_a_suggestion_or_search")}>
-                <Row
-                  label={tx("manualBuilder.nothing_yet")}
-                  sub={tx("manualBuilder.your_first_tanda_goes_here")}
-                />
-              </Group>
-            )}
-            <div data-reorder-list className="build-stack">
-              <AnimatePresence initial={false}>
-                {draft.map((t, ti) => (
-                  <motion.div
-                    key={`${t[0]!.id}-${ti}`}
-                    initial={{ opacity: 0, y: reduced ? 0 : 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: DUR.base, ease: EASE.out }}
-                    className="relative"
-                    data-reorder-row
-                  >
-                    <TandaBlock
-                      t={t}
-                      ti={ti}
-                      count={draft.length}
-                      selected={sel !== "new" && selIndex === ti}
-                      isOpen={open === t}
-                      size={sizes[t[0]!.rhythm as keyof typeof sizes] ?? 4}
-                      onSelect={() => setSel(ti)}
-                      onAddHere={() => {
-                        setSel(ti);
-                        setFilters({
-                          rhythm: t[0]!.rhythm as Filters["rhythm"],
-                          orchestraId: t[0]!.orchestraId,
-                        });
-                        showAdd("search");
-                      }}
-                      onMoveTanda={moveT}
-                      dragTanda={dragTanda(ti)}
-                      onMoveSide={(a, b) => moveSide(ti, a, b)}
-                      onRemove={() => removeT(ti)}
-                      onRemoveSide={(si) => setDraft(removeSong(draft, ti, si))}
-                      onPlace={choosePlace}
-                    />
-                    {ti < draft.length - 1 && (
-                      <CortinaSlot
-                        c={meta.cortinas[ti] ?? null}
-                        n={ti + 1}
-                        onPick={() => void openCortinas(ti)}
-                        onAuto={() => setCortina(ti, null)}
-                      />
-                    )}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-            <Group>
-              <SwitchRow
-                label={tx("builder.closing_cumparsita")}
-                sub={tx("builder.closing_sub")}
-                checked={meta.closing}
-                onChange={(v) => setMeta((m) => ({ ...m, closing: v }))}
-              />
-            </Group>
-          </PlayListContext.Provider>
-
-          <div className="flex flex-wrap gap-2" data-testid="build-actions">
-            <button
-              type="button"
-              className="btn btn-ghost min-h-11"
-              onClick={() => setNewOpen(true)}
-              data-testid="build-new-tanda"
-            >
-              <ListPlus size={16} aria-hidden /> {tx("builder.new_tanda")}
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost min-h-11"
-              onClick={suggestNextTanda}
-              data-testid="build-suggest-next"
-            >
-              <Sparkles size={16} aria-hidden /> {tx("builder.suggest_next")}
-            </button>
-            {/* 2026-11: Fill is a menu (the next tanda, one cycle, the target length, everything), previewed first */}
-            <span data-testid="build-fill">
-              <Menu
-                label={tx("build.fill_menu")}
-                tip={tx("builder.fill_tip")}
-                className="btn btn-ghost min-h-11"
-                align="left"
-                items={FILL_ITEMS.map((s) => ({
-                  label: fillLabel(s),
-                  icon: Wand2,
-                  disabled: filling,
-                  testId: `build-fill-${s}`,
-                  onClick: () => void previewFill(s),
-                }))}
-              >
-                <Wand2 size={16} aria-hidden /> {filling ? tx("builder.filling") : tx("build.fill")}
-                <ChevronDown size={14} aria-hidden />
-              </Menu>
-            </span>
-          </div>
-          {/* phones: the header keeps no primary button, so the night is used from here */}
-          {draft.length > 0 && (
-            <button
-              type="button"
-              className="btn btn-primary min-h-[50px] w-full sm:hidden"
-              onClick={finish}
-              disabled={finishing}
-              data-testid="build-finish-phone"
-            >
-              <Check size={18} aria-hidden /> {tx("manualBuilder.use_this_night")}
-            </button>
-          )}
-          {/* phones: room under the last row for the floating Add button */}
-          {!wide && <div className="h-16" aria-hidden />}
-        </section>
-
-        {wide ? (
-          <aside
-            aria-label={tx("builder.add")}
-            className="sticky top-20 max-h-[calc(100dvh-6rem)] min-w-0 self-start overflow-y-auto pb-6"
+      {/* (the query container is this wrapper, not the page: a container holds fixed descendants, the header's bar) */}
+      <div className="build-page">
+        <div className="build-layout" data-testid="build-layout">
+          <section
+            aria-label={tx("manualBuilder.search")}
+            className="build-main min-w-0"
+            data-testid="build-main"
           >
             {addPanel}
+          </section>
+          <aside
+            aria-label={tx("builder.guidance")}
+            className="build-side min-w-0"
+            data-testid="build-side-panel"
+          >
+            <div className="build-side-guide min-w-0">
+              <h2 className="section-head">{tx("builder.guidance")}</h2>
+              <Group data-testid="build-guide">
+                {fillShown && (
+                  <FillPreviewCard
+                    p={fillShown}
+                    title={fillLabel(fillShown.scope)}
+                    before={draft.length}
+                    onApply={applyFill}
+                    onCancel={() => setPreview(null)}
+                  />
+                )}
+                {lines.map((l) => (
+                  <GuideRow key={l.key} line={l} onFix={runFix} busy={filling && l.fix?.kind === "fill"} />
+                ))}
+              </Group>
+            </div>
+            <div className="build-side-next min-w-0">{nextPanel}</div>
           </aside>
-        ) : (
-          <>
-            <button
-              type="button"
-              // at the content column's trailing edge, never in the gutter beside it (globals.css)
-              className="build-add-fab btn btn-primary fixed z-20 min-h-[50px] px-5 shadow-lg"
-              style={{ bottom: "calc(var(--chrome-stack) + 10px)" }}
-              onClick={() => setAddOpen(true)}
-              data-testid="build-add-open"
-            >
-              <Plus size={18} aria-hidden /> {tx("builder.add")}
-            </button>
-            <Sheet
-              open={addOpen}
-              onClose={() => setAddOpen(false)}
-              title={tx("builder.add_to_title", { where: selLabel })}
-              trailing={tx("builder.done")}
-              detents={["large"]}
-              testId="build-add-sheet"
-            >
-              {addPanel}
-            </Sheet>
-          </>
-        )}
+          <section
+            aria-label={tx("manualBuilder.your_night")}
+            className="build-night build-stack min-w-0"
+            data-testid="build-night"
+          >
+            <h2 className="section-head">{tx("manualBuilder.your_night")}</h2>
+            {/* the night at a glance: its length against the target and the energy (the guidance is beside the search) */}
+            <Group data-testid="build-summary">
+              <div className="cell flex-col items-stretch gap-1 py-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-headline tabular-nums" data-testid="build-length">
+                    {tx("builder.length_of", { minutes, target: targetMin })}
+                  </span>
+                  <span className="text-footnote tabular-nums text-[var(--label-2)]">
+                    {tx("builder.tandas_of", { n: draft.length, of: plan?.slots.length ?? "–" })}
+                  </span>
+                </div>
+                <span
+                  className="block h-1.5 overflow-hidden rounded-full bg-[var(--fill-3)]"
+                  role="progressbar"
+                  aria-label={tx("builder.night_length")}
+                  aria-valuemin={0}
+                  aria-valuemax={targetMin}
+                  aria-valuenow={Math.min(minutes, targetMin)}
+                >
+                  <span
+                    className="block h-full rounded-full bg-[var(--tint)]"
+                    style={{ width: `${Math.min(100, (minutes / Math.max(1, targetMin)) * 100)}%` }}
+                  />
+                </span>
+                <Sparkline
+                  values={draft.map(tandaEnergy)}
+                  targets={(plan?.slots ?? [])
+                    .slice(0, Math.max(draft.length + 1, 2))
+                    .map((s) => s.targetEnergy)}
+                />
+              </div>
+            </Group>
+            <PlayListContext.Provider value={nightList}>
+              <Group>
+                <SwitchRow
+                  label={tx("builder.opening_cumparsita")}
+                  sub={tx("builder.opening_sub")}
+                  checked={meta.opening}
+                  onChange={(v) => setMeta((m) => ({ ...m, opening: v }))}
+                />
+              </Group>
+              {!draft.length && (
+                <Group footer={tx("manualBuilder.start_with_a_suggestion_or_search")}>
+                  <Row
+                    label={tx("manualBuilder.nothing_yet")}
+                    sub={tx("manualBuilder.your_first_tanda_goes_here")}
+                  />
+                </Group>
+              )}
+              <div data-reorder-list className="build-stack">
+                <AnimatePresence initial={false}>
+                  {draft.map((t, ti) => (
+                    <motion.div
+                      key={`${t[0]!.id}-${ti}`}
+                      initial={{ opacity: 0, y: reduced ? 0 : 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: DUR.base, ease: EASE.out }}
+                      className="relative"
+                      data-reorder-row
+                    >
+                      <TandaBlock
+                        t={t}
+                        ti={ti}
+                        count={draft.length}
+                        selected={sel !== "new" && selIndex === ti}
+                        isOpen={open === t}
+                        size={sizes[t[0]!.rhythm as keyof typeof sizes] ?? 4}
+                        onSelect={() => setSel(ti)}
+                        onAddHere={() => {
+                          setSel(ti);
+                          setFilters({
+                            rhythm: t[0]!.rhythm as Filters["rhythm"],
+                            orchestraId: t[0]!.orchestraId,
+                          });
+                          showAdd("search");
+                        }}
+                        onMoveTanda={moveT}
+                        dragTanda={dragTanda(ti)}
+                        onMoveSide={(a, b) => moveSide(ti, a, b)}
+                        onRemove={() => removeT(ti)}
+                        onRemoveSide={(si) => setDraft(removeSong(draft, ti, si))}
+                        onPlace={choosePlace}
+                      />
+                      {ti < draft.length - 1 && (
+                        <CortinaSlot
+                          c={meta.cortinas[ti] ?? null}
+                          n={ti + 1}
+                          onPick={() => void openCortinas(ti)}
+                          onAuto={() => setCortina(ti, null)}
+                        />
+                      )}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+              <Group>
+                <SwitchRow
+                  label={tx("builder.closing_cumparsita")}
+                  sub={tx("builder.closing_sub")}
+                  checked={meta.closing}
+                  onChange={(v) => setMeta((m) => ({ ...m, closing: v }))}
+                />
+              </Group>
+            </PlayListContext.Provider>
+
+            <div className="flex flex-wrap gap-2" data-testid="build-actions">
+              <button
+                type="button"
+                className="btn btn-ghost min-h-11"
+                onClick={() => setNewOpen(true)}
+                data-testid="build-new-tanda"
+              >
+                <ListPlus size={16} aria-hidden /> {tx("builder.new_tanda")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost min-h-11"
+                onClick={suggestNextTanda}
+                data-testid="build-suggest-next"
+              >
+                <Sparkles size={16} aria-hidden /> {tx("builder.suggest_next")}
+              </button>
+              {/* 2026-11: Fill is a menu (the next tanda, one cycle, the target length, everything), previewed first */}
+              <span data-testid="build-fill">
+                <Menu
+                  label={tx("build.fill_menu")}
+                  tip={tx("builder.fill_tip")}
+                  className="btn btn-ghost min-h-11"
+                  align="left"
+                  items={FILL_ITEMS.map((s) => ({
+                    label: fillLabel(s),
+                    icon: Wand2,
+                    disabled: filling,
+                    testId: `build-fill-${s}`,
+                    onClick: () => void previewFill(s),
+                  }))}
+                >
+                  <Wand2 size={16} aria-hidden /> {filling ? tx("builder.filling") : tx("build.fill")}
+                  <ChevronDown size={14} aria-hidden />
+                </Menu>
+              </span>
+            </div>
+            {/* phones: the header keeps no primary button, so the night is used from here */}
+            {draft.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-primary min-h-[50px] w-full sm:hidden"
+                onClick={finish}
+                disabled={finishing}
+                data-testid="build-finish-phone"
+              >
+                <Check size={18} aria-hidden /> {tx("manualBuilder.use_this_night")}
+              </button>
+            )}
+          </section>
+        </div>
       </div>
 
       {/* 2026-11: Reset, confirmed once: an empty night or tonight's night (either one undoable) */}

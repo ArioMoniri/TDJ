@@ -301,7 +301,7 @@ export function MiniPlayerCard() {
               <X size={18} strokeWidth={2} />
             </button>
           </div>
-          <div className="flex items-center gap-2 px-3">
+          <div className="mini-row2 flex items-center gap-2 px-3">
             <span
               className="text-caption2 shrink-0 rounded-full bg-[var(--fill-3)] px-2 py-0.5 font-medium text-[var(--label-2)]"
               data-testid="player-badge"
@@ -335,8 +335,10 @@ export function MiniPlayerCard() {
             )}
           </div>
           {track.source.kind !== "spotify" ? (
-            <div className="flex items-center gap-2 px-2 pb-1">
-              <span className="text-caption1 w-8 tabular-nums text-[var(--label-2)]">{fmt(position)}</span>
+            <div className="mini-row3 flex items-center gap-2 px-2 pb-1">
+              <span className="mini-time text-caption1 w-8 tabular-nums text-[var(--label-2)]">
+                {fmt(position)}
+              </span>
               {/* 2026-11: the shared seek bar (drag, tap, ← / → ±5 s; a 44 px target, the 32 px range was not) */}
               <SeekBar
                 value={Math.min(position, total)}
@@ -346,7 +348,7 @@ export function MiniPlayerCard() {
                 hint={t("miniPlayer.seek_hint")}
                 testId="mini-seek"
               />
-              <span className="text-caption1 w-8 text-right tabular-nums text-[var(--label-2)]">
+              <span className="mini-time text-caption1 w-8 text-right tabular-nums text-[var(--label-2)]">
                 {fmt(total)}
               </span>
             </div>

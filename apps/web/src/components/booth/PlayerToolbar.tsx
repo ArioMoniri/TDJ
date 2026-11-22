@@ -153,6 +153,14 @@ function useApple(): boolean {
   return apple;
 }
 
+/**
+ * 2026-11 - the room's output picker on its own: the one player (BoothMini) opens it over the page it is on, never
+ * by way of the Booth
+ */
+export function RoomOutputSheet({ onClose }: { onClose: () => void }) {
+  return <OutputSheet which="room" onClose={onClose} />;
+}
+
 function OutputSheet({ which, onClose }: { which: "room" | "headphones" | null; onClose: () => void }) {
   const outputs = useBooth((s) => s.outputs);
   const b = useBooth.getState();
