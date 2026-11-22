@@ -22,7 +22,10 @@ import { orchestraName } from "@/lib/orchestraName";
 import { usePlayer } from "@/lib/player";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
+import type { HistorySnapshot } from "@/lib/types";
 import { Logo } from "./Logo";
+import { Menu } from "./Menu";
+import { useNightMenuItems } from "./NightRowMenu";
 import { NAV_MAIN, NAV_MAIN_TITLE, NAV_PINNED } from "./navItems";
 import { SwipeRow } from "./SwipeRow";
 import { TandaArt } from "./ui/TandaArt";
@@ -579,72 +582,9 @@ export function Sidebar() {
                   Delete / Backspace on the focused row ask once (components/DeleteNights.tsx); the night the Booth
                   has open stays (its ✕ says why), the featured night only leaves the recents */}
               <ul className="flex flex-col gap-0.5">
-                {recent.map((s) => {
-                  const why = protectedReason(s);
-                  const label = deleteLabel(s);
-                  const del = () => !why && askDeleteNights([s.id]);
-                  return (
-                    <li
-                      key={s.id}
-                      className="side-recent"
-                      data-testid="sidebar-recent-row"
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        if (why) toast(why);
-                        else del();
-                      }}
-                    >
-                      <SwipeRow
-                        actions={[
-                          {
-                            kind: "destructive",
-                            label,
-                            icon: Trash2,
-                            onClick: del,
-                            disabled: !!why,
-                          },
-                        ]}
-                      >
-                        <Link
-                          href={`/history#night=${s.id}`}
-                          className="side-row"
-                          onKeyDown={(e) => {
-                            if (e.key !== "Delete" && e.key !== "Backspace") return;
-                            e.preventDefault();
-                            if (why) toast(why);
-                            else del();
-                          }}
-                        >
-                          <Clock
-                            size={16}
-                            strokeWidth={1.75}
-                            className="shrink-0 text-[var(--label-2)]"
-                            aria-hidden
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate">{s.title}</span>
-                            <span className="text-caption1 block truncate text-[var(--label-2)]">
-                              {ago(s.createdAt)} · {s.score}
-                            </span>
-                          </span>
-                        </Link>
-                      </SwipeRow>
-                      <Tip text={why ?? tx("nightDelete.delete_named", { label, title: s.title })}>
-                        <button
-                          type="button"
-                          className="side-recent-x icon-btn icon-btn-bare"
-                          aria-label={tx("nightDelete.delete_named", { label, title: s.title })}
-                          aria-disabled={why ? true : undefined}
-                          data-protected={why ? "" : undefined}
-                          onClick={() => (why ? toast(why) : del())}
-                          data-testid="sidebar-recent-delete"
-                        >
-                          <X size={14} strokeWidth={2.25} aria-hidden />
-                        </button>
-                      </Tip>
-                    </li>
-                  );
-                })}
+                {recent.map((s) => (
+                  <RecentRow key={s.id} s={s} />
+                ))}
               </ul>
             </section>
           )}
@@ -740,5 +680,76 @@ export function Sidebar() {
         </Tip>
       )}
     </>
+  );
+}
+
+/**
+ * One of the Recent nights. 2026-11 (the owner: "delete nights from Recent nights", then "rename and delete
+ * everywhere"): ✕ on hover deletes (asked once, components/DeleteNights.tsx); "•••" on hover, a right-click or a long
+ * press opens the night's menu — Play in the Booth, Reopen in Compose, Rename…, Delete (components/NightRowMenu.tsx);
+ * a swipe, or Delete / Backspace on the focused row, asks to delete. The night the Booth has open stays (its ✕ says
+ * why), the featured night only leaves the recents and keeps its name.
+ */
+function RecentRow({ s }: { s: HistorySnapshot }) {
+  const ref = useRef<HTMLLIElement>(null);
+  const items = useNightMenuItems();
+  const why = protectedReason(s);
+  const label = deleteLabel(s);
+  const del = () => !why && askDeleteNights([s.id]);
+  return (
+    <li ref={ref} className="side-recent" data-testid="sidebar-recent-row">
+      <SwipeRow
+        actions={[
+          {
+            kind: "destructive",
+            label,
+            icon: Trash2,
+            onClick: del,
+            disabled: !!why,
+          },
+        ]}
+      >
+        <Link
+          href={`/history#night=${s.id}`}
+          className="side-row"
+          onKeyDown={(e) => {
+            if (e.key !== "Delete" && e.key !== "Backspace") return;
+            e.preventDefault();
+            if (why) toast(why);
+            else del();
+          }}
+        >
+          <Clock size={16} strokeWidth={1.75} className="shrink-0 text-[var(--label-2)]" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate">{s.title}</span>
+            <span className="text-caption1 block truncate text-[var(--label-2)]">
+              {ago(s.createdAt)} · {s.score}
+            </span>
+          </span>
+        </Link>
+      </SwipeRow>
+      <span className="side-recent-more" data-testid="sidebar-recent-more">
+        <Menu
+          label={tx("nights.actions_of", { title: s.title })}
+          tip={tx("nights.actions")}
+          className="side-recent-x icon-btn-bare"
+          contextRef={ref}
+          items={items(s)}
+        />
+      </span>
+      <Tip text={why ?? tx("nightDelete.delete_named", { label, title: s.title })}>
+        <button
+          type="button"
+          className="side-recent-x icon-btn icon-btn-bare"
+          aria-label={tx("nightDelete.delete_named", { label, title: s.title })}
+          aria-disabled={why ? true : undefined}
+          data-protected={why ? "" : undefined}
+          onClick={() => (why ? toast(why) : del())}
+          data-testid="sidebar-recent-delete"
+        >
+          <X size={14} strokeWidth={2.25} aria-hidden />
+        </button>
+      </Tip>
+    </li>
   );
 }

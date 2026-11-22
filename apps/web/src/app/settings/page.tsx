@@ -433,6 +433,13 @@ export default function Settings({ searchParams }: { searchParams: Promise<Searc
               </Tile>
             }
           />
+          {/* 2026-11: the Booth follows Appearance; always dark there only when the DJ turns this on */}
+          <SwitchRow
+            label={tx("settings.booth.always_dark")}
+            tip={tx("settings.booth.always_dark_tip")}
+            checked={settings.boothDark === true}
+            onChange={(v) => setSettings({ boothDark: v })}
+          />
         </Group>
         {/* 2026-11: Booth → Gaps — a song's own silence and the gap (lib/booth/engine.ts, core silenceJoin) */}
         <SilenceGroup header={tx("settings.gaps.short")} />

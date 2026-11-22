@@ -1,5 +1,6 @@
 "use client";
 import { create } from "zustand";
+import { useBoothLoad } from "./booth/loadState";
 import { recordEdit, undoEdit } from "./editHistory";
 import { FEATURED } from "./featured";
 import { saveHistory } from "./history";
@@ -26,7 +27,10 @@ export function boothNight(): { id: string; playing: boolean } | null {
   const b = (window as unknown as { __tdjBooth?: BoothLike }).__tdjBooth?.getState?.();
   const id = b?.playlist?.id;
   if (!id) return null;
-  return { id, playing: !!b?.started && (b.state === "playing" || b.state === "cortina") };
+  const playing = !!b?.started && (b.state === "playing" || b.state === "cortina");
+  // (a cleared Booth holds no night: its last one can go)
+  if (!playing && useBoothLoad.getState().cleared) return null;
+  return { id, playing };
 }
 
 /** the shipped featured night's own id (public/featured/*.json); an entry of it only leaves the recents */

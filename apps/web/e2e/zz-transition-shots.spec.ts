@@ -74,9 +74,10 @@ async function spotify(page: Page) {
 }
 
 async function open(page: Page, o: { spotify: boolean; theme: "light" | "dark" }) {
+  // 2026-11: the Booth follows the app's appearance (Auto here): the device's scheme picks its theme
+  await page.emulateMedia({ colorScheme: o.theme });
   await page.addInitScript((theme) => {
     try {
-      localStorage.setItem("tdj-booth-theme", theme);
       localStorage.setItem("tdj-theme", theme);
     } catch {}
     Object.defineProperty(Navigator.prototype, "maxTouchPoints", { get: () => 5 });

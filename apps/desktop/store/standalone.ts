@@ -74,6 +74,36 @@ async function main() {
     }
     const rows = first.mock.db.prepare("SELECT COUNT(*) AS n FROM history").get() as { n: number };
     assert.ok(rows.n >= 1, "the composed night was saved in SQLite");
+
+    // 2026-11 (the owner: "History is empty in the Mac app"): an imported night lands in SQLite beside the composed
+    // one. Each 4 h night is ~200 KB: the web row's 300 KB budget, applied to the device, kept only the newest one
+    // (an edited night alone was over it, and the device's History was wiped on every save)
+    await first.page.goto(`${ORIGIN}/import?from=text`, { waitUntil: "load" });
+    await first.page
+      .getByTestId("import-text")
+      .fill(
+        "Bahía Blanca – Carlos Di Sarli\nOrganito de la tarde – Carlos Di Sarli\nEl Cachafaz – Carlos Di Sarli\nDon Juan – Carlos Di Sarli",
+      );
+    await first.page.locator("#import-text-go").click();
+    await first.page.getByTestId("import-tanda").first().waitFor({ timeout: 60_000 });
+    await first.page.getByTestId("import-name").fill("Pasted on the Mac");
+    await first.page.getByTestId("import-open-compose").click();
+    await first.page.locator("#result").waitFor({ state: "visible", timeout: 60_000 });
+    await first.page.waitForTimeout(1500);
+    const saved = first.mock.db
+      .prepare("SELECT id, length(value) AS bytes FROM history ORDER BY position")
+      .all() as Array<{
+      id: string;
+      bytes: number;
+    }>;
+    assert.equal(
+      saved.length,
+      2,
+      `the composed and the imported night are both in SQLite (got ${saved.length})`,
+    );
+    console.log(
+      `SQLite after an import: ${saved.length} nights (${saved.map((r) => `${Math.round(r.bytes / 1024)} KB`).join(", ")})`,
+    );
     const versions = first.mock.db.prepare("SELECT version FROM schema_migrations ORDER BY version").all();
     console.log(
       `SQLite: ${rows.n} night(s), migrations ${versions.map((v) => (v as { version: number }).version).join(", ")}`,
@@ -84,7 +114,38 @@ async function main() {
     const { mock, page } = await open();
     await page.goto(`${ORIGIN}/history`, { waitUntil: "load" });
     await page.locator("[id^=history-]").first().waitFor({ timeout: 30_000 });
-    console.log("History after a fresh start: the night is there (from SQLite)");
+    assert.equal(
+      await page.getByTestId("history-row").count(),
+      2,
+      "History lists both nights after a fresh start",
+    );
+    // the sidebar's Recent nights show them too (it shows only when History has nights)
+    assert.equal(
+      await page.getByTestId("sidebar-recent-row").count(),
+      2,
+      "the sidebar's Recent nights list both",
+    );
+    console.log("History after a fresh start: both nights are there (from SQLite), and in Recent nights");
+
+    // rename and delete reach the device database (the History row's menu; the sidebar's ✕, asked once)
+    const imported = page.getByTestId("history-row").filter({ hasText: "Pasted on the Mac" });
+    await imported.getByRole("button", { name: /: actions$/ }).click();
+    await page.getByTestId("night-menu-rename").click();
+    await page.getByTestId("rename-night-field").fill("Renamed on the Mac");
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(800);
+    const titles = (mock.db.prepare("SELECT value FROM history").all() as Array<{ value: string }>).map(
+      (r) => (JSON.parse(r.value) as { title: string }).title,
+    );
+    assert.ok(titles.includes("Renamed on the Mac"), `the rename is in SQLite (${titles.join(", ")})`);
+    const row = page.getByTestId("sidebar-recent-row").filter({ hasText: "Renamed on the Mac" });
+    await row.hover();
+    await row.getByTestId("sidebar-recent-delete").click();
+    await page.locator("#delete-nights-confirm").click();
+    await page.waitForTimeout(800);
+    const left = mock.db.prepare("SELECT COUNT(*) AS n FROM history").get() as { n: number };
+    assert.equal(left.n, 1, "the delete is in SQLite");
+    console.log("rename and delete: written to the device database");
 
     // the server routes the app runs unchanged (apps/web/scripts/device-routes.mjs) answer from the bundle
     // (a string, not a function: tsx would add its `__name` helper, which the page does not have)

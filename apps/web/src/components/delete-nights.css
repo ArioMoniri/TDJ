@@ -57,3 +57,31 @@
 .history-pick[aria-disabled="true"] {
   color: var(--label-3);
 }
+
+/* 2026-11 ("rename and delete everywhere"): the night's "•••" beside the ✕ (the same reveal on hover and focus) */
+.side-recent-more {
+  position: absolute;
+  top: 50%;
+  right: 34px;
+  transform: translateY(-50%);
+  display: inline-flex;
+}
+.side-recent-more .side-recent-x {
+  position: relative;
+  top: auto;
+  right: auto;
+  transform: none;
+}
+.side-recent-more .side-recent-x[aria-expanded="true"] {
+  opacity: 1;
+}
+.side-recent:hover .side-row,
+.side-recent:focus-within .side-row {
+  padding-right: 66px;
+}
+/* History's rows: the "•••" after the row (always there: touch has no hover) */
+.night-row-more {
+  flex: none;
+  color: var(--label-2);
+  margin-right: 4px;
+}

@@ -66,6 +66,7 @@ import { lengthOf, nightMusicSec, wholeSec } from "@/lib/lengths";
 import { rateTap, ratingOf, undoRate } from "@/lib/likes";
 import { describePreferences } from "@/lib/memory";
 import { DUR, EASE, rise, STAGGER } from "@/lib/motion";
+import { playInBooth } from "@/lib/nightActions";
 import { nightEraLabel, nightSub, nightTitle } from "@/lib/nightName";
 import { nightItems, PlayListContext } from "@/lib/playback";
 import { usePlayer } from "@/lib/player";
@@ -909,6 +910,16 @@ const REVEAL = new WeakMap<Playlist, string>();
 
 export function Composer() {
   const router = useRouter();
+  // 2026-11 ("never silently"): Compose's night goes to the Booth; when another night is playing there it asks first
+  const playHere = () => {
+    const p = useStore.getState().playlist;
+    if (!p) return router.push("/booth");
+    void playInBooth(p, {
+      historyId: useStore.getState().currentEntry,
+      keep: true,
+      go: () => router.push("/booth"),
+    });
+  };
   const {
     options,
     setOptions,
@@ -1956,7 +1967,7 @@ export function Composer() {
                   },
                   { label: tx("composer.copy_seed"), icon: Copy, onClick: copySeed },
                   { label: tx("composer.written_review"), icon: MessageSquareText, onClick: explain },
-                  { label: tx("composer.play_the_night"), icon: Play, onClick: () => router.push("/booth") },
+                  { label: tx("composer.play_the_night"), icon: Play, onClick: playHere },
                   // 2026-11: Import a playlist (app/import)
                   { label: tx("import.entry"), icon: ListPlus, onClick: () => router.push("/import") },
                   {
@@ -2179,7 +2190,7 @@ export function Composer() {
                           className="btn btn-ghost -my-2 min-h-11 shrink-0 whitespace-nowrap px-3 max-sm:h-11 max-sm:w-11 max-sm:px-0"
                           data-testid="play-the-night"
                           aria-label={tx("composer.booth_play_the_night")}
-                          onClick={() => router.push("/booth")}
+                          onClick={playHere}
                         >
                           <Play size={16} fill="currentColor" strokeWidth={0} aria-hidden />
                           <span className="max-sm:sr-only">{tx("composer.play_the_night")}</span>
@@ -2596,7 +2607,7 @@ export function Composer() {
         >
           <MenuList
             items={[
-              { label: tx("composer.play_the_night"), icon: Play, onClick: () => router.push("/booth") },
+              { label: tx("composer.play_the_night"), icon: Play, onClick: playHere },
               { label: tx("import.entry"), icon: ListPlus, onClick: () => router.push("/import") },
               {
                 label: tx("composer.tell_the_dj"),

@@ -1,6 +1,6 @@
 /**
- * 2026-11 (the owner: "delete nights"): from the sidebar's Recent nights (✕ on hover, right-click, Delete) and from
- * History (right-click, Edit's multi-select, Clear all…) — asked once, with an Undo; the IndexedDB record goes
+ * 2026-11 (the owner: "delete nights"): from the sidebar's Recent nights (✕ on hover, the right-click menu, Delete) and
+ * from History (the row's menu, Edit's multi-select, Clear all…) — asked once, with an Undo; the IndexedDB record goes
  * (tdj-history-v2); the night the Booth has open is never deleted (its action says why).
  */
 import { expect, type Page, test } from "@playwright/test";
@@ -95,8 +95,9 @@ test("delete nights from the sidebar and from History, each with an Undo; the ni
   await expect(recent.first()).toContainText("Night A");
   await expect.poll(() => stored(page)).toHaveLength(4);
 
-  // right-click a sidebar row, then Delete on a focused one
+  // right-click a sidebar row: its menu (Play in the Booth, Reopen, Rename…, Delete); then Delete on a focused one
   await recent.filter({ hasText: "Night B" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Delete" }).click();
   await confirmDelete(page);
   await expect(recent).toHaveCount(3);
   await page.getByTestId("toast").getByRole("button", { name: "Undo" }).click();
@@ -108,8 +109,9 @@ test("delete nights from the sidebar and from History, each with an Undo; the ni
   await expect(page.getByTestId("delete-nights")).toBeHidden();
   await expect(recent).toHaveCount(4);
 
-  // History: right-click a row
+  // History: right-click a row opens its menu
   await page.getByTestId("history-row").filter({ hasText: "Night D" }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Delete" }).click();
   await confirmDelete(page);
   await expect(page.getByTestId("history-row")).toHaveCount(3);
   await page.getByTestId("toast").getByRole("button", { name: "Undo" }).click();
@@ -135,7 +137,7 @@ test("delete nights from the sidebar and from History, each with an Undo; the ni
   const detail = page.getByTestId("history-detail");
   await expect(detail).toBeVisible();
   await detail.getByRole("button", { name: "Set actions" }).click();
-  await page.getByRole("menuitem", { name: "Play the night" }).click();
+  await page.getByRole("menuitem", { name: "Play in the Booth" }).click();
   await expect(page).toHaveURL(/\/booth/);
   await expect
     .poll(
@@ -154,7 +156,12 @@ test("delete nights from the sidebar and from History, each with an Undo; the ni
   const playing = page.getByTestId("history-row").filter({ hasText: "Night B" });
   await expect(playing).toHaveAttribute("data-protected", "");
   await expect(playing).toContainText("In the Booth");
+  // its menu's Delete is off (the reason on hover); Delete on the focused row says why
   await playing.click({ button: "right" });
+  await expect(page.getByRole("menuitem", { name: "Delete" })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await playing.locator("button").first().focus();
+  await page.keyboard.press("Delete");
   await expect(page.getByTestId("toast")).toContainText("Booth");
   await expect(page.getByTestId("delete-nights")).toBeHidden();
   await expect(recent.filter({ hasText: "Night B" }).getByTestId("sidebar-recent-delete")).toHaveAttribute(

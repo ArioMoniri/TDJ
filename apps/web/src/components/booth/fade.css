@@ -25,3 +25,8 @@
     --confirm-p: 100%;
   }
 }
+/* the Booth in light (it follows Appearance now): Fade and Crossfade where they cannot run (before the night, a
+   player that cannot fade) stay dim but read at ≥ 3:1 — at 0.4 their words were 2.59:1 on the light strip */
+html[data-booth][data-theme="light"] .booth-fadebtn[aria-disabled="true"] {
+  opacity: 0.6;
+}

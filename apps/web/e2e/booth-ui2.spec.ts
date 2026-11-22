@@ -64,16 +64,15 @@ const VIEWS: Array<[string, BrowserContextOptions]> = [
 ];
 
 async function openBooth(page: Page, o: { light?: boolean } = {}) {
-  await page.addInitScript((light) => {
-    try {
-      localStorage.setItem("tdj-booth-theme", light ? "light" : "dark");
-    } catch {}
+  // 2026-11: the Booth follows the app's appearance (Auto here): the device's scheme picks its theme
+  await page.emulateMedia({ colorScheme: o.light ? "light" : "dark" });
+  await page.addInitScript(() => {
     document.addEventListener("DOMContentLoaded", () => {
       const s = document.createElement("style");
       s.textContent = "nextjs-portal{display:none!important}";
       document.head.append(s);
     });
-  }, !!o.light);
+  });
   await page.route(/dzcdn\.net|p\.scdn\.co|preview\.test|\/api\/preview\?/, (route) =>
     route.request().url().includes("json=1")
       ? route.fulfill({

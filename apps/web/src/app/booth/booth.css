@@ -2986,3 +2986,20 @@ html[data-booth] {
     margin-top: 8px;
   }
 }
+
+/* =====================================================================================================================
+   2026-11 — the Booth's night (the owner: "Import from Spotify in the Booth tab is not seen … you can't reset or close
+   the night or import other nights"): the header's Night menu, and the Booth with no night shows its choices in place
+   ===================================================================================================================== */
+.booth-night-btn {
+  color: var(--tint-text, var(--tint));
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* the empty Booth scrolls (the two-column Booth holds still: there is nothing to hold here) */
+html[data-booth]:has([data-testid="booth-empty"]) {
+  overflow: auto;
+}
+.booth-empty-choices {
+  padding-inline: 16px;
+}

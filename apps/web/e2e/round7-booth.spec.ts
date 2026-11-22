@@ -87,7 +87,7 @@ async function openBooth(page: Page, query = "") {
   return page.evaluate(() => (window as unknown as { __tdjBoothPlan: Plan }).__tdjBoothPlan);
 }
 
-test("booth: the plan for a composed set, time to Cumparsita, dark forced, no glass on content, 44 px controls", async ({
+test("booth: the plan for a composed set, time to Cumparsita, the app's appearance (no forced dark), no glass on content, 44 px controls", async ({
   page,
 }) => {
   await compose(page);
@@ -126,8 +126,8 @@ test("booth: the plan for a composed set, time to Cumparsita, dark forced, no gl
   await expect(page.getByTestId("booth-now-title")).toHaveText(plan.items[curIdx]!.title);
   expect(await page.locator("[data-plan-index]").count()).toBe(plan.items.length);
   await expect(page.getByTestId("booth")).toHaveAttribute("data-state", "idle");
-  // dark forced; the mini-player is hidden; content is not glass; every control ≥ 44 px
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  // 2026-11: the Booth follows Appearance (Auto, a light device here: light); the mini-player is hidden; content is not glass; every control ≥ 44 px
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.getByTestId("mini-player")).toHaveCount(0);
   const m = await page.evaluate(() => {
     const card = document.querySelector('[data-testid="booth-now"]')!;
@@ -284,7 +284,7 @@ test("the plan equals the export cue points (M3U8 stop/start lines) and History'
   // History → Play the night
   await page.goto("/history");
   await page.locator('[id^="history-"]').first().click();
-  await page.getByTestId("history-detail").getByRole("button", { name: "Play the night" }).click();
+  await page.getByTestId("history-detail").getByRole("button", { name: "Play in the Booth" }).click();
   await expect(page).toHaveURL(/\/booth/);
   await expect(page.getByTestId("booth-now-title")).toBeVisible({ timeout: 15000 });
   // the playhead settles on the first playable item once the sources resolve: Now and the set agree on it

@@ -21,7 +21,7 @@ app.setState({
 vi.mock("./store", () => ({ useBooth: booth }));
 vi.mock("@/lib/store", () => ({ useStore: app }));
 
-const { clearBooth, loadAfterThisSong, loadNight, useBoothLoad } = await import("./loadNight");
+const { clearBooth, loadAfterThisSong, loadNight, resetBooth, useBoothLoad } = await import("./loadNight");
 const { undoEdit, clearEdits } = await import("@/lib/editHistory");
 
 const night = (name: string) =>
@@ -30,7 +30,7 @@ const night = (name: string) =>
 describe("Load a night / Clear the Booth", () => {
   beforeEach(() => {
     booth.setState({ started: false, state: "idle", planIndex: 3 });
-    useBoothLoad.setState({ cleared: false, pending: null, seq: 0 });
+    useBoothLoad.setState({ cleared: false, pending: null, seq: 0, resumeAt: null });
     endNight.mockClear();
     clearEdits();
   });
@@ -69,5 +69,26 @@ describe("Load a night / Clear the Booth", () => {
     expect(useBoothLoad.getState().cleared).toBe(true);
     await undoEdit({ scope: "/booth" });
     expect(useBoothLoad.getState().cleared).toBe(false);
+  });
+
+  it("closing mid-night: Undo brings the night back where it was, nothing playing", async () => {
+    booth.setState({ started: true, state: "playing", planIndex: 9 });
+    await clearBooth();
+    expect(useBoothLoad.getState().cleared).toBe(true);
+    await undoEdit({ scope: "/booth" });
+    expect(useBoothLoad.getState().cleared).toBe(false);
+    expect(useBoothLoad.getState().resumeAt).toBe(9);
+    expect(booth.getState().started).toBe(false);
+  });
+
+  it("reset: the night that plays ends, the same night boots at its start; Undo puts the playhead back", async () => {
+    booth.setState({ started: true, state: "playing", planIndex: 6 });
+    await resetBooth();
+    expect(endNight).toHaveBeenCalledTimes(1);
+    expect(useBoothLoad.getState().seq).toBe(1);
+    expect(useBoothLoad.getState().resumeAt).toBe(0);
+    expect(useBoothLoad.getState().cleared).toBe(false);
+    await undoEdit({ scope: "/booth" });
+    expect(useBoothLoad.getState().resumeAt).toBe(6);
   });
 });
