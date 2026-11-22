@@ -1909,8 +1909,10 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "connectors.keyless": "Anahtarsız",
   // 2026-11: Settings → Connections (components/Connections.tsx, docs/CONNECTORS.md)
   "connections.header": "Servisler ve kendi anahtarların",
-  "connections.footer": "Her servis neyi açtığını ve neye ihtiyaç duyduğunu söyler. Buraya eklediğin anahtar bu cihazda kalır ve yalnızca o servise gider, hiçbir TDJ sunucusuna gitmez.",
-  "connections.footer_app": "Her servis neyi açtığını ve neye ihtiyaç duyduğunu söyler. Buraya eklediğin anahtar Anahtar Zinciri'nde saklanır ve yalnızca o servise gider, hiçbir TDJ sunucusuna gitmez.",
+  "connections.footer":
+    "Her servis neyi açtığını ve neye ihtiyaç duyduğunu söyler. Buraya eklediğin anahtar bu cihazda kalır ve yalnızca o servise gider, hiçbir TDJ sunucusuna gitmez.",
+  "connections.footer_app":
+    "Her servis neyi açtığını ve neye ihtiyaç duyduğunu söyler. Buraya eklediğin anahtar Anahtar Zinciri'nde saklanır ve yalnızca o servise gider, hiçbir TDJ sunucusuna gitmez.",
   "connections.status": "Durum",
   "connections.what": "Neyi açar",
   "connections.limits": "Sınırlar",
@@ -1941,37 +1943,60 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "connections.short.sign_in": "Giriş yap",
   "connections.msg.checking": "Bu sitede nelerin kurulu olduğu soruluyor…",
   "connections.msg.keyless": "Herkes için çalışır: hesap da anahtar da gerekmez.",
-  "connections.msg.apple_soon": "T-DJ'de henüz yok. Apple Music, site sahibinin Apple geliştirici anahtarını (MusicKit) ister; neyin hazırlanacağı ayrıntılı rehberde.",
-  "connections.msg.spotify_server": "Bu sitenin Spotify uygulaması kurulu: Hesaplar ve servisler → Spotify'dan giriş yap.",
-  "connections.msg.spotify_own": "Kendi Spotify uygulamanı (istemci kimliğini) kullanır. Hesaplar ve servisler → Spotify'dan giriş yap.",
-  "connections.msg.spotify_none": "Spotify burada kurulu değil. Kendi Spotify uygulamanı oluştur (ücretsiz, yaklaşık 5 dakika) ve istemci kimliğini Spotify → Gelişmiş'e yapıştır.",
-  "connections.msg.youtube_own": "Video araması kendi YouTube anahtarınla, bu cihazdan doğrudan Google'a gider. Çalma listeleri için yine Google ile giriş gerekir.",
-  "connections.msg.youtube_server_key": "Video araması bu sitenin kendi anahtarıyla çalışır. YouTube çalma listeleri için Google ile bağlan.",
-  "connections.msg.youtube_google": "Google ile bağlanıp YouTube iznini verdiğinde video araması ve çalma listeleri çalışır.",
-  "connections.msg.youtube_none": "Kapalı: bu sitede YouTube anahtarı ya da Google girişi yok. Video aramak için aşağıya kendi ücretsiz YouTube anahtarını ekle.",
-  "connections.msg.dropbox_server": "Dışa aktarılan dosyalar bu sitenin Dropbox uygulamasıyla Dropbox'a gider: Hesaplar ve servisler'den bağlan.",
-  "connections.msg.dropbox_own": "Kendi Dropbox uygulamanla giriş yapıldı: dışa aktarılan dosyalar bu cihazdan doğrudan Dropbox'ına gider.",
+  "connections.msg.apple_soon":
+    "T-DJ'de henüz yok. Apple Music, site sahibinin Apple geliştirici anahtarını (MusicKit) ister; neyin hazırlanacağı ayrıntılı rehberde.",
+  "connections.msg.spotify_server":
+    "Bu sitenin Spotify uygulaması kurulu: Hesaplar ve servisler → Spotify'dan giriş yap.",
+  "connections.msg.spotify_own":
+    "Kendi Spotify uygulamanı (istemci kimliğini) kullanır. Hesaplar ve servisler → Spotify'dan giriş yap.",
+  "connections.msg.spotify_none":
+    "Spotify burada kurulu değil. Kendi Spotify uygulamanı oluştur (ücretsiz, yaklaşık 5 dakika) ve istemci kimliğini Spotify → Gelişmiş'e yapıştır.",
+  "connections.msg.youtube_own":
+    "Video araması kendi YouTube anahtarınla, bu cihazdan doğrudan Google'a gider. Çalma listeleri için yine Google ile giriş gerekir.",
+  "connections.msg.youtube_server_key":
+    "Video araması bu sitenin kendi anahtarıyla çalışır. YouTube çalma listeleri için Google ile bağlan.",
+  "connections.msg.youtube_google":
+    "Google ile bağlanıp YouTube iznini verdiğinde video araması ve çalma listeleri çalışır.",
+  "connections.msg.youtube_none":
+    "Kapalı: bu sitede YouTube anahtarı ya da Google girişi yok. Video aramak için aşağıya kendi ücretsiz YouTube anahtarını ekle.",
+  "connections.msg.dropbox_server":
+    "Dışa aktarılan dosyalar bu sitenin Dropbox uygulamasıyla Dropbox'a gider: Hesaplar ve servisler'den bağlan.",
+  "connections.msg.dropbox_own":
+    "Kendi Dropbox uygulamanla giriş yapıldı: dışa aktarılan dosyalar bu cihazdan doğrudan Dropbox'ına gider.",
   "connections.msg.dropbox_own_signin": "Dropbox uygulama anahtarın kaydedildi. Bitirmek için giriş yap.",
-  "connections.msg.dropbox_none": "Kapalı: bu sitede Dropbox uygulaması yok. Aşağıda kendi uygulama anahtarını kullan (ücretsiz, gizli anahtar gerekmez).",
+  "connections.msg.dropbox_none":
+    "Kapalı: bu sitede Dropbox uygulaması yok. Aşağıda kendi uygulama anahtarını kullan (ücretsiz, gizli anahtar gerekmez).",
   "connections.msg.drive_server": "Dışa aktarılan dosyalar bu sitenin Google girişiyle Google Drive'a gider.",
-  "connections.msg.drive_own": "Kendi Google istemcinle giriş yapıldı: dosyalar bu uygulamadan doğrudan Drive'ına gider.",
+  "connections.msg.drive_own":
+    "Kendi Google istemcinle giriş yapıldı: dosyalar bu uygulamadan doğrudan Drive'ına gider.",
   "connections.msg.drive_own_signin": "Google istemci kimliğin kaydedildi. Bitirmek için giriş yap.",
-  "connections.msg.drive_none_app": "Kapalı: bir TDJ sunucusu bağla ya da aşağıda kendi Google istemci kimliğini kullan (iOS istemcisi, gizli anahtar gerekmez).",
-  "connections.msg.drive_none_web": "Kapalı: bu sitede Google girişi yok. Web'de Google, site sahibinin anahtarlarını ister; Mac ya da iPad için T-DJ uygulamasında kendininkini kullanabilirsin.",
+  "connections.msg.drive_none_app":
+    "Kapalı: bir TDJ sunucusu bağla ya da aşağıda kendi Google istemci kimliğini kullan (iOS istemcisi, gizli anahtar gerekmez).",
+  "connections.msg.drive_none_web":
+    "Kapalı: bu sitede Google girişi yok. Web'de Google, site sahibinin anahtarlarını ister; Mac ya da iPad için T-DJ uygulamasında kendininkini kullanabilirsin.",
   "connections.spotify.sub": "Çalma listeleri, Dinle'de tam parçalar",
-  "connections.spotify.unlocks": "Gecelerini Spotify çalma listesi olarak oluşturur, Dinle'de ve canlı görünümde tam parçaları çalar, şarkıları ISRC ile birebir eşleştirir.",
-  "connections.spotify.limits": "Geliştirme modundaki bir Spotify uygulaması, her biri e-postayla eklenen 5 kişiyi kabul eder. Daha fazlası için Spotify'ın genişletilmiş kotası gerekir; bunu yalnızca aylık 250.000 kullanıcısı olan kuruluşlar alabilir.",
-  "connections.spotify.where": "Kendi Spotify uygulamanı Hesaplar ve servisler → Spotify → Gelişmiş'e eklersin (istemci kimliği; gizli anahtar gerekmez).",
-  "connections.spotify.step1": "Spotify geliştirici panosunu aç ve Web API ile Web Playback SDK seçili bir uygulama oluştur.",
+  "connections.spotify.unlocks":
+    "Gecelerini Spotify çalma listesi olarak oluşturur, Dinle'de ve canlı görünümde tam parçaları çalar, şarkıları ISRC ile birebir eşleştirir.",
+  "connections.spotify.limits":
+    "Geliştirme modundaki bir Spotify uygulaması, her biri e-postayla eklenen 5 kişiyi kabul eder. Daha fazlası için Spotify'ın genişletilmiş kotası gerekir; bunu yalnızca aylık 250.000 kullanıcısı olan kuruluşlar alabilir.",
+  "connections.spotify.where":
+    "Kendi Spotify uygulamanı Hesaplar ve servisler → Spotify → Gelişmiş'e eklersin (istemci kimliği; gizli anahtar gerekmez).",
+  "connections.spotify.step1":
+    "Spotify geliştirici panosunu aç ve Web API ile Web Playback SDK seçili bir uygulama oluştur.",
   "connections.spotify.step2": "Aşağıdaki yönlendirme adresini birebir ekle.",
-  "connections.spotify.step3": "Kullanıcı yönetiminde giriş yapacak her kişinin e-postasını ekle (en fazla 5).",
+  "connections.spotify.step3":
+    "Kullanıcı yönetiminde giriş yapacak her kişinin e-postasını ekle (en fazla 5).",
   "connections.spotify.step4": "İstemci kimliğini Spotify → Gelişmiş'e kopyala. Gizli anahtar gerekmez.",
   "connections.youtube.sub": "Video bul, YouTube çalma listeleri",
-  "connections.youtube.unlocks": "Bir parçanın videosunu YouTube'da arar (Şimdi çalıyor → Video) ve Google girişiyle gecenin YouTube çalma listesini oluşturur.",
-  "connections.youtube.limits": "Bir anahtarın günde 10.000 birimi var ve her arama 100 birim: anahtar başına günde yaklaşık 100 arama. Çalma listeleri için Google girişi gerekir.",
-  "connections.youtube.step1": "Google Cloud konsolunda bir proje oluştur ve YouTube Data API v3'ü etkinleştir.",
+  "connections.youtube.unlocks":
+    "Bir parçanın videosunu YouTube'da arar (Şimdi çalıyor → Video) ve Google girişiyle gecenin YouTube çalma listesini oluşturur.",
+  "connections.youtube.limits":
+    "Bir anahtarın günde 10.000 birimi var ve her arama 100 birim: anahtar başına günde yaklaşık 100 arama. Çalma listeleri için Google girişi gerekir.",
+  "connections.youtube.step1":
+    "Google Cloud konsolunda bir proje oluştur ve YouTube Data API v3'ü etkinleştir.",
   "connections.youtube.step2": "Kimlik bilgileri → Kimlik bilgisi oluştur → API anahtarı.",
-  "connections.youtube.step3": "Anahtarı YouTube Data API v3 ile sınırla; web için ayrıca yalnızca bu sitenin adresine izin ver.",
+  "connections.youtube.step3":
+    "Anahtarı YouTube Data API v3 ile sınırla; web için ayrıca yalnızca bu sitenin adresine izin ver.",
   "connections.youtube.step4": "Anahtarı buraya yapıştır. Bu cihazda kalır.",
   "connections.youtube.key": "API anahtarı",
   "connections.youtube.key_placeholder": "AIza ile başlar…",
@@ -1983,47 +2008,78 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "connections.youtube.saved_value": "Kayıtlı {hint}",
   "connections.youtube.save_failed": "Anahtar kaydedilemedi: {reason}",
   "connections.dropbox.sub": "Dosyaları Dropbox'ına aktar",
-  "connections.dropbox.unlocks": "Seçtiğin dışa aktarma dosyasını (Rekordbox, Traktor, M3U8, CSV) Dropbox'ındaki bir klasöre kaydeder.",
-  "connections.dropbox.limits": "Yeni bir Dropbox uygulaması 500 kişiye kadar hizmet verir; 50 kişi bağlandığında Dropbox kısa bir yayın incelemesi ister.",
-  "connections.dropbox.step1": "Dropbox Uygulama Konsolu'nda bir uygulama oluştur: kapsamlı erişim, uygulama klasörü.",
+  "connections.dropbox.unlocks":
+    "Seçtiğin dışa aktarma dosyasını (Rekordbox, Traktor, M3U8, CSV) Dropbox'ındaki bir klasöre kaydeder.",
+  "connections.dropbox.limits":
+    "Yeni bir Dropbox uygulaması 500 kişiye kadar hizmet verir; 50 kişi bağlandığında Dropbox kısa bir yayın incelemesi ister.",
+  "connections.dropbox.step1":
+    "Dropbox Uygulama Konsolu'nda bir uygulama oluştur: kapsamlı erişim, uygulama klasörü.",
   "connections.dropbox.step2": "İzinler: files.content.write ve sharing.write'ı işaretle, sonra gönder.",
-  "connections.dropbox.step3": "Ayarlar → OAuth 2: açık istemcilere (PKCE) izin ver ve aşağıdaki yönlendirme adresini ekle.",
-  "connections.dropbox.step3_app": "Ayarlar → OAuth 2: açık istemcilere (PKCE) izin ver. Yönlendirme adresi gerekmez: Dropbox buraya yapıştıracağın bir kod gösterir.",
-  "connections.dropbox.step4": "Uygulama anahtarını (asla gizli anahtarı değil) buraya kopyala, kaydet ve giriş yap.",
+  "connections.dropbox.step3":
+    "Ayarlar → OAuth 2: açık istemcilere (PKCE) izin ver ve aşağıdaki yönlendirme adresini ekle.",
+  "connections.dropbox.step3_app":
+    "Ayarlar → OAuth 2: açık istemcilere (PKCE) izin ver. Yönlendirme adresi gerekmez: Dropbox buraya yapıştıracağın bir kod gösterir.",
+  "connections.dropbox.step4":
+    "Uygulama anahtarını (asla gizli anahtarı değil) buraya kopyala, kaydet ve giriş yap.",
   "connections.dropbox.app_key": "Uygulama anahtarı",
   "connections.dropbox.connect": "Dropbox uygulamamla giriş yap",
   "connections.dropbox.paste_code": "Dropbox'tan gelen kod",
-  "connections.dropbox.paste_hint": "Erişime izin verdiğinde Dropbox bir kod gösterir. Buraya yapıştır ve bitir.",
+  "connections.dropbox.paste_hint":
+    "Erişime izin verdiğinde Dropbox bir kod gösterir. Buraya yapıştır ve bitir.",
   "connections.dropbox.finish": "Bitir",
   "connections.dropbox.invalid": "Dropbox uygulama anahtarı 15 küçük harf ve rakamdır.",
   "connections.google.sub": "Dosyaları Drive'ına aktar",
-  "connections.google.unlocks": "Seçtiğin dışa aktarma dosyasını Google Drive'ındaki TDJ klasörüne kaydeder. T-DJ yalnızca kendi oluşturduğu dosyaları görür.",
-  "connections.google.limits": "Google uygulamayı doğrulayana kadar uygulama test aşamasında kalır: en fazla 100 test kullanıcısı ve her giriş 7 gün sürer.",
+  "connections.google.unlocks":
+    "Seçtiğin dışa aktarma dosyasını Google Drive'ındaki TDJ klasörüne kaydeder. T-DJ yalnızca kendi oluşturduğu dosyaları görür.",
+  "connections.google.limits":
+    "Google uygulamayı doğrulayana kadar uygulama test aşamasında kalır: en fazla 100 test kullanıcısı ve her giriş 7 gün sürer.",
   "connections.google.step1": "Google Cloud konsolunda Google Drive API'yi etkinleştir.",
-  "connections.google.step2": "Google Auth Platform → Marka ve Kitle: Harici; kendini test kullanıcısı olarak ekle.",
+  "connections.google.step2":
+    "Google Auth Platform → Marka ve Kitle: Harici; kendini test kullanıcısı olarak ekle.",
   "connections.google.step3": "İstemciler → İstemci oluştur → iOS; aşağıdaki paket kimliğiyle.",
   "connections.google.step4": "İstemci kimliğini buraya kopyala ve giriş yap. Gizli anahtar gerekmez.",
-  "connections.google.web_why": "Google bir web sitesinden her zaman gizli istemci anahtarı ister; bu yüzden web'de Drive bu sitenin kendi Google girişini kullanır. Mac ya da iPad için T-DJ uygulamasında kendi istemcini kullanabilirsin.",
+  "connections.google.web_why":
+    "Google bir web sitesinden her zaman gizli istemci anahtarı ister; bu yüzden web'de Drive bu sitenin kendi Google girişini kullanır. Mac ya da iPad için T-DJ uygulamasında kendi istemcini kullanabilirsin.",
   "connections.google.client_id": "İstemci kimliği",
   "connections.google.connect": "Google istemcimle giriş yap",
   "connections.google.invalid": "Google istemci kimliği .apps.googleusercontent.com ile biter.",
   "connections.deezer.sub": "Ön dinlemeler ve şarkı bilgileri",
-  "connections.deezer.unlocks": "Deezer'ın herkese açık aramasından 30 saniyelik ön dinlemeler ve şarkı bilgileri.",
+  "connections.deezer.unlocks":
+    "Deezer'ın herkese açık aramasından 30 saniyelik ön dinlemeler ve şarkı bilgileri.",
   "connections.deezer.limits": "Herkese açık, 5 saniyede yaklaşık 50 istek; hesap gerekmez.",
   "connections.musicbrainz.sub": "Kayıt tarihleri ve şarkıcılar",
-  "connections.musicbrainz.unlocks": "Açık müzik ansiklopedisinden kayıt tarihleri, şarkıcılar ve plak şirketleri.",
+  "connections.musicbrainz.unlocks":
+    "Açık müzik ansiklopedisinden kayıt tarihleri, şarkıcılar ve plak şirketleri.",
   "connections.musicbrainz.limits": "Saniyede yaklaşık bir istek; hesap gerekmez.",
   "connections.lrclib.sub": "Şarkı sözleri",
   "connections.lrclib.unlocks": "Şarkılar ve kortinalar için eşzamanlı sözler.",
   "connections.lrclib.limits": "Açık ve ücretsiz; hesap gerekmez.",
   "connections.apple.sub": "Henüz yok",
   "connections.apple.unlocks": "Gecelerini Apple Music çalma listesi olarak oluşturacak.",
-  "connections.apple.limits": "Site sahibinin Apple Geliştirici Programı üyeliği ve bir MusicKit anahtarı gerekir; her dinleyicinin Apple Music aboneliği olmalı.",
+  "connections.apple.limits":
+    "Site sahibinin Apple Geliştirici Programı üyeliği ve bir MusicKit anahtarı gerekir; her dinleyicinin Apple Music aboneliği olmalı.",
   "connections.callback_title": "Giriş tamamlanıyor…",
   "connections.callback_failed": "Giriş tamamlanmadı",
   "connections.back_to_settings": "Ayarlar'a dön",
-  "now.video_connect_or_key": "Burada aramak için Google ile bağlan ya da Ayarlar → Bağlantılar'dan kendi YouTube anahtarını ekle. YouTube'da arayıp bağlantıyı da yapıştırabilirsin.",
-  "now.video_quota": "YouTube'un bugünkü aramaları bitti. Yarın yeniden dene ya da YouTube'da arayıp bağlantıyı yapıştır.",
+  "connections.short.connected": "Bağlı",
+  "connections.short.one_tap": "Tek dokunuş",
+  "connections.msg.managed_connected":
+    "Bu sitenin tek dokunuşla girişiyle (Pipedream) bağlandı: kendi geliştirici uygulaman olmadan çalışır.",
+  "connections.msg.managed_spotify":
+    "Bu sitenin tek dokunuşla girişiyle (Pipedream) bağlandı: çalma listeleri çalışır. Dinle'de tam parçalar için yine Spotify girişi gerekir.",
+  "connections.msg.managed_available":
+    "Bu site tek dokunuşla bağlantı sunuyor: aşağıdan kendi hesabınla giriş yap, geliştirici uygulaması gerekmez.",
+  "connections.managed.header": "Tek dokunuşla",
+  "connections.managed.connect": "{label} bağla (tek dokunuş)",
+  "connections.managed.reconnect": "{label} yeniden bağla",
+  "connections.managed.footer":
+    "Pipedream üzerinden: girişi doğrudan {label} sayfasında yaparsın, T-DJ parolanı ya da erişim anahtarlarını hiç görmez. Hesabın bu cihazdaki anonim bir kimliğe bağlanır, asla e-postana değil.",
+  "connections.managed.opened": "Açılan sayfada bitir, sonra buraya dön.",
+  "connections.managed.failed": "Bağlantı başlatılamadı: {reason}",
+  "now.video_connect_or_key":
+    "Burada aramak için Google ile bağlan ya da Ayarlar → Bağlantılar'dan kendi YouTube anahtarını ekle. YouTube'da arayıp bağlantıyı da yapıştırabilirsin.",
+  "now.video_quota":
+    "YouTube'un bugünkü aramaları bitti. Yarın yeniden dene ya da YouTube'da arayıp bağlantıyı yapıştır.",
   "now.video_key_bad": "YouTube anahtarını reddetti. Ayarlar → Bağlantılar → YouTube'dan kontrol et.",
   "connectors.log_in": "Giriş yap",
   "connectors.log_in_with_spotify": "Spotify ile giriş yap",

@@ -112,30 +112,80 @@ export async function proxyRaw(
   url: string,
   init: { method: "POST" | "PUT"; headers: Record<string, string>; body: string | Uint8Array },
 ): Promise<unknown> {
+  const r = await proxyRequest(uid, accountId, { ...init, url });
+  if (r.status >= 300)
+    throw new Error(`Proxy to ${new URL(url).host} answered ${r.status}: ${r.body.slice(0, 200)}`);
+  try {
+    return JSON.parse(r.body);
+  } catch {
+    return r.body;
+  }
+}
+
+/**
+ * 2026-11 — what the proxy may reach, per app: the provider's own API and nothing else. Any other URL is refused
+ * before it reaches Pipedream (which checks each app's `allowed_domains` too).
+ */
+export const PROXY_ALLOW: Record<ConnectApp, RegExp> = {
+  spotify: /^https:\/\/api\.spotify\.com\/v1\//,
+  youtube_data_api: /^https:\/\/www\.googleapis\.com\/youtube\/v3\//,
+  dropbox: /^https:\/\/(api|content)\.dropboxapi\.com\/2\//,
+  google_drive: /^https:\/\/www\.googleapis\.com\/(upload\/)?drive\/v3\//,
+};
+/** The target when `app` may reach it: https, no credentials or port in it, the app's own API. */
+export function proxyTarget(app: ConnectApp, raw: unknown): string | null {
+  if (typeof raw !== "string" || raw.length > 4000) return null;
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:" || u.username || u.password || u.port) return null;
+    return PROXY_ALLOW[app].test(u.toString()) ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+/** Headers a caller may send upstream (Pipedream forwards `x-pd-proxy-*` and adds the account's credentials). */
+const PASS_HEADERS = new Set(["content-type", "accept", "dropbox-api-arg"]);
+
+export interface ProxyAnswer {
+  status: number;
+  contentType: string;
+  body: string;
+}
+/**
+ * One request through Pipedream's REST proxy (`/v1/connect/{project}/proxy/{base64url(url)}`) with the user's
+ * connected account: Pipedream inserts the account's credentials; TDJ never sees them. Pipedream itself stops a
+ * request at 30 s (504).
+ */
+export async function proxyRequest(
+  uid: string,
+  accountId: string,
+  init: { method: string; url: string; headers?: Record<string, string>; body?: string | Uint8Array },
+): Promise<ProxyAnswer> {
   const c = await pd();
   const base = (process.env.PIPEDREAM_API_URL || "https://api.pipedream.com").replace(/\/$/, "");
-  const url64 = Buffer.from(url).toString("base64url");
+  const url64 = Buffer.from(init.url).toString("base64url");
   const q = new URLSearchParams({ external_user_id: uid, account_id: accountId });
   const headers: Record<string, string> = {
     authorization: `Bearer ${await c.rawAccessToken}`,
     "x-pd-environment": environment(),
   };
-  for (const [k, v] of Object.entries(init.headers)) headers[`x-pd-proxy-${k}`] = v;
+  for (const [k, v] of Object.entries(init.headers ?? {}))
+    if (PASS_HEADERS.has(k.toLowerCase())) headers[`x-pd-proxy-${k.toLowerCase()}`] = v;
   const r = await fetch(
     `${base}/v1/connect/${encodeURIComponent(process.env.PIPEDREAM_PROJECT_ID!)}/proxy/${url64}?${q}`,
     {
       method: init.method,
       headers,
-      body: init.body as BodyInit,
+      body: init.method === "GET" || init.method === "DELETE" ? undefined : (init.body as BodyInit),
+      signal: AbortSignal.timeout(35_000),
     },
   );
-  const text = await r.text();
-  if (!r.ok) throw new Error(`Proxy to ${new URL(url).host} answered ${r.status}: ${text.slice(0, 200)}`);
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
+  return { status: r.status, contentType: r.headers.get("content-type") ?? "", body: await r.text() };
+}
+
+/** The user's healthy account for one app (the first one), or null. */
+export async function accountFor(uid: string, app: ConnectApp): Promise<ConnectedAccount | null> {
+  return (await listAccounts(uid)).find((a) => a.app === app && a.healthy) ?? null;
 }
 
 const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, "_").trim() || "tdj-set";

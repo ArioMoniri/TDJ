@@ -22,7 +22,7 @@ export const LOCAL_ENV = "apps/web/.env.local";
  * @typedef {{ key: string, label: string, secret: boolean, validate: (v: string) => string | null }} Field
  * @typedef {{ id: string, name: string, unlocks: string, limits: string, console: string,
  *   steps: (url: string) => string[], fields: Field[], provider?: "spotify" | "google" | "dropbox",
- *   docs: string }} Connector
+ *   docs: string, envOnly?: boolean }} Connector
  */
 
 /** @type {Connector[]} */
@@ -31,7 +31,8 @@ export const CONNECTORS = [
     id: "spotify",
     name: "Spotify",
     unlocks: "“Log in with Spotify” for every DJ: playlists, full tracks in Listen, ISRC matching.",
-    limits: "Development Mode: 5 listed users. Extended quota: organisations with 250,000+ monthly users only.",
+    limits:
+      "Development Mode: 5 listed users. Extended quota: organisations with 250,000+ monthly users only.",
     console: "https://developer.spotify.com/dashboard",
     steps: (url) => [
       "Create app → APIs used: Web API and Web Playback SDK.",
@@ -45,7 +46,12 @@ export const CONNECTORS = [
     ],
     fields: [
       { key: "SPOTIFY_CLIENT_ID", label: "Spotify Client ID", secret: false, validate: v.spotifyClientId },
-      { key: "SPOTIFY_CLIENT_SECRET", label: "Spotify Client secret", secret: true, validate: v.spotifySecret },
+      {
+        key: "SPOTIFY_CLIENT_SECRET",
+        label: "Spotify Client secret",
+        secret: true,
+        validate: v.spotifySecret,
+      },
     ],
     provider: "spotify",
     docs: "spotify",
@@ -69,7 +75,8 @@ export const CONNECTORS = [
     id: "google",
     name: "Google (Drive and YouTube playlists)",
     unlocks: "“Connect with Google”: export files to Drive (drive.file) and YouTube playlists (youtube).",
-    limits: "Unverified apps: 100 test users and 7-day sign-ins; the youtube scope needs Google's verification.",
+    limits:
+      "Unverified apps: 100 test users and 7-day sign-ins; the youtube scope needs Google's verification.",
     console: "https://console.cloud.google.com/auth/clients",
     steps: (url) => [
       "Enable “Google Drive API” and “YouTube Data API v3”.",
@@ -105,6 +112,44 @@ export const CONNECTORS = [
     ],
     provider: "dropbox",
     docs: "dropbox",
+  },
+  {
+    id: "pipedream",
+    name: "Pipedream Connect (one-tap sign-in, optional)",
+    unlocks:
+      "“Connect Spotify (one tap)”, YouTube, Dropbox and Google Drive through Pipedream's own OAuth apps: no developer app per DJ.",
+    limits:
+      "Free plan: development only (10 test users). Production: Startup plan, $99/month yearly or $150 monthly, 100 users included, then $2 per user a month.",
+    console: "https://pipedream.com/projects",
+    steps: () => [
+      "Create a project (Projects → New project); its ID starts with proj_.",
+      "Workspace settings → API → New OAuth client: copy the Client ID and the Client secret.",
+      "Connect → Configuration: add your app's address under Allowed origins.",
+      "Production end users need a paid plan; until then keep PIPEDREAM_ENVIRONMENT=development.",
+    ],
+    fields: [
+      {
+        key: "PIPEDREAM_PROJECT_ID",
+        label: "Pipedream project ID",
+        secret: false,
+        validate: v.pipedreamProject,
+      },
+      {
+        key: "PIPEDREAM_CLIENT_ID",
+        label: "Pipedream OAuth client ID",
+        secret: false,
+        validate: v.pipedreamClient,
+      },
+      {
+        key: "PIPEDREAM_CLIENT_SECRET",
+        label: "Pipedream OAuth client secret",
+        secret: true,
+        validate: v.pipedreamClient,
+      },
+    ],
+    docs: "seamless-connectors-with-pipedream-connect",
+    // the server reads these from its environment only (lib/server/connect.ts), not from Parameter Store
+    envOnly: true,
   },
 ];
 
@@ -172,7 +217,8 @@ export function writeLocal(dir, values) {
  * @param {import("./config.mjs").Config} cfg @returns {Set<string> | null} null when it cannot be read here
  */
 export function existing(ctx, target, cfg) {
-  if (target === "local") return new Set(Object.keys(readLocal(cfg.dir)).filter((k) => CONNECTOR_KEYS.includes(k)));
+  if (target === "local")
+    return new Set(Object.keys(readLocal(cfg.dir)).filter((k) => CONNECTOR_KEYS.includes(k)));
   if (target === "github") {
     if (!cfg.repo) return null;
     const r = ctx.run("gh", ["secret", "list", "--repo", cfg.repo, "--json", "name", "--jq", ".[].name"], {
@@ -223,7 +269,8 @@ export async function store(ctx, target, cfg, key, value) {
     await step(ctx, "gh", ["secret", "set", key, "--repo", cfg.repo], { input: value }, [
       "Check `gh auth status` and that you can write to the fork's secrets.",
     ]);
-    if (!ctx.dryRun) log(`${c.green("✓")} ${key} ${c.dim(`set on ${cfg.repo} (GitHub secret, value hidden)`)}`);
+    if (!ctx.dryRun)
+      log(`${c.green("✓")} ${key} ${c.dim(`set on ${cfg.repo} (GitHub secret, value hidden)`)}`);
     return;
   }
   if (ctx.dryRun) return log(c.dim(`would write ${key} to ${LOCAL_ENV} (hidden)`));
@@ -240,9 +287,14 @@ export async function connectors(ctx, flags) {
   const target = targetOf(flags, cfg);
   const list = pick(flags.only);
   const url = (cfg.checkout && readUrl(cfg.checkout)) || cfg.file.NEXT_PUBLIC_APP_URL || "";
-  const app = (url || (target === "local" ? "http://127.0.0.1:3000" : "https://<your app URL>")).replace(/\/$/, "");
+  const app = (url || (target === "local" ? "http://127.0.0.1:3000" : "https://<your app URL>")).replace(
+    /\/$/,
+    "",
+  );
   if (target === "github" && !cfg.repo)
-    throw new CliError("No fork recorded yet.", ["Run `tdj init --github` first, or pass --repo OWNER/NAME."]);
+    throw new CliError("No fork recorded yet.", [
+      "Run `tdj init --github` first, or pass --repo OWNER/NAME.",
+    ]);
   if (target === "aws" && !ctx.dryRun && !awsIdentity(ctx))
     throw new CliError("AWS credentials are needed to store connector keys in Parameter Store.", [
       "Run `aws configure sso` (or `aws sso login`), then `tdj connectors` again.",
@@ -256,7 +308,7 @@ export async function connectors(ctx, flags) {
         : LOCAL_ENV;
   const have = existing(ctx, target, cfg);
 
-  if (flags.check) return check(ctx, { list, have, where, url });
+  if (flags.check) return check(ctx, { list, have, where, url, target });
 
   log(c.bold(`Music services for your T-DJ → ${where}`));
   log(c.dim("Each one is optional, and DJs can still bring their own keys in Settings → Connections."));
@@ -264,9 +316,19 @@ export async function connectors(ctx, flags) {
   let changed = 0;
   for (const [i, k] of list.entries()) {
     log();
-    log(`${c.bold(`${i + 1}/${list.length} ${k.name}`)}${have?.has(k.fields[0]?.key ?? "") ? c.green("  ✓ set") : ""}`);
+    log(
+      `${c.bold(`${i + 1}/${list.length} ${k.name}`)}${have?.has(k.fields[0]?.key ?? "") ? c.green("  ✓ set") : ""}`,
+    );
     log(`   ${k.unlocks}`);
     log(c.dim(`   Limits: ${k.limits}`));
+    if (k.envOnly && target === "aws") {
+      log(
+        c.dim(
+          `   The server reads these from its environment only: use \`tdj connectors --only ${k.id} --target github\` (a fork) or --target local.`,
+        ),
+      );
+      continue;
+    }
     const fromEnv = k.fields.every((f) => ctx.env[f.key]);
     const isSet = k.fields.every((f) => have?.has(f.key));
     if (!fromEnv) {
@@ -312,7 +374,9 @@ export async function connectors(ctx, flags) {
   }
   log(c.bold(c.green("Saved.")));
   if (target === "aws")
-    log("   The app reads Parameter Store within a minute: no redeploy needed. /admin shows them as configured.");
+    log(
+      "   The app reads Parameter Store within a minute: no redeploy needed. /admin shows them as configured.",
+    );
   else if (target === "github")
     log(`   Run ${c.bold("tdj deploy --github")} (or Actions → Deploy to AWS) so the function gets them.`);
   else log("   Restart `pnpm dev` so Next.js reads apps/web/.env.local.");
@@ -323,9 +387,9 @@ export async function connectors(ctx, flags) {
 /**
  * What is set at the target (names only) and what the running app reports at /api/admin/public.
  * @param {import("./deploy.mjs").Ctx} ctx
- * @param {{ list: Connector[], have: Set<string> | null, where: string, url: string }} o
+ * @param {{ list: Connector[], have: Set<string> | null, where: string, url: string, target: string }} o
  */
-async function check(ctx, { list, have, where, url }) {
+async function check(ctx, { list, have, where, url, target }) {
   const { c, log } = ctx;
   log(c.bold(`Connectors · ${where}`));
   /** @type {{ providers?: Record<string, boolean>, keys?: { youtube?: boolean } } | null} */
@@ -337,15 +401,41 @@ async function check(ctx, { list, have, where, url }) {
       if (r.ok) pub = await r.json();
     } catch {}
   }
+  /** whether the app answers /api/connect/accounts with `enabled` (Pipedream Connect is on) */
+  let managed = /** @type {boolean | null} */ (null);
+  if (url && list.some((k) => k.envOnly)) {
+    try {
+      const f = ctx.fetch ?? fetch;
+      const r = await f(`${url}/api/connect/accounts`, { signal: AbortSignal.timeout(10_000) });
+      if (r.ok) managed = !!(/** @type {{ enabled?: boolean }} */ (await r.json()).enabled);
+    } catch {}
+  }
   let missing = 0;
   for (const k of list) {
+    if (k.envOnly && target === "aws") {
+      const on =
+        managed === null ? "" : managed ? c.green(" · the app has it on") : c.dim(" · off in the app");
+      log(`${c.dim("•")} ${k.name}: environment only (GitHub secrets or the server's shell)${on}`);
+      continue;
+    }
     const set = have ? k.fields.every((f) => have.has(f.key)) : null;
-    const live = !pub ? null : k.provider ? !!pub.providers?.[k.provider] : !!pub.keys?.youtube;
+    const live = k.envOnly
+      ? managed
+      : !pub
+        ? null
+        : k.provider
+          ? !!pub.providers?.[k.provider]
+          : !!pub.keys?.youtube;
     if (set === false) missing++;
     const mark = set === null ? c.yellow("?") : set ? c.green("✓") : c.yellow("•");
     const state =
-      set === null ? "cannot read the store from here" : set ? "set" : `not set: tdj connectors --only ${k.id}`;
-    const app = live === null ? "" : live ? c.green(" · the app sees it") : c.yellow(" · the app does not see it yet");
+      set === null
+        ? "cannot read the store from here"
+        : set
+          ? "set"
+          : `not set: tdj connectors --only ${k.id}`;
+    const app =
+      live === null ? "" : live ? c.green(" · the app sees it") : c.yellow(" · the app does not see it yet");
     log(`${mark} ${k.name}: ${state}${app}`);
   }
   log(c.dim(`Keyless, nothing to set: Deezer, MusicBrainz, LRCLIB. Every step: ${DOCS}`));

@@ -59,7 +59,7 @@ Options
                            from SPOTIFY_CLIENT_SECRET in the environment, never a flag
   --spotify-later          init: skip Spotify (set it in the app at /admin)
   --confirm STAGE          destroy with --yes: the stage name, typed out
-  --only LIST              connectors: some of spotify,youtube,google,dropbox
+  --only LIST              connectors: some of spotify,youtube,google,dropbox,pipedream
   --target WHERE           connectors: aws, github or local (default: your deploy route)
   --check                  connectors: show what is set, change nothing
   -y, --yes                no questions: defaults for everything not given as a flag

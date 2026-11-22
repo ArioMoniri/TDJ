@@ -213,6 +213,14 @@ once, or [by hand](docs/SELF_DEPLOY.md#c-one-click-on-github)) →
 way, costs on the AWS free tier, updating and removing: [docs/SELF_DEPLOY.md](docs/SELF_DEPLOY.md). A copy starts
 empty: no key or account comes with the code, and every key is one you add yourself.
 
+## Connectors
+
+Deezer, MusicBrainz and LRCLIB need nothing. Spotify, YouTube, Google Drive and Dropbox work with the server's
+credentials when its owner set them, or with your own: a Spotify Client ID, a YouTube API key, a Dropbox app key or
+(in the apps) a Google client ID, entered in Settings → Connections and kept on your device. A server can also offer
+one-tap sign-ins through Pipedream Connect. Every connector, its limits and costs, the console steps and the
+`pnpm tdj connectors` setup for self-hosters: [docs/CONNECTORS.md](docs/CONNECTORS.md).
+
 ## Develop
 
 ```bash

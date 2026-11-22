@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
+import { keyError, parseYoutubeSearch, youtubeSearchUrl } from "@/lib/connections/youtube";
 import { getConfigValue } from "@/lib/server/config";
 import { clientKey, crossOriginResponse } from "@/lib/server/guard";
 import { rateLimited } from "@/lib/server/rooms";
-import { keyError, parseYoutubeSearch, youtubeSearchUrl } from "@/lib/connections/youtube";
 export const dynamic = "force-dynamic";
 
 /**
@@ -26,7 +26,10 @@ export async function GET(req: Request) {
     if (!r.ok) {
       const e = keyError(r.status, body);
       // a wrong or restricted server key is the owner's to fix: said as "unavailable", never as the key
-      return NextResponse.json({ error: e === "quota" ? "quota" : "unavailable" }, { status: e === "quota" ? 429 : 502 });
+      return NextResponse.json(
+        { error: e === "quota" ? "quota" : "unavailable" },
+        { status: e === "quota" ? 429 : 502 },
+      );
     }
     return NextResponse.json(
       { videos: parseYoutubeSearch(JSON.parse(body)) },

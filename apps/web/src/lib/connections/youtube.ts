@@ -141,7 +141,10 @@ async function searchGoogle(q: string, d: SearchDeps): Promise<VideoSearch> {
  * Five candidate videos for `q`, the first way that answers. Your own key's failure (quota, a wrong key) is said
  * as it is and not hidden behind another way: the DJ chose that key.
  */
-export async function findVideos(q: string, d: SearchDeps & { linkedServer?: boolean }): Promise<VideoSearch> {
+export async function findVideos(
+  q: string,
+  d: SearchDeps & { linkedServer?: boolean },
+): Promise<VideoSearch> {
   const ways = youtubeWays({ app: d.app, ownKey: !!d.byo.youtubeKey, linkedServer: d.linkedServer });
   if (!ways.length) return { ok: false, error: "connect" };
   for (const w of ways) {

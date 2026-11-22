@@ -1,6 +1,7 @@
 import type { MsgKey } from "@/lib/i18n";
 import type { ByoState } from "./byo";
 import type { ConnectionId } from "./catalog";
+import { MANAGED_APP, type ManagedState, managedConnected } from "./managed";
 
 /**
  * 2026-11 — one plain status per service for Settings → Connections, from what this device and this deployment
@@ -25,8 +26,10 @@ export interface ConnectionContext {
   byo: ByoState;
   /** a Spotify Client ID is at hand: the DJ's own, or (apps) the one the build ships with */
   spotifyClientId: boolean;
+  /** the server's Pipedream Connect (the managed one-tap sign-in), when it has one (lib/connections/managed.ts) */
+  managed?: ManagedState;
 }
-export type Via = "keyless" | "server" | "own" | "none" | "checking" | "soon";
+export type Via = "keyless" | "server" | "managed" | "own" | "none" | "checking" | "soon";
 export interface ConnectionStatus {
   via: Via;
   tone: "on" | "off" | "warn";
@@ -51,7 +54,25 @@ const s = (via: Via, tone: ConnectionStatus["tone"], short: MsgKey, message: Msg
 });
 const CHECKING = s("checking", "off", "connections.short.checking", "connections.msg.checking");
 
+/**
+ * A connection through the server's Pipedream Connect counts first: it needs nobody's developer app. When the
+ * server offers it but nothing else works yet, the plain sentence points at the one-tap button instead.
+ */
 export function connectionStatus(id: ConnectionId, ctx: ConnectionContext): ConnectionStatus {
+  if (managedConnected(id, ctx.managed))
+    return s(
+      "managed",
+      "on",
+      "connections.short.connected",
+      id === "spotify" ? "connections.msg.managed_spotify" : "connections.msg.managed_connected",
+    );
+  const base = baseStatus(id, ctx);
+  if (ctx.managed?.enabled && MANAGED_APP[id] && (base.via === "none" || base.via === "checking"))
+    return s("none", "warn", "connections.short.one_tap", "connections.msg.managed_available");
+  return base;
+}
+
+function baseStatus(id: ConnectionId, ctx: ConnectionContext): ConnectionStatus {
   if (id === "deezer" || id === "musicbrainz" || id === "lrclib")
     return s("keyless", "on", "connections.short.keyless", "connections.msg.keyless");
   if (id === "apple_music") return s("soon", "off", "connections.short.soon", "connections.msg.apple_soon");
@@ -93,7 +114,10 @@ export function connectionStatus(id: ConnectionId, ctx: ConnectionContext): Conn
  * Where an export file goes for Dropbox or Google Drive: the deployment's sign-in when it has one (the server's
  * routes), else the DJ's own app when signed in, else nowhere (the Export sheet says to connect in Settings).
  */
-export function uploadVia(target: "dropbox" | "google_drive", ctx: ConnectionContext): "server" | "own" | null {
+export function uploadVia(
+  target: "dropbox" | "google_drive",
+  ctx: ConnectionContext,
+): "server" | "own" | null {
   const srv = serverFor(ctx);
   if (target === "dropbox") {
     if (srv?.dropbox) return "server";

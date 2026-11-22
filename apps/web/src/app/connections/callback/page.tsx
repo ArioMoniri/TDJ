@@ -24,7 +24,9 @@ export default function OwnCallback() {
       { app: APP, fetch: (...a) => fetch(...a), invoke: (c, a) => invoke(c, a) },
     ).then((r) => {
       if (r.ok) {
-        toast(t("connections.connected_toast", { label: r.provider === "dropbox" ? "Dropbox" : "Google Drive" }));
+        toast(
+          t("connections.connected_toast", { label: r.provider === "dropbox" ? "Dropbox" : "Google Drive" }),
+        );
         router.replace(r.next);
       } else
         setError(

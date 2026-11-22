@@ -22,8 +22,10 @@ export interface OwnUploadResult {
 
 /** a name that is safe as one path segment at both providers */
 export const safeSegment = (s: string) =>
-  s
-    .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "_")
+  [...s]
+    .map((c) => (c.charCodeAt(0) < 32 ? "_" : c))
+    .join("")
+    .replace(/[\\/:*?"<>|]+/g, "_")
     .trim()
     .slice(0, 120) || "TDJ";
 
@@ -96,12 +98,15 @@ export async function driveUpload(access: string, f: OwnFile, fetchFn: typeof fe
     `--${boundary}--`,
     "",
   ].join("\r\n");
-  const r = await fetchFn(`${DRIVE_API}/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink`, {
-    ...opts,
-    method: "POST",
-    headers: { ...auth, "content-type": `multipart/related; boundary=${boundary}` },
-    body,
-  });
+  const r = await fetchFn(
+    `${DRIVE_API}/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink`,
+    {
+      ...opts,
+      method: "POST",
+      headers: { ...auth, "content-type": `multipart/related; boundary=${boundary}` },
+      body,
+    },
+  );
   if (!r.ok) throw new Error(`Google Drive ${r.status}`);
   const j = (await r.json()) as { id: string; name?: string; webViewLink?: string };
   return {

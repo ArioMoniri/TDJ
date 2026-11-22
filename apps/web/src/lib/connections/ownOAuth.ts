@@ -83,7 +83,12 @@ export interface OwnTokens {
   account?: string;
 }
 export function parseOwnTokens(j: unknown, now = Date.now()): OwnTokens | null {
-  const t = j as { access_token?: unknown; expires_in?: unknown; refresh_token?: unknown; account_id?: unknown };
+  const t = j as {
+    access_token?: unknown;
+    expires_in?: unknown;
+    refresh_token?: unknown;
+    account_id?: unknown;
+  };
   if (!t || typeof t.access_token !== "string" || !t.access_token) return null;
   const secs = typeof t.expires_in === "number" && t.expires_in > 0 ? t.expires_in : 3600;
   return {
@@ -169,7 +174,10 @@ export type FinishResult =
  * Finishes it: `query` is the callback's query (web, Google in the apps) or `{ code }` the DJ pasted (Dropbox in
  * the apps, where no state comes back: the pending sign-in on this device stands for it).
  */
-export async function finishOwnLogin(input: { query: string } | { code: string }, d: OwnDeps): Promise<FinishResult> {
+export async function finishOwnLogin(
+  input: { query: string } | { code: string },
+  d: OwnDeps,
+): Promise<FinishResult> {
   let p: Pending | null = null;
   try {
     p = JSON.parse(session(d)?.getItem(PENDING) ?? "null");
@@ -201,7 +209,9 @@ export async function finishOwnLogin(input: { query: string } | { code: string }
         form: form.toString(),
       })) as { access: string; expires: number } | undefined;
       if (!t?.access) return { ok: false, error: "failed" };
-      writeByo({ [p.provider]: { clientId: p.clientId, connected: true, access: t.access, expires: t.expires } });
+      writeByo({
+        [p.provider]: { clientId: p.clientId, connected: true, access: t.access, expires: t.expires },
+      });
     } catch {
       return { ok: false, error: "failed" };
     }
@@ -269,7 +279,10 @@ export async function ownAccess(provider: OwnProvider, d: OwnDeps): Promise<stri
 }
 
 /** Signs out of the DJ's own app; the public ID stays for the next sign-in. */
-export async function ownDisconnect(provider: OwnProvider, d: Pick<OwnDeps, "app" | "invoke">): Promise<void> {
+export async function ownDisconnect(
+  provider: OwnProvider,
+  d: Pick<OwnDeps, "app" | "invoke">,
+): Promise<void> {
   const own = readByo()[provider];
   if (d.app) await d.invoke?.("byo_oauth_logout", { provider }).catch(() => {});
   writeByo({ [provider]: own ? { clientId: own.clientId } : undefined });

@@ -22,6 +22,7 @@ works with one of three things:
 - [Dropbox](#dropbox)
 - [Apple Music (MusicKit)](#apple-music-musickit)
 - [Deezer, MusicBrainz, LRCLIB](#deezer-musicbrainz-lrclib)
+- [Seamless connectors with Pipedream Connect](#seamless-connectors-with-pipedream-connect)
 - [For self-hosters: environment variables](#for-self-hosters-environment-variables)
 - [For organisations](#for-organisations)
 
@@ -37,6 +38,7 @@ works with one of three things:
 | **Deezer** | 30-second previews, song details | Nothing | Public API, about 50 requests per 5 seconds | Not needed |
 | **MusicBrainz** | Recording dates, singers, labels | Nothing | About 1 request a second per client | Not needed |
 | **LRCLIB** | Synced lyrics for songs and cortinas | Nothing | Open and free | Not needed |
+| **Pipedream Connect** (optional, server) | "Connect Spotify (one tap)", and the same for YouTube, Dropbox, Google Drive: Pipedream's own OAuth apps, no developer app per DJ | The server's Pipedream project (`PIPEDREAM_*`) | Free in development (10 test users); production from $99 a month; see [below](#seamless-connectors-with-pipedream-connect) | Not needed: that is its point |
 
 In the app, **Settings → Connections** shows the same list: one status per service (*Ready*, *Your own*, *Sign in*,
 *Off*), what it unlocks, its limits, the fields for your own credentials, and "Set up your own" with the exact redirect
@@ -302,6 +304,113 @@ Connections still says *Ready*, and each feature that uses it says what it could
 
 ---
 
+## Seamless connectors with Pipedream Connect
+
+The goal: a DJ taps **Connect Spotify (one tap)**, signs in at Spotify, and is done, without anyone creating a
+developer app. [Pipedream Connect](https://pipedream.com/docs/connect) does that as an **optional, managed-OAuth
+layer on the server**. It is off unless the server has `PIPEDREAM_PROJECT_ID`, `PIPEDREAM_CLIENT_ID` and
+`PIPEDREAM_CLIENT_SECRET` in its environment; then Settings → Connections shows the one-tap button for Spotify,
+YouTube, Dropbox and Google Drive, and Settings → Accounts and services → Advanced lists the connected accounts.
+
+### How it works in T-DJ
+
+1. **Token** (`POST /api/connect/token`): the server signs in to Pipedream with the project's OAuth client
+   (client-credentials, server side only) and mints a **short-lived Connect token** for one *external user*. That
+   id is the anonymous `tdj_uid` cookie id (16 random characters, `lib/server/db.ts`): **never an e-mail, never an
+   account**. Once sync lands it can be the sync id instead.
+2. **Connect**: the page opens Pipedream's hosted **Connect Link** (a new tab on the web, the system browser in the
+   apps). The DJ signs in at the provider itself, with **Pipedream's own verified OAuth app** for that provider.
+   The provider's tokens are stored by Pipedream; T-DJ never sees them.
+3. **Calls** (`POST /api/connect/proxy`, and `/api/connect/export` for whole playlists and files): the server sends
+   the request through Pipedream's REST proxy
+   (`/v1/connect/{project}/proxy/{base64url(url)}?external_user_id=…&account_id=…`); Pipedream inserts the DJ's
+   credentials and forwards it. The proxy route only reaches **that app's own API** (`api.spotify.com/v1`,
+   `www.googleapis.com/youtube/v3`, `api|content.dropboxapi.com/2`, `www.googleapis.com/(upload/)drive/v3`), at most 60
+   calls a minute per DJ, and answers with the provider's own status and body.
+4. **The apps** use it through a linked TDJ server (`/api/connect/*` is forwarded to it). Without a linked server, or
+   with a server without Pipedream, they fall back to the built-in Spotify app (5 users) or the DJ's own credentials
+   ([Bring your own](#every-connector-at-a-glance)).
+
+Code: `apps/web/src/lib/server/connect.ts`, `apps/web/src/app/api/connect/*`, `apps/web/src/lib/connections/managed.ts`;
+tests on a mocked Pipedream in `apps/web/src/lib/server/connectProxy.test.ts`.
+
+### Set it up (the server's owner)
+
+1. Sign up at [pipedream.com](https://pipedream.com) and create a **project**
+   ([Projects](https://pipedream.com/projects)); note its ID (`proj_…`).
+2. **Workspace settings → API → OAuth clients → New OAuth client**: note the **Client ID** and **Client secret**.
+3. The project's **Connect → Configuration**: add your T-DJ address (e.g. `https://your-app.example`) to the allowed
+   origins.
+4. Give the server the three values, **environment only** (the server does not read them from Parameter Store):
+   - a fork: `pnpm tdj connectors --only pipedream --target github` (GitHub secrets through stdin, the names the
+     deploy workflow already forwards: `PIPEDREAM_PROJECT_ID`, `PIPEDREAM_CLIENT_ID`, `PIPEDREAM_CLIENT_SECRET`), then
+     run *Deploy to AWS*;
+   - a local run: `--target local` (`apps/web/.env.local`).
+5. Keep the repository variable `PIPEDREAM_ENVIRONMENT` at `development` (the default) until the plan allows
+   production users, then set it to `production`.
+6. Check: `pnpm tdj connectors --check` says "the app has it on", and `GET <url>/api/connect/accounts` answers
+   `enabled: true`.
+
+### What it costs (Pipedream pricing, checked November 2026)
+
+| Plan | Price | Connect end users | Credits |
+|---|---|---|---|
+| **Free** | $0 | **development only**: at most 10 external users, each must be signed in to pipedream.com while connecting | development only |
+| **Startup** | **$99 a month** billed yearly, $150 monthly | production; **100 external users included, then $2 per user a month** | 10,000 a month, then $0.012 each; a proxy request uses 1 credit per 30 s of compute |
+| **Business** | on request | custom | custom |
+
+For a club of 30 DJs that is the Startup plan's $99–150 a month; for 500 DJs, about $900 a month more. Listing
+accounts and minting tokens cost no credits. Compare: the bring-your-own paths and the built-in Spotify app are free.
+
+### Which apps, with whose OAuth client
+
+- Pipedream's **official OAuth clients** are the default for OAuth apps in Connect and work for the two things T-DJ
+  uses: the hosted connect flow and **proxying API requests**. They do not allow *reading the user's credentials* or
+  running workflows with them; those need your own OAuth client in Pipedream
+  ([OAuth clients](https://pipedream.com/docs/connect/managed-auth/oauth-clients)).
+- **Spotify**: listed with a managed client and the proxy; the scopes are the ones Pipedream's client requests
+  (including `playlist-modify-private`, `playlist-modify-public`, `user-read-email`)
+  ([Spotify on Pipedream](https://pipedream.com/apps/spotify)).
+- **YouTube Data API**, **Google Drive**, **Dropbox**: available in Connect with the proxy (T-DJ already used them through
+  `/api/connect/export`). Which scopes Pipedream's Google clients carry, and whether they are verified for the
+  sensitive `youtube` scope, is Pipedream's to state; check each app's page before relying on it.
+
+### Trade-offs
+
+- **Shared quotas.** Every call through Pipedream's Spotify app counts against **that app's** Spotify rate limit,
+  shared with every Pipedream customer; the same holds for the YouTube project's **10,000 units a day**, which is
+  very little when shared. Pipedream does not publish these quotas. A busy night can hit 429s that T-DJ cannot
+  raise. For YouTube, the DJ's own API key or the server's `YOUTUBE_API_KEY` remains the reliable search path.
+- **Spotify's 5-user rule** binds Pipedream's Spotify app as much as any other: if Pipedream's app is not in extended
+  quota mode, a DJ not on its list is refused. Pipedream does not say; test with an unlisted account before
+  promising one-tap Spotify to a club.
+- **No tokens in the browser.** Because the official client never hands out the user's token, Spotify through
+  Pipedream can make playlists and read data, but **cannot play full tracks in Listen** (the Web Playback SDK needs
+  the token in the page). Full playback still uses a Spotify login (the server's app, the built-in app or your own
+  Client ID). Settings says so.
+- **Latency and a third party in the path.** Each call adds a hop through `api.pipedream.com` (a 30 s limit), and the
+  DJs' provider tokens are held by Pipedream. Their accounts are tied to an anonymous id, never
+  an e-mail, so Pipedream learns no identity from T-DJ.
+- **Branding.** The provider's consent screen shows Pipedream's app, not T-DJ.
+- **Lock-in is small.** Turning it off (removing the three variables) brings back the direct logins and
+  bring-your-own paths unchanged; Pipedream's own client can later be replaced by an OAuth client of yours in
+  Pipedream without touching T-DJ.
+
+**Recommendation.** Use it where the owner wants one-tap Dropbox and Drive exports for many DJs and can pay for the
+Startup plan; keep the built-in Spotify app plus bring-your-own Client ID for Spotify playback, and an API key for
+YouTube search.
+
+Sources: [Connect overview](https://pipedream.com/docs/connect),
+[OAuth clients](https://pipedream.com/docs/connect/managed-auth/oauth-clients),
+[API proxy](https://pipedream.com/docs/connect/api-proxy),
+[Environments](https://pipedream.com/docs/connect/managed-auth/environments),
+[Pricing](https://pipedream.com/pricing), [Spotify on Pipedream](https://pipedream.com/apps/spotify),
+[Spotify quota modes](https://developer.spotify.com/documentation/web-api/concepts/quota-modes),
+[Spotify's February 2026 update](https://developer.spotify.com/blog/2026-02-06-update-on-developer-access-and-platform-security)
+(all read 22 November 2026).
+
+---
+
 ## For self-hosters: environment variables
 
 A self-hosted server reads every connector credential from the **environment first, then AWS Parameter Store**
@@ -320,6 +429,9 @@ none of them reaches the browser.
 | `YOUTUBE_API_KEY` | YouTube search without a login | **yes** (keep it private) | no: use one of the ways below |
 | `NEXT_PUBLIC_APP_URL` | the public address used in redirect URIs | no | yes ("Public URL") |
 | `TDJ_SPOTIFY_CLIENT_ID` (repository *variable*) | the Client ID built into the Mac / iPad apps | no | no |
+| `PIPEDREAM_PROJECT_ID`, `PIPEDREAM_CLIENT_ID` | Pipedream Connect (one tap) | no | no: **environment only** (GitHub secrets, the shell, `apps/web/.env.local`) |
+| `PIPEDREAM_CLIENT_SECRET` | Pipedream Connect | **yes** | no: environment only |
+| `PIPEDREAM_ENVIRONMENT` (repository *variable*) | `development` (default) or `production` | no | no |
 
 ### Where to set them
 

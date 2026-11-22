@@ -38,23 +38,41 @@ function capturePuts(/** @type {ReturnType<typeof fakeSys>} */ sys) {
 
 describe("tdj connectors: the catalogue", () => {
   it("covers Spotify, YouTube, Google and Dropbox with the env names sst.config.ts forwards", () => {
-    expect(CONNECTORS.map((c) => c.id)).toEqual(["spotify", "youtube", "google", "dropbox"]);
+    expect(CONNECTORS.map((c) => c.id)).toEqual(["spotify", "youtube", "google", "dropbox", "pipedream"]);
     const sst = readFileSync(new URL("../../../sst.config.ts", import.meta.url), "utf8");
-    const workflow = readFileSync(new URL("../../../.github/workflows/deploy-aws.yml", import.meta.url), "utf8");
+    const workflow = readFileSync(
+      new URL("../../../.github/workflows/deploy-aws.yml", import.meta.url),
+      "utf8",
+    );
     for (const k of CONNECTOR_KEYS) {
       expect(sst).toContain(`"${k}"`);
       expect(workflow).toContain(`${k}: \${{ secrets.${k} }}`);
     }
-    const config = readFileSync(new URL("../../../apps/web/src/lib/server/config.ts", import.meta.url), "utf8");
-    for (const k of CONNECTOR_KEYS) expect(config).toContain(`"${k}"`);
+    const config = readFileSync(
+      new URL("../../../apps/web/src/lib/server/config.ts", import.meta.url),
+      "utf8",
+    );
+    // Parameter Store keys (lib/server/config.ts); Pipedream is read from the environment only (lib/server/connect.ts)
+    for (const c of CONNECTORS.filter((x) => !x.envOnly))
+      for (const f of c.fields) expect(config).toContain(`"${f.key}"`);
+    const connect = readFileSync(
+      new URL("../../../apps/web/src/lib/server/connect.ts", import.meta.url),
+      "utf8",
+    );
+    for (const f of CONNECTORS.find((x) => x.id === "pipedream")?.fields ?? [])
+      expect(connect).toContain(`process.env.${f.key}`);
   });
   it("prints the exact redirect addresses for the app's URL", () => {
     const sp = CONNECTORS[0]?.steps("https://dj.example").join("\n") ?? "";
     expect(sp).toContain("https://dj.example/api/spotify/callback");
     expect(sp).toContain("https://dj.example/callback");
     expect(sp).toContain("tdj://spotify-callback");
-    expect(CONNECTORS[2]?.steps("https://dj.example").join("\n")).toContain("https://dj.example/api/google/callback");
-    expect(CONNECTORS[3]?.steps("https://dj.example").join("\n")).toContain("https://dj.example/api/dropbox/callback");
+    expect(CONNECTORS[2]?.steps("https://dj.example").join("\n")).toContain(
+      "https://dj.example/api/google/callback",
+    );
+    expect(CONNECTORS[3]?.steps("https://dj.example").join("\n")).toContain(
+      "https://dj.example/api/dropbox/callback",
+    );
   });
   it("--only picks, and refuses what does not exist", () => {
     expect(pick("youtube, dropbox").map((c) => c.id)).toEqual(["youtube", "dropbox"]);
@@ -83,7 +101,10 @@ describe("tdj connectors: the catalogue", () => {
 describe("tdj connectors: storing", () => {
   it("aws: each key to Parameter Store through a 0600 file, never argv or output", async () => {
     const dir = checkout({ url: "https://dj.example" });
-    const sys = fakeSys({ "aws sts get-caller-identity": IDENTITY, "aws ssm get-parameters-by-path": { stdout: "[]" } });
+    const sys = fakeSys({
+      "aws sts get-caller-identity": IDENTITY,
+      "aws ssm get-parameters-by-path": { stdout: "[]" },
+    });
     const cap = capturePuts(sys);
     const o = output();
     const opened = /** @type {string[]} */ ([]);
@@ -132,7 +153,15 @@ describe("tdj connectors: storing", () => {
     const sys = fakeSys({ "aws sts get-caller-identity": { status: 255 } });
     const o = output();
     expect(
-      await main(["connectors"], { ...base, log: o.log, env: {}, cwd: dir, run: sys.run, live: sys.live, answers: {} }),
+      await main(["connectors"], {
+        ...base,
+        log: o.log,
+        env: {},
+        cwd: dir,
+        run: sys.run,
+        live: sys.live,
+        answers: {},
+      }),
     ).toBe(1);
     expect(o.text()).toMatch(/aws configure sso/);
   });
@@ -168,6 +197,58 @@ describe("tdj connectors: storing", () => {
     expect(text).toContain("kept as it is");
     expect(text).toContain("tdj deploy --github");
     expect(text).not.toContain(G_SECRET);
+  });
+
+  it("Pipedream Connect: the existing PIPEDREAM_* secret names on the fork; skipped (with the way) for Parameter Store", async () => {
+    const dir = checkout();
+    writeFileSync(join(dir, ".env.local"), "TDJ_DEPLOY_ROUTE=github\nTDJ_GITHUB_REPO=dj/TDJ\n");
+    const sys = fakeSys({ "gh secret list": { stdout: "" } });
+    const PD_SECRET = "fake-pd-secret-0123456789";
+    const o = output();
+    expect(
+      await main(["connectors", "--only", "pipedream"], {
+        ...base,
+        log: o.log,
+        env: {},
+        cwd: dir,
+        run: sys.run,
+        live: sys.live,
+        answers: {
+          "pipedream.go": "y",
+          "pipedream.PIPEDREAM_PROJECT_ID": "proj_fake123",
+          "pipedream.PIPEDREAM_CLIENT_ID": "fake-pd-client-0123",
+          "pipedream.PIPEDREAM_CLIENT_SECRET": PD_SECRET,
+        },
+      }),
+    ).toBe(0);
+    const sets = sys.calls.filter((c) => c.cmd === "gh" && c.args[1] === "set");
+    expect(sets.map((c) => c.args[2])).toEqual([
+      "PIPEDREAM_PROJECT_ID",
+      "PIPEDREAM_CLIENT_ID",
+      "PIPEDREAM_CLIENT_SECRET",
+    ]);
+    expect(o.text()).not.toContain(PD_SECRET);
+    expect(sys.lines().join("\n")).not.toContain(PD_SECRET);
+
+    const aws = fakeSys({
+      "aws sts get-caller-identity": IDENTITY,
+      "aws ssm get-parameters-by-path": { stdout: "[]" },
+    });
+    const cap = capturePuts(aws);
+    const o2 = output();
+    expect(
+      await main(["connectors", "--only", "pipedream", "--target", "aws"], {
+        ...base,
+        log: o2.log,
+        env: {},
+        cwd: checkout(),
+        run: cap.run,
+        live: aws.live,
+        answers: {},
+      }),
+    ).toBe(0);
+    expect(cap.puts).toEqual([]);
+    expect(o2.text()).toContain("--target github");
   });
 
   it("local: apps/web/.env.local, mode 0600, never the root .env.local", async () => {
@@ -226,7 +307,14 @@ describe("tdj connectors: storing", () => {
     const o = output();
     const sys = fakeSys();
     expect(
-      await main(["connectors", "--target", "local", "--yes"], { ...base, log: o.log, env: {}, cwd: dir, run: sys.run, live: sys.live }),
+      await main(["connectors", "--target", "local", "--yes"], {
+        ...base,
+        log: o.log,
+        env: {},
+        cwd: dir,
+        run: sys.run,
+        live: sys.live,
+      }),
     ).toBe(0);
     expect(o.text()).toContain("Nothing changed");
     expect(existsSync(join(dir, LOCAL_ENV))).toBe(false);
@@ -257,7 +345,11 @@ describe("tdj connectors --check", () => {
     const sys = fakeSys({
       "aws sts get-caller-identity": IDENTITY,
       "aws ssm get-parameters-by-path": {
-        stdout: JSON.stringify(["/tdj/production/SPOTIFY_CLIENT_ID", "/tdj/production/SPOTIFY_CLIENT_SECRET", "/tdj/production/SETUP_CODE"]),
+        stdout: JSON.stringify([
+          "/tdj/production/SPOTIFY_CLIENT_ID",
+          "/tdj/production/SPOTIFY_CLIENT_SECRET",
+          "/tdj/production/SETUP_CODE",
+        ]),
       },
     });
     const o = output();
@@ -274,16 +366,24 @@ describe("tdj connectors --check", () => {
         async (/** @type {string} */ u) => {
           asked.push(u);
           return new Response(
-            JSON.stringify({ providers: { spotify: true, google: false, dropbox: false }, keys: { youtube: false } }),
+            u.endsWith("/api/connect/accounts")
+              ? JSON.stringify({ enabled: true, accounts: [] })
+              : JSON.stringify({
+                  providers: { spotify: true, google: false, dropbox: false },
+                  keys: { youtube: false },
+                }),
           );
         }
       ),
     });
     expect(code).toBe(1);
-    expect(asked).toEqual(["https://dj.example/api/admin/public"]);
+    expect(asked).toEqual(["https://dj.example/api/admin/public", "https://dj.example/api/connect/accounts"]);
+    expect(strip(o.text())).toMatch(/Pipedream Connect .*: environment only .* · the app has it on/);
     const text = strip(o.text());
     expect(text).toMatch(/✓ Spotify: set · the app sees it/);
-    expect(text).toMatch(/• YouTube Data API key: not set: tdj connectors --only youtube · the app does not see it yet/);
+    expect(text).toMatch(
+      /• YouTube Data API key: not set: tdj connectors --only youtube · the app does not see it yet/,
+    );
     expect(text).not.toContain("SETUP_CODE");
     // reads names only: no --with-decryption anywhere
     expect(sys.lines().join("\n")).not.toContain("--with-decryption");

@@ -14,13 +14,26 @@ import {
   validGoogleClientId,
 } from "@/lib/connections/catalog";
 import {
+  fetchManaged,
+  MANAGED_APP,
+  MANAGED_OFF,
+  type ManagedState,
+  managedConnected,
+  startManaged,
+} from "@/lib/connections/managed";
+import {
   beginOwnLogin,
   finishOwnLogin,
   type OwnDeps,
   ownDisconnect,
   ownWebRedirect,
 } from "@/lib/connections/ownOAuth";
-import { byoAvailable, type ConnectionContext, connectionStatus, type ServerConnectors } from "@/lib/connections/status";
+import {
+  byoAvailable,
+  type ConnectionContext,
+  connectionStatus,
+  type ServerConnectors,
+} from "@/lib/connections/status";
 import { type MsgKey, t } from "@/lib/i18n";
 import { openExternal } from "@/lib/openLink";
 import { useConnectors } from "@/lib/spotify";
@@ -70,7 +83,11 @@ const STEPS: Partial<Record<ConnectionId, string[]>> = {
 function Dot({ tone }: { tone: "on" | "off" | "warn" }) {
   const bg = tone === "on" ? "var(--system-green)" : tone === "warn" ? "#ff9500" : "var(--label-3)";
   return (
-    <span className="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full align-middle" style={{ background: bg }} aria-hidden />
+    <span
+      className="mr-1.5 inline-block h-2 w-2 shrink-0 rounded-full align-middle"
+      style={{ background: bg }}
+      aria-hidden
+    />
   );
 }
 
@@ -113,6 +130,19 @@ export function Connections() {
   const [origin, setOrigin] = useState("");
   const [googleRedirect, setGoogleRedirect] = useState("");
   const [open, setOpen] = useState<ConnectionId | null>(null);
+  const [managed, setManaged] = useState<ManagedState>(MANAGED_OFF);
+  // the one-tap connection finishes in another tab or the system browser: asked again when T-DJ is in front again
+  useEffect(() => {
+    const load = () => void fetchManaged().then(setManaged);
+    load();
+    const onFocus = () => document.visibilityState === "visible" && load();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, []);
   useEffect(() => {
     setOrigin(location.origin);
     void fetch("/api/admin/public", { cache: "no-store" })
@@ -144,6 +174,7 @@ export function Connections() {
     server,
     byo,
     spotifyClientId: !!spotifyOwnId || builtInSpotify,
+    managed,
   };
   const deps: OwnDeps = {
     app: APP,
@@ -156,7 +187,10 @@ export function Connections() {
 
   return (
     <section id="connections" data-testid="connections">
-      <Group header={t("connections.header")} footer={APP ? t("connections.footer_app") : t("connections.footer")}>
+      <Group
+        header={t("connections.header")}
+        footer={APP ? t("connections.footer_app") : t("connections.footer")}
+      >
         {CONNECTIONS.map((c) => {
           const st = connectionStatus(c.id, ctx);
           return (
@@ -229,6 +263,7 @@ function ConnectionSheetBody({
         />
         <Para id={`connection-message-${info.id}`}>{t(st.message)}</Para>
       </Group>
+      {ctx.managed?.enabled && MANAGED_APP[info.id] && <OneTap info={info} ctx={ctx} />}
       <Group header={t("connections.what")}>
         <Para>{tt(info.id, "unlocks")}</Para>
       </Group>
@@ -307,6 +342,45 @@ function ConnectionSheetBody({
         />
       </Group>
     </>
+  );
+}
+
+/** "Connect Spotify (one tap)": the server's Pipedream Connect, when it has one (lib/connections/managed.ts). */
+function OneTap({ info, ctx }: { info: ConnectionInfo; ctx: ConnectionContext }) {
+  const [busy, setBusy] = useState(false);
+  const connected = managedConnected(info.id, ctx.managed);
+  const go = async () => {
+    setBusy(true);
+    try {
+      await startManaged(info.id, {
+        app: ctx.app,
+        fetch: (...a) => fetch(...a),
+        openExternal: (u) => openExternal(u),
+        openTab: () => window.open("", "_blank"),
+      });
+      toast(t("connections.managed.opened"));
+    } catch (e) {
+      toast(t("connections.managed.failed", { reason: (e as Error).message }));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Group
+      header={t("connections.managed.header")}
+      footer={t("connections.managed.footer", { label: info.label })}
+    >
+      <ActionRow
+        label={
+          connected
+            ? t("connections.managed.reconnect", { label: info.label })
+            : t("connections.managed.connect", { label: info.label })
+        }
+        onClick={() => void go()}
+        busy={busy}
+        id={`connection-${info.id}-one-tap`}
+      />
+    </Group>
   );
 }
 
@@ -427,7 +501,10 @@ function OwnApp({ provider, ctx, deps }: { provider: OwnProvider; ctx: Connectio
   };
   const fieldId = `connection-${provider}-client-id`;
   return (
-    <Group header={t("connections.your_own")} footer={error || (paste !== null ? t("connections.dropbox.paste_hint") : undefined)}>
+    <Group
+      header={t("connections.your_own")}
+      footer={error || (paste !== null ? t("connections.dropbox.paste_hint") : undefined)}
+    >
       <FieldRow
         label={provider === "dropbox" ? t("connections.dropbox.app_key") : t("connections.google.client_id")}
         id={fieldId}
@@ -476,7 +553,9 @@ function OwnApp({ provider, ctx, deps }: { provider: OwnProvider; ctx: Connectio
       ) : (
         paste === null && (
           <ActionRow
-            label={provider === "dropbox" ? t("connections.dropbox.connect") : t("connections.google.connect")}
+            label={
+              provider === "dropbox" ? t("connections.dropbox.connect") : t("connections.google.connect")
+            }
             onClick={() => void connect()}
             disabled={!draft.trim()}
             busy={busy}

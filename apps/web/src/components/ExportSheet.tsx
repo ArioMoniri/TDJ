@@ -9,7 +9,7 @@ import { invoke } from "@/lib/app/native";
 import { APP } from "@/lib/app/target";
 import { useByo } from "@/lib/connections/byo";
 import { ownAccess } from "@/lib/connections/ownOAuth";
-import { dropboxUpload, driveUpload } from "@/lib/connections/ownUpload";
+import { driveUpload, dropboxUpload } from "@/lib/connections/ownUpload";
 import { coverAfterExport } from "@/lib/cover/spotify";
 import { downloadBlob } from "@/lib/download";
 import { type CheckView, checkView, fileCheckLine, uploadCheckLine } from "@/lib/exportCheckView";
@@ -856,7 +856,11 @@ export function ExportSheet({
       });
       setLog((l) => [
         ...l,
-        tx("exportSheet.saved_to_2", { label: EXPORT_META[hookFormat].label, label1: label, p1: ` (${r.path})` }),
+        tx("exportSheet.saved_to_2", {
+          label: EXPORT_META[hookFormat].label,
+          label1: label,
+          p1: ` (${r.path})`,
+        }),
         fileCheckLine(tx("exportCheck.file_label", { label: EXPORT_META[hookFormat].label }), fc),
       ]);
       if (r.url) setResult({ label: tx("exportSheet.open_in", { label }), url: r.url });

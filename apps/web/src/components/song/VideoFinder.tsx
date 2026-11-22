@@ -40,7 +40,9 @@ export function NowVideo({
   const [video, setVideo] = useState<string | null>(() => loadMatches()[song.id] ?? null);
   const [finding, setFinding] = useState(false);
   const [found, setFound] = useState<Found[] | null>(null);
-  const [state, setState] = useState<"idle" | "busy" | "connect" | "none" | "error" | "quota" | "key">("idle");
+  const [state, setState] = useState<"idle" | "busy" | "connect" | "none" | "error" | "quota" | "key">(
+    "idle",
+  );
   const [paste, setPaste] = useState("");
   const pick = (id: string) => {
     saveMatches({ ...loadMatches(), [song.id]: id });

@@ -30,10 +30,21 @@ export const googleSecret = check(
   "A Google client secret is 20–64 letters, digits, - or _ (it usually starts with GOCSPX-).",
 );
 export const dropboxAppKey = check(/^[a-z0-9]{15}$/, "A Dropbox App key is 15 lowercase letters and digits.");
-export const dropboxSecret = check(/^[a-z0-9]{15}$/, "A Dropbox App secret is 15 lowercase letters and digits.");
+export const dropboxSecret = check(
+  /^[a-z0-9]{15}$/,
+  "A Dropbox App secret is 15 lowercase letters and digits.",
+);
 export const youtubeKey = check(
   /^AIza[0-9A-Za-z_-]{35}$/,
   "A YouTube Data API key starts with AIza and is 39 characters long.",
+);
+export const pipedreamProject = check(
+  /^proj_[A-Za-z0-9]{4,40}$/,
+  "A Pipedream project ID starts with proj_.",
+);
+export const pipedreamClient = check(
+  /^[A-Za-z0-9_-]{16,128}$/,
+  "A Pipedream OAuth client ID or secret is 16–128 letters, digits, - or _.",
 );
 export const ascKeyId = check(
   /^[A-Z0-9]{10}$/,

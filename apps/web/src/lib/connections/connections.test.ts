@@ -15,6 +15,7 @@ import {
   writeByo,
 } from "./byo";
 import { CONNECTIONS, validDropboxAppKey, validGoogleClientId, validYoutubeKey } from "./catalog";
+import { fetchManaged, MANAGED_OFF, startManaged } from "./managed";
 import {
   beginOwnLogin,
   finishOwnLogin,
@@ -25,9 +26,78 @@ import {
   ownTokenForm,
   ownWebRedirect,
 } from "./ownOAuth";
-import { dropboxUpload, driveUpload, headerJson } from "./ownUpload";
+import { driveUpload, dropboxUpload, headerJson } from "./ownUpload";
 import { byoAvailable, type ConnectionContext, connectionStatus, uploadVia } from "./status";
 import { findVideos, parseYoutubeSearch, youtubeSearchUrl, youtubeWays } from "./youtube";
+
+describe("one tap (the server's Pipedream Connect)", () => {
+  const base: ConnectionContext = {
+    app: false,
+    linkedServer: false,
+    server: { spotify: false, google: false, dropbox: false, youtubeKey: false },
+    byo: {},
+    spotifyClientId: false,
+  };
+  it("a connected account is Connected; Spotify says playlists only", () => {
+    const managed = { enabled: true, connected: ["spotify", "dropbox"] };
+    expect(connectionStatus("spotify", { ...base, managed })).toMatchObject({
+      via: "managed",
+      message: "connections.msg.managed_spotify",
+    });
+    expect(connectionStatus("dropbox", { ...base, managed }).message).toBe(
+      "connections.msg.managed_connected",
+    );
+  });
+  it("offered but not connected: points at the one-tap button where nothing else works", () => {
+    const managed = { enabled: true, connected: [] };
+    expect(connectionStatus("youtube", { ...base, managed }).short).toBe("connections.short.one_tap");
+    // the server's own login still reads Ready; keyless services never change
+    expect(
+      connectionStatus("spotify", { ...base, managed, server: { ...base.server!, spotify: true } }).via,
+    ).toBe("server");
+    expect(connectionStatus("deezer", { ...base, managed }).via).toBe("keyless");
+  });
+  it("off on a server without Pipedream: the same statuses as before", () => {
+    expect(connectionStatus("dropbox", { ...base, managed: MANAGED_OFF }).message).toBe(
+      "connections.msg.dropbox_none",
+    );
+  });
+  it("reads /api/connect/accounts, healthy accounts only; a failure is off", async () => {
+    const f = (async () =>
+      new Response(
+        JSON.stringify({
+          enabled: true,
+          accounts: [
+            { app: "spotify", healthy: true },
+            { app: "dropbox", healthy: false },
+          ],
+        }),
+      )) as unknown as typeof fetch;
+    expect(await fetchManaged(f)).toEqual({ enabled: true, connected: ["spotify"] });
+    expect(
+      await fetchManaged((async () => Promise.reject(new Error("x"))) as unknown as typeof fetch),
+    ).toEqual(MANAGED_OFF);
+  });
+  it("apps: the Connect Link opens in the system browser; only an https link", async () => {
+    const opened: string[] = [];
+    const f = (async () =>
+      new Response(
+        JSON.stringify({
+          connect_link_url: "https://pipedream.com/_static/connect.html?token=t&app=spotify",
+        }),
+      )) as unknown as typeof fetch;
+    await startManaged("spotify", { app: true, fetch: f, openExternal: async (u) => void opened.push(u) });
+    expect(opened).toEqual(["https://pipedream.com/_static/connect.html?token=t&app=spotify"]);
+    const bad = (async () =>
+      new Response(JSON.stringify({ connect_link_url: "javascript:alert(1)" }))) as unknown as typeof fetch;
+    await expect(
+      startManaged("spotify", { app: true, fetch: bad, openExternal: async () => {} }),
+    ).rejects.toThrow();
+    await expect(
+      startManaged("lrclib", { app: true, fetch: f, openExternal: async () => {} }),
+    ).rejects.toThrow();
+  });
+});
 
 /** obviously fake values: the leak check (scripts/security/leaks.test.mjs) knows them as fakes */
 const FAKE_YT_KEY = "AIzaFAKEtestKEY0123456789abcdefghijklmn";
@@ -118,19 +188,26 @@ describe("status: the server's credentials first, then the DJ's own, else a plai
       expect(connectionStatus(id, ctx({ server: null }))).toMatchObject({ via: "keyless", tone: "on" });
   });
   it("Apple Music says it is not there yet", () => {
-    expect(connectionStatus("apple_music", ctx())).toMatchObject({ via: "soon", message: "connections.msg.apple_soon" });
+    expect(connectionStatus("apple_music", ctx())).toMatchObject({
+      via: "soon",
+      message: "connections.msg.apple_soon",
+    });
   });
   it("checking while the deployment has not answered", () => {
     expect(connectionStatus("spotify", ctx({ server: null })).via).toBe("checking");
     expect(connectionStatus("dropbox", ctx({ server: null })).via).toBe("checking");
   });
   it("Spotify: the site's app, else the DJ's Client ID, else how to set one up", () => {
-    expect(connectionStatus("spotify", ctx({ server: { ...ctx().server!, spotify: true } })).via).toBe("server");
+    expect(connectionStatus("spotify", ctx({ server: { ...ctx().server!, spotify: true } })).via).toBe(
+      "server",
+    );
     expect(connectionStatus("spotify", ctx({ spotifyClientId: true })).via).toBe("own");
     expect(connectionStatus("spotify", ctx())).toMatchObject({ via: "none", tone: "warn" });
   });
   it("YouTube: your own key wins (even before the site answers), then the site's key, then Google", () => {
-    expect(connectionStatus("youtube", ctx({ server: null, byo: { youtubeKey: FAKE_YT_KEY } })).via).toBe("own");
+    expect(connectionStatus("youtube", ctx({ server: null, byo: { youtubeKey: FAKE_YT_KEY } })).via).toBe(
+      "own",
+    );
     const s = ctx().server!;
     expect(connectionStatus("youtube", ctx({ server: { ...s, youtubeKey: true } })).message).toBe(
       "connections.msg.youtube_server_key",
@@ -138,15 +215,21 @@ describe("status: the server's credentials first, then the DJ's own, else a plai
     expect(connectionStatus("youtube", ctx({ server: { ...s, google: true } })).message).toBe(
       "connections.msg.youtube_google",
     );
-    expect(connectionStatus("youtube", ctx())).toMatchObject({ via: "none", message: "connections.msg.youtube_none" });
+    expect(connectionStatus("youtube", ctx())).toMatchObject({
+      via: "none",
+      message: "connections.msg.youtube_none",
+    });
   });
   it("Dropbox: the site's app, else the DJ's app (signed in, or a key that still needs a sign-in)", () => {
     const s = ctx().server!;
     expect(connectionStatus("dropbox", ctx({ server: { ...s, dropbox: true } })).via).toBe("server");
     expect(
-      connectionStatus("dropbox", ctx({ byo: { dropbox: { clientId: FAKE_DROPBOX_KEY, connected: true } } })).via,
+      connectionStatus("dropbox", ctx({ byo: { dropbox: { clientId: FAKE_DROPBOX_KEY, connected: true } } }))
+        .via,
     ).toBe("own");
-    expect(connectionStatus("dropbox", ctx({ byo: { dropbox: { clientId: FAKE_DROPBOX_KEY } } }))).toMatchObject({
+    expect(
+      connectionStatus("dropbox", ctx({ byo: { dropbox: { clientId: FAKE_DROPBOX_KEY } } })),
+    ).toMatchObject({
       tone: "warn",
       short: "connections.short.sign_in",
     });
@@ -154,16 +237,22 @@ describe("status: the server's credentials first, then the DJ's own, else a plai
   });
   it("Google Drive: no BYO on the web (Google wants a secret there); the DJ's iOS client in the apps", () => {
     const own = { google: { clientId: FAKE_GOOGLE_ID, connected: true } };
-    expect(connectionStatus("google_drive", ctx({ byo: own })).message).toBe("connections.msg.drive_none_web");
+    expect(connectionStatus("google_drive", ctx({ byo: own })).message).toBe(
+      "connections.msg.drive_none_web",
+    );
     expect(byoAvailable("google_drive", false)).toBe(false);
     expect(byoAvailable("google_drive", true)).toBe(true);
     expect(connectionStatus("google_drive", ctx({ app: true, byo: own })).via).toBe("own");
-    expect(connectionStatus("google_drive", ctx({ app: true })).message).toBe("connections.msg.drive_none_app");
+    expect(connectionStatus("google_drive", ctx({ app: true })).message).toBe(
+      "connections.msg.drive_none_app",
+    );
   });
   it("a standalone app has no server, whatever the device's /api answers; a linked one has its server's", () => {
     const all = { spotify: true, google: true, dropbox: true, youtubeKey: true };
     expect(connectionStatus("dropbox", ctx({ app: true, server: all })).via).toBe("none");
-    expect(connectionStatus("dropbox", ctx({ app: true, linkedServer: true, server: all })).via).toBe("server");
+    expect(connectionStatus("dropbox", ctx({ app: true, linkedServer: true, server: all })).via).toBe(
+      "server",
+    );
   });
   it("uploads go to the site's sign-in first, then to the DJ's own app", () => {
     const s = ctx().server!;
@@ -183,8 +272,14 @@ describe("status: the server's credentials first, then the DJ's own, else a plai
       ctx(),
       ctx({ server: null }),
       ctx({ app: true }),
-      ctx({ spotifyClientId: true, byo: { youtubeKey: "x", dropbox: { clientId: "k" }, google: { clientId: "g" } } }),
-      ctx({ app: true, byo: { dropbox: { clientId: "k", connected: true }, google: { clientId: "g", connected: true } } }),
+      ctx({
+        spotifyClientId: true,
+        byo: { youtubeKey: "x", dropbox: { clientId: "k" }, google: { clientId: "g" } },
+      }),
+      ctx({
+        app: true,
+        byo: { dropbox: { clientId: "k", connected: true }, google: { clientId: "g", connected: true } },
+      }),
       ctx({ server: { spotify: true, google: true, dropbox: true, youtubeKey: true } }),
       ctx({ server: { spotify: false, google: true, dropbox: false, youtubeKey: false } }),
     ];
@@ -253,7 +348,9 @@ describe("YouTube search: own key → the site's key → Google, and the key nev
     const u = new URL(youtubeSearchUrl("Poema Canaro tango", FAKE_YT_KEY));
     expect(u.origin).toBe("https://www.googleapis.com");
     expect(u.searchParams.get("key")).toBe(FAKE_YT_KEY);
-    expect(parseYoutubeSearch(ITEMS)).toEqual([{ videoId: "abc_DEF-123", title: "Poema", channel: "Canaro", thumb: null }]);
+    expect(parseYoutubeSearch(ITEMS)).toEqual([
+      { videoId: "abc_DEF-123", title: "Poema", channel: "Canaro", thumb: null },
+    ]);
     expect(parseYoutubeSearch(null)).toEqual([]);
   });
   it("the ways for each device", () => {
@@ -278,7 +375,9 @@ describe("YouTube search: own key → the site's key → Google, and the key nev
       ok: false,
       error: "quota",
     });
-    const bad = fakeFetch([["https://www.googleapis.com/", () => json({ error: { message: "API key not valid" } }, 400)]]);
+    const bad = fakeFetch([
+      ["https://www.googleapis.com/", () => json({ error: { message: "API key not valid" } }, 400)],
+    ]);
     expect(await findVideos("x", { app: false, byo: { youtubeKey: FAKE_YT_KEY }, fetch: bad.f })).toEqual({
       ok: false,
       error: "key",
@@ -294,23 +393,40 @@ describe("YouTube search: own key → the site's key → Google, and the key nev
   });
   it("no key of your own: the site's key, and on its 404 the Google sign-in", async () => {
     const server = fakeFetch([["/api/youtube/search", () => json({ videos: parseYoutubeSearch(ITEMS) })]]);
-    expect(await findVideos("x", { app: false, byo: {}, fetch: server.f })).toMatchObject({ ok: true, via: "server" });
+    expect(await findVideos("x", { app: false, byo: {}, fetch: server.f })).toMatchObject({
+      ok: true,
+      via: "server",
+    });
     const google = fakeFetch([
       ["/api/youtube/search", () => json({ error: "not_configured" }, 404)],
       ["/api/google/youtube", () => json({ videos: parseYoutubeSearch(ITEMS) })],
     ]);
-    expect(await findVideos("x", { app: false, byo: {}, fetch: google.f })).toMatchObject({ ok: true, via: "google" });
+    expect(await findVideos("x", { app: false, byo: {}, fetch: google.f })).toMatchObject({
+      ok: true,
+      via: "google",
+    });
     const none = fakeFetch([["/api/google/youtube", () => json({ error: "Not connected" }, 401)]]);
-    expect(await findVideos("x", { app: false, byo: {}, fetch: none.f })).toEqual({ ok: false, error: "connect" });
+    expect(await findVideos("x", { app: false, byo: {}, fetch: none.f })).toEqual({
+      ok: false,
+      error: "connect",
+    });
     // a standalone app without a key: nothing to try, the plain "connect or add a key" message
-    expect(await findVideos("x", { app: true, byo: {}, fetch: none.f })).toEqual({ ok: false, error: "connect" });
+    expect(await findVideos("x", { app: true, byo: {}, fetch: none.f })).toEqual({
+      ok: false,
+      error: "connect",
+    });
   });
 });
 
 describe("own Dropbox / Google app: PKCE, a public client, no secret anywhere", () => {
   it("the sign-in links ask for offline access with S256 and no secret", () => {
     const d = new URL(
-      ownAuthorizeUrl("dropbox", { clientId: FAKE_DROPBOX_KEY, challenge: "ch", state: "st", redirectUri: "https://x/cb" }),
+      ownAuthorizeUrl("dropbox", {
+        clientId: FAKE_DROPBOX_KEY,
+        challenge: "ch",
+        state: "st",
+        redirectUri: "https://x/cb",
+      }),
     );
     expect(d.origin + d.pathname).toBe(OWN_OAUTH.dropbox.authorize);
     expect(d.searchParams.get("code_challenge_method")).toBe("S256");
@@ -339,29 +455,49 @@ describe("own Dropbox / Google app: PKCE, a public client, no secret anywhere", 
     const state = new URL(went).searchParams.get("state") ?? "";
     expect(new URL(went).searchParams.get("redirect_uri")).toBe("https://dj.example/connections/callback");
     const { f, calls } = fakeFetch([
-      [OWN_OAUTH.dropbox.token, () => json({ access_token: "fake-at", expires_in: 14400, refresh_token: "fake-rt" })],
+      [
+        OWN_OAUTH.dropbox.token,
+        () => json({ access_token: "fake-at", expires_in: 14400, refresh_token: "fake-rt" }),
+      ],
     ]);
-    const r = await finishOwnLogin({ query: `?code=fakecode123&state=${state}` }, { app: false, fetch: f, session, now: () => 0 });
+    const r = await finishOwnLogin(
+      { query: `?code=fakecode123&state=${state}` },
+      { app: false, fetch: f, session, now: () => 0 },
+    );
     expect(r).toEqual({ ok: true, provider: "dropbox", next: "/settings" });
     expect(calls.map((c) => new URL(c.url).host)).toEqual(["api.dropboxapi.com"]);
     expect(String(calls[0]!.init?.body)).not.toContain("secret");
     expect(readByo().dropbox).toMatchObject({ connected: true, access: "fake-at", refresh: "fake-rt" });
     expect(JSON.stringify(useStore.getState())).not.toContain("fake-rt");
     // a second callback with the same state is refused: the pending sign-in is gone
-    expect((await finishOwnLogin({ query: `?code=x12345678&state=${state}` }, { app: false, fetch: f, session })).ok).toBe(false);
+    expect(
+      (await finishOwnLogin({ query: `?code=x12345678&state=${state}` }, { app: false, fetch: f, session }))
+        .ok,
+    ).toBe(false);
   });
   it("a wrong state or a refusal does not sign in", async () => {
     saveOwnClientId("dropbox", FAKE_DROPBOX_KEY);
     const session = memory();
-    await beginOwnLogin("dropbox", { app: false, fetch: fetch, session, origin: "https://dj.example", assign: () => {} });
+    await beginOwnLogin("dropbox", {
+      app: false,
+      fetch: fetch,
+      session,
+      origin: "https://dj.example",
+      assign: () => {},
+    });
     const deps = { app: false, fetch: vi.fn() as unknown as typeof fetch, session };
-    expect(await finishOwnLogin({ query: "?code=fakecode123&state=other" }, deps)).toEqual({ ok: false, error: "state" });
+    expect(await finishOwnLogin({ query: "?code=fakecode123&state=other" }, deps)).toEqual({
+      ok: false,
+      error: "state",
+    });
   });
   it("apps: Dropbox's pasted code goes to the native exchange; the refresh token never reaches the page", async () => {
     saveOwnClientId("dropbox", FAKE_DROPBOX_KEY);
     const session = memory();
     const opened: string[] = [];
-    const invoke = vi.fn(async (cmd: string) => (cmd === "byo_oauth_exchange" ? { access: "fake-at", expires: 9e12 } : null));
+    const invoke = vi.fn(async (cmd: string) =>
+      cmd === "byo_oauth_exchange" ? { access: "fake-at", expires: 9e12 } : null,
+    );
     const start = await beginOwnLogin("dropbox", {
       app: true,
       fetch: fetch,
@@ -373,7 +509,10 @@ describe("own Dropbox / Google app: PKCE, a public client, no secret anywhere", 
     expect(new URL(opened[0]!).searchParams.has("redirect_uri")).toBe(false);
     const r = await finishOwnLogin({ code: "fakecode123" }, { app: true, fetch: fetch, invoke, session });
     expect(r.ok).toBe(true);
-    expect(invoke).toHaveBeenCalledWith("byo_oauth_exchange", expect.objectContaining({ provider: "dropbox", clientId: FAKE_DROPBOX_KEY }));
+    expect(invoke).toHaveBeenCalledWith(
+      "byo_oauth_exchange",
+      expect.objectContaining({ provider: "dropbox", clientId: FAKE_DROPBOX_KEY }),
+    );
     expect(readByo().dropbox).toMatchObject({ connected: true, access: "fake-at" });
     expect(readByo().dropbox?.refresh).toBeUndefined();
   });
@@ -381,19 +520,31 @@ describe("own Dropbox / Google app: PKCE, a public client, no secret anywhere", 
     saveOwnClientId("google", FAKE_GOOGLE_ID);
     const session = memory();
     const opened: string[] = [];
-    const invoke = vi.fn(async (cmd: string) => (cmd === "byo_google_redirect" ? "com.example.tdj:/oauth2redirect" : null));
+    const invoke = vi.fn(async (cmd: string) =>
+      cmd === "byo_google_redirect" ? "com.example.tdj:/oauth2redirect" : null,
+    );
     expect(
-      await beginOwnLogin("google", { app: true, fetch: fetch, invoke, session, openExternal: async (u) => void opened.push(u) }),
+      await beginOwnLogin("google", {
+        app: true,
+        fetch: fetch,
+        invoke,
+        session,
+        openExternal: async (u) => void opened.push(u),
+      }),
     ).toBe("wait");
     expect(new URL(opened[0]!).searchParams.get("redirect_uri")).toBe("com.example.tdj:/oauth2redirect");
   });
   it("web: a token about to expire is refreshed with the client ID alone; a refused refresh signs out", async () => {
-    writeByo({ dropbox: { clientId: FAKE_DROPBOX_KEY, connected: true, access: "old", expires: 0, refresh: "fake-rt" } });
+    writeByo({
+      dropbox: { clientId: FAKE_DROPBOX_KEY, connected: true, access: "old", expires: 0, refresh: "fake-rt" },
+    });
     const ok = fakeFetch([[OWN_OAUTH.dropbox.token, () => json({ access_token: "new", expires_in: 100 })]]);
     expect(await ownAccess("dropbox", { app: false, fetch: ok.f, now: () => 0 })).toBe("new");
     expect(String(ok.calls[0]!.init?.body)).toContain("grant_type=refresh_token");
     expect(readByo().dropbox?.refresh).toBe("fake-rt");
-    writeByo({ dropbox: { clientId: FAKE_DROPBOX_KEY, connected: true, access: "old", expires: 0, refresh: "fake-rt" } });
+    writeByo({
+      dropbox: { clientId: FAKE_DROPBOX_KEY, connected: true, access: "old", expires: 0, refresh: "fake-rt" },
+    });
     const gone = fakeFetch([[OWN_OAUTH.dropbox.token, () => json({ error: "invalid_grant" }, 400)]]);
     expect(await ownAccess("dropbox", { app: false, fetch: gone.f })).toBeNull();
     expect(readByo().dropbox).toEqual({ clientId: FAKE_DROPBOX_KEY });
@@ -410,13 +561,22 @@ describe("own Dropbox / Google app: PKCE, a public client, no secret anywhere", 
 describe("own uploads go straight to the provider", () => {
   it("Dropbox: the file into the set's folder, then a shared link", async () => {
     const { f, calls } = fakeFetch([
-      ["https://content.dropboxapi.com/2/files/upload", () => json({ path_display: "/Milonga_Sábado/set.m3u8" })],
+      [
+        "https://content.dropboxapi.com/2/files/upload",
+        () => json({ path_display: "/Milonga_Sábado/set.m3u8" }),
+      ],
       ["https://api.dropboxapi.com/2/sharing/", () => json({ url: "https://www.dropbox.com/s/fake" })],
     ]);
-    const r = await dropboxUpload("fake-at", { filename: "set.m3u8", text: "#EXTM3U", set: "Milonga Sábado" }, f);
+    const r = await dropboxUpload(
+      "fake-at",
+      { filename: "set.m3u8", text: "#EXTM3U", set: "Milonga Sábado" },
+      f,
+    );
     expect(r).toEqual({ path: "/Milonga_Sábado/set.m3u8", url: "https://www.dropbox.com/s/fake" });
-    const arg = (calls[0]!.init?.headers as Record<string, string>)["dropbox-api-arg"];
-    expect(arg).toBe(headerJson({ path: "/Milonga Sábado/set.m3u8", mode: "overwrite", autorename: false, mute: true }));
+    const arg = ((calls[0]?.init?.headers ?? {}) as Record<string, string>)["dropbox-api-arg"];
+    expect(arg).toBe(
+      headerJson({ path: "/Milonga Sábado/set.m3u8", mode: "overwrite", autorename: false, mute: true }),
+    );
     expect(arg).toMatch(/^[\x20-\x7e]+$/);
     expect(calls.every((c) => /^https:\/\/(content|api)\.dropboxapi\.com\//.test(c.url))).toBe(true);
   });
@@ -424,7 +584,10 @@ describe("own uploads go straight to the provider", () => {
     const { f, calls } = fakeFetch([
       ["https://www.googleapis.com/drive/v3/files?q=", () => json({ files: [] })],
       ["https://www.googleapis.com/drive/v3/files?fields=id", () => json({ id: "folder1" })],
-      ["https://www.googleapis.com/upload/drive/v3/files", () => json({ id: "f1", name: "set.csv", webViewLink: "https://drive.google.com/x" })],
+      [
+        "https://www.googleapis.com/upload/drive/v3/files",
+        () => json({ id: "f1", name: "set.csv", webViewLink: "https://drive.google.com/x" }),
+      ],
     ]);
     const r = await driveUpload("fake-at", { filename: "set.csv", text: "a,b" }, f);
     expect(r).toEqual({ path: "TDJ/set.csv", url: "https://drive.google.com/x" });
