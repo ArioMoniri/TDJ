@@ -63,7 +63,8 @@ export function SyncSettings() {
       setBusy(null);
     }
   };
-  const when = (iso: string | number) => fmtDate(iso, { dateStyle: "medium", timeStyle: "short" });
+  const when = (iso: string | number) =>
+    fmtDate(iso, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const join = () =>
     run("join", async () => {
       const ok = await s.join(joinCode);
