@@ -189,7 +189,19 @@ echo "identities: devid=${DEVID:+yes} distribution=${DIST:+yes} installer=${INST
 
 # ------------------------------------------------------------------ bundled UI (once for every target)
 step "Bundled UI (static export of apps/web)"
+# the Spotify Client ID the apps sign in with (public, PKCE; repository variable TDJ_SPOTIFY_CLIENT_ID): without it
+# a release ships an app whose "Log in with Spotify" only works with the DJ's own Spotify app
+if ! [[ "${TDJ_SPOTIFY_CLIENT_ID:-}" =~ ^[A-Za-z0-9]{1,64}$ ]]; then
+  [ "${TDJ_ALLOW_NO_SPOTIFY:-}" = 1 ] || die "TDJ_SPOTIFY_CLIENT_ID is missing or malformed (repository variable; TDJ_ALLOW_NO_SPOTIFY=1 builds without it)"
+  echo "! building without a Spotify Client ID: DJs must use their own Spotify app"
+fi
+export TDJ_SPOTIFY_CLIENT_ID="${TDJ_SPOTIFY_CLIENT_ID:-}"
 node apps/desktop/scripts/build-ui.mjs >/dev/null
+# the bundle carries it (the page reads it; src-tauri/build.rs falls back to it inside Xcode's iOS build)
+if [ -n "$TDJ_SPOTIFY_CLIENT_ID" ]; then
+  grep -q "\"spotifyClientId\": \"$TDJ_SPOTIFY_CLIENT_ID\"" "$DESKTOP/ui/dist/tdj-bundle.json" \
+    || die "the bundled UI does not carry the Spotify Client ID"
+fi
 
 export APPLE_API_ISSUER="$APP_STORE_CONNECT_ISSUER_ID" APPLE_API_KEY="$APP_STORE_CONNECT_KEY_ID" APPLE_API_KEY_PATH="$APPLE_KEY_NAMED"
 UPLOADED=()
@@ -254,6 +266,9 @@ if want dmg; then
   [ -s "$B/macos/T-DJ.app.tar.gz.sig" ] || die "no updater signature: TAURI_SIGNING_PRIVATE_KEY (and its password) must be set"
   codesign --verify --deep --strict "$APP"
   xcrun stapler validate "$APP"
+  if [ -n "$TDJ_SPOTIFY_CLIENT_ID" ]; then
+    grep -aq "$TDJ_SPOTIFY_CLIENT_ID" "$APP/Contents/MacOS/TDJ" || die "the DMG app was built without the Spotify Client ID"
+  fi
   # the DMG itself: sign, notarise, staple (Gatekeeper checks the download, not only the app inside)
   codesign --force --sign "$DEVID" --timestamp "$DMG"
   xcrun notarytool submit "$DMG" --key "$APPLE_KEY_NAMED" --key-id "$APP_STORE_CONNECT_KEY_ID" --issuer "$APP_STORE_CONNECT_ISSUER_ID" --wait

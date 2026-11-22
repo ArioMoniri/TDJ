@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { appLogin } from "@/lib/app/login";
-import { nativeInfo } from "@/lib/app/native";
+import { nativeInfo, saveOwnSpotifyClientId } from "@/lib/app/native";
 import { SPOTIFY_APP_REDIRECT } from "@/lib/app/pkce";
 import { APP } from "@/lib/app/target";
 import { t } from "@/lib/i18n";
@@ -30,6 +30,7 @@ import {
   openConnectLink,
   useConnectors,
 } from "@/lib/spotify";
+import { isSpotifyClientId, ownAppRedirects, ownAppSteps, SPOTIFY_DASHBOARD } from "@/lib/spotifyOwnApp";
 import { useStore } from "@/lib/store";
 import { toast } from "@/lib/toast";
 import { ActionRow, FieldRow, Group, Row, Tile } from "./Form";
@@ -195,9 +196,59 @@ export function Connectors() {
     if (APP) void nativeInfo().then((i) => setLinked(!!i.linkedServer));
   }, []);
   const showDirect = !APP || linked;
+  /**
+   * "Use my own Spotify app": the DJ's own Client ID, per device. The apps keep it in the Keychain (an older build's
+   * value in the page's settings moves there once); the web keeps it in this browser's settings (local storage).
+   */
+  const [ownId, setOwnId] = useState(settings.spotifyClientId ?? "");
+  /** what was last saved (blur saves; the web's field writes the settings as it is typed) */
+  const [lastSaved, setLastSaved] = useState(settings.spotifyClientId?.trim() ?? "");
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(location.origin), []);
+  useEffect(() => {
+    if (!APP) return;
+    void nativeInfo().then(async (i) => {
+      const legacy = useStore.getState().settings.spotifyClientId?.trim() ?? "";
+      if (!i.ownSpotifyClientId && legacy && isSpotifyClientId(legacy)) {
+        try {
+          await saveOwnSpotifyClientId(legacy);
+          useStore.getState().setSettings({ spotifyClientId: "" });
+        } catch {}
+        setOwnId(legacy);
+        setLastSaved(legacy);
+      } else {
+        setOwnId(i.ownSpotifyClientId ?? legacy);
+        setLastSaved(i.ownSpotifyClientId ?? legacy);
+      }
+    });
+  }, []);
+  const saveOwnId = async (raw: string) => {
+    const v = raw.trim();
+    if (v === lastSaved) return;
+    if (v && !isSpotifyClientId(v)) {
+      toast(t("spotify_own.not_a_client_id"));
+      return;
+    }
+    if (APP) {
+      try {
+        await saveOwnSpotifyClientId(v);
+        if (settings.spotifyClientId) setSettings({ spotifyClientId: "" });
+      } catch (e) {
+        toast((e as { message?: string })?.message ?? t("spotify_own.not_a_client_id"));
+        return;
+      }
+    } else setSettings({ spotifyClientId: v });
+    setLastSaved(v);
+    if (v) toast(t("spotify_own.saved"));
+  };
+  const ownRedirects = ownAppRedirects({ app: APP, origin });
   /** Spotify: the system browser + PKCE in the apps (lib/app/login.ts); the server's own login on the web */
   const spotifyLogin = () =>
-    APP ? void appLogin("spotify", "/settings") : location.assign(hostedLoginUrl("/settings"));
+    APP
+      ? void appLogin("spotify", "/settings")
+      : settings.spotifyClientId?.trim()
+        ? beginAuth(settings.spotifyClientId.trim()) // the DJ's own Spotify app, PKCE in this browser
+        : location.assign(hostedLoginUrl("/settings"));
   const ownAppLogin = () =>
     APP ? void appLogin("spotify", "/settings") : beginAuth(settings.spotifyClientId);
   // back from an OAuth dance (same tab for the direct logins, a second tab for Connect Link): say so once, clean the URL
@@ -211,6 +262,11 @@ export function Connectors() {
     else toast(arrivalToast(connected, error));
     history.replaceState(null, "", location.pathname);
   }, []);
+  // the apps: signed in, but Spotify refuses the account (Development Mode, not listed): say why, once per view
+  const notListed = !!spotify?.notListed;
+  useEffect(() => {
+    if (notListed) setOpen("notlisted");
+  }, [notListed]);
   const copyRequest = async () => {
     try {
       await navigator.clipboard.writeText(seatRequest(location.origin));
@@ -578,7 +634,7 @@ export function Connectors() {
               <ActionRow
                 label={byoConnected ? t("connectors.reconnect") : t("connectors.connect_spotify")}
                 onClick={ownAppLogin}
-                disabled={!settings.spotifyClientId}
+                disabled={!(APP ? ownId : settings.spotifyClientId)}
                 id="spotify-connect"
               />
               {byoConnected && (
@@ -603,41 +659,78 @@ export function Connectors() {
           />
         </Group>
         {advanced && (
-          <Group
-            header={t("connectors.your_own_app")}
-            footer={
-              APP
-                ? t("connectors.to_sign_in_with_your_own")
-                : hosted
-                  ? t("connectors.with_a_client_id_here_connect")
-                  : t("connectors.add_this_exact_redirect_uri_to")
-            }
-          >
-            <Row label={t("connectors.redirect_uri")} sub={<span className="font-mono">{redirect}</span>}>
-              <button type="button" className="btn-plain" onClick={copyRedirect} aria-live="polite">
-                {copied ? t("connectors.copied") : t("connectors.copy")}
-              </button>
-            </Row>
-            <FieldRow label={t("connectors.client_id")} id="spotify-client-id">
-              <input
-                id="spotify-client-id"
-                className="field field-value min-w-0 flex-1"
-                placeholder={hosted ? t("connectors.optional") : t("connectors.required")}
-                value={settings.spotifyClientId}
-                onChange={(e) => setSettings({ spotifyClientId: e.target.value.trim() })}
-                autoComplete="off"
-                spellCheck={false}
+          <>
+            <Group
+              header={t("connectors.your_own_app")}
+              footer={
+                APP
+                  ? t("connectors.to_sign_in_with_your_own")
+                  : hosted
+                    ? t("connectors.with_a_client_id_here_connect")
+                    : t("connectors.add_this_exact_redirect_uri_to")
+              }
+            >
+              <Row label={t("connectors.redirect_uri")} sub={<span className="font-mono">{redirect}</span>}>
+                <button type="button" className="btn-plain" onClick={copyRedirect} aria-live="polite">
+                  {copied ? t("connectors.copied") : t("connectors.copy")}
+                </button>
+              </Row>
+              <FieldRow label={t("connectors.client_id")} id="spotify-client-id">
+                <input
+                  id="spotify-client-id"
+                  className="field field-value min-w-0 flex-1"
+                  placeholder={hosted ? t("connectors.optional") : t("connectors.required")}
+                  value={APP ? ownId : settings.spotifyClientId}
+                  onChange={(e) =>
+                    APP
+                      ? setOwnId(e.target.value.trim())
+                      : setSettings({ spotifyClientId: e.target.value.trim() })
+                  }
+                  onBlur={(e) => void saveOwnId(e.target.value)}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </FieldRow>
+              <Row
+                label={t("spotify_own.signs_in_with")}
+                value={
+                  (APP ? ownId : settings.spotifyClientId)
+                    ? t("spotify_own.using_own")
+                    : t("spotify_own.using_built_in")
+                }
+                sub={t("spotify_own.kept_on_device")}
               />
-            </FieldRow>
-            {hosted && (
-              <ActionRow
-                label={t("connectors.connect_with_my_own_app")}
-                onClick={ownAppLogin}
-                disabled={!settings.spotifyClientId}
-                id="spotify-connect"
-              />
-            )}
-          </Group>
+            </Group>
+            <Group
+              header={t("spotify_own.title")}
+              footer={
+                !APP && ownRedirects.server
+                  ? t("spotify_own.server_redirect", { uri: ownRedirects.server })
+                  : t("spotify_own.why")
+              }
+              id="spotify-own-guide"
+            >
+              <div className="cell">
+                <ol
+                  className="list-decimal space-y-1.5 pl-5 whitespace-normal"
+                  data-testid="spotify-own-steps"
+                >
+                  {ownAppSteps({ app: APP, origin }).map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ol>
+              </div>
+              <Row label={t("spotify_own.open_dashboard")} href={SPOTIFY_DASHBOARD} chevron />
+              {hosted && (
+                <ActionRow
+                  label={t("connectors.connect_with_my_own_app")}
+                  onClick={ownAppLogin}
+                  disabled={!(APP ? ownId : settings.spotifyClientId)}
+                  id="spotify-connect"
+                />
+              )}
+            </Group>
+          </>
         )}
       </Sheet>
 
@@ -812,6 +905,18 @@ export function Connectors() {
             label={requestCopied ? t("connectors.copied") : t("connectors.copy_my_request")}
             onClick={copyRequest}
             id="not-listed-copy"
+          />
+          <div className="cell">
+            <span className="whitespace-normal">{t("spotify_own.not_listed_own")}</span>
+          </div>
+          <ActionRow
+            label={t("spotify_own.title")}
+            onClick={() => {
+              setOtherWays(false);
+              setAdvanced(true);
+              setOpen("spotify");
+            }}
+            id="not-listed-own-app"
           />
           <ActionRow
             label={otherWays ? t("connectors.hide_other_ways") : t("connectors.other_ways")}

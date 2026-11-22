@@ -129,6 +129,9 @@ export const en = {
   "about.update_available": "Update available",
   "about.update_toast": "A newer T-DJ is out. Reload when the night is over.",
   "about.updates_dmg": "The app asks before it installs an update",
+  "about.check_updates": "Check for updates",
+  "about.check_updates_sub": "Shows what's new, asks before it installs, then relaunches",
+  "about.update_check_failed": "T-DJ couldn't check for updates. Try again later.",
   "about.updates_store": "Updates come from the App Store or TestFlight",
   "about.version": "Version",
   "about.web_app": "T-DJ on the web",
@@ -1842,6 +1845,28 @@ export const en = {
   "connectors.your_automation": "Your automation",
   "connectors.your_own_app": "Your own app",
   "connectors.your_own_spotify_app": "Your own Spotify app",
+  "spotify_own.title": "Use my own Spotify app",
+  "spotify_own.why":
+    "Spotify lets an app in Development Mode sign in only 5 listed accounts. A free Spotify app of your own signs you in, with nothing secret to copy.",
+  "spotify_own.step_create":
+    "Open developer.spotify.com/dashboard and choose Create app (any name and description).",
+  "spotify_own.step_redirect": "Under Redirect URIs, add exactly: {uris}",
+  "spotify_own.step_bundle": "Under iOS, add the bundle ID {bundle}.",
+  "spotify_own.step_apis": "Tick Web API and Web Playback SDK, accept the terms and save.",
+  "spotify_own.step_users":
+    "In the app's Settings → User Management, add your name and the email of your Spotify account.",
+  "spotify_own.step_copy":
+    "Copy the Client ID from Basic Information and paste it below. No client secret is needed: never paste it anywhere.",
+  "spotify_own.server_redirect": "Running your own TDJ server? Its hosted login also needs {uri}.",
+  "spotify_own.open_dashboard": "Open the Spotify dashboard",
+  "spotify_own.kept_on_device": "Kept on this device only. Empty: T-DJ's own app.",
+  "spotify_own.not_a_client_id": "That does not look like a Spotify Client ID (32 letters and digits).",
+  "spotify_own.saved": "Your Spotify app is saved. Log in with Spotify to use it.",
+  "spotify_own.using_own": "Your own app",
+  "spotify_own.using_built_in": "T-DJ's app",
+  "spotify_own.signs_in_with": "Signs in with",
+  "spotify_own.not_listed_own":
+    "Or use your own Spotify app: a few minutes at developer.spotify.com, free, and only you need to be listed in it.",
   "connectors.youtube": "YouTube",
   "connectors.youtube_playlist": "YouTube playlist",
   "context.after_midnight": "After midnight",

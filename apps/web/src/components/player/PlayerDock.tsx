@@ -97,7 +97,7 @@ function safeArea(): Insets {
     probe = document.createElement("div");
     probe.setAttribute("aria-hidden", "true");
     probe.style.cssText =
-      "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)";
+      "position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:var(--chrome-top,env(safe-area-inset-top)) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)";
     document.body.append(probe);
   }
   const cs = getComputedStyle(probe);

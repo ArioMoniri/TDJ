@@ -78,6 +78,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-dvh">
         <div className="ambient" aria-hidden />
+        {/* the Mac app's title-bar strip over every layer: drags the window, keeps clicks off the traffic lights */}
+        <div className="titlebar-drag" data-tauri-drag-region data-testid="titlebar-drag" aria-hidden />
         <IconSprite />
         <ThemeSync />
         <PowerSync />
