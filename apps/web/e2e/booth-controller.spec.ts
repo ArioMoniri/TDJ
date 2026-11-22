@@ -368,7 +368,7 @@ test("no Web MIDI (Safari, iPad browsers): the reason, and the on-screen control
 test("Settings → Booth → Controller: connect, the controller and its mapping", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await fakeMidi(page, { name: "DDJ-FLX4" });
-  await page.goto("/settings");
+  await page.goto("/settings?section=audio");
   const g = page.getByTestId("settings-booth-controller");
   await g.scrollIntoViewIfNeeded();
   await g.getByTestId("controller-connect").click();

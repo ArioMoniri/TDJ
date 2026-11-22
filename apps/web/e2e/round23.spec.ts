@@ -229,7 +229,7 @@ test.describe("top chrome and the scroll edge", () => {
       });
     });
     const lights = { x: 0, y: 0, width: 78, height: 28 };
-    await page.goto("/settings");
+    await page.goto("/settings?section=connections");
     await expect(page.locator("html")).toHaveClass(/titlebar-overlay/);
     // the window's drag strip: the whole title bar, over every layer
     const strip = page.getByTestId("titlebar-drag");
@@ -393,7 +393,7 @@ test.describe("sidebar and wide layouts", () => {
     if (sameLine) expect(seg.width).toBeLessThan(r.width * 0.75);
     else expect(seg.width).toBeGreaterThanOrEqual(r.width - 48);
     // a long list is a pop-up, not a row of segments
-    await page.goto("/settings");
+    await page.goto("/settings?section=appearance");
     await expect(page.getByRole("radiogroup", { name: W("Theme") })).toBeVisible();
   });
 });

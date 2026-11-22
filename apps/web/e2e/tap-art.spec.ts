@@ -269,7 +269,7 @@ test("a tanda's cover: this tanda only, or on to the end; the tap setting; a sid
   await expect(page.getByTestId("mini-scope")).toHaveText("From tanda 2 to the end");
   await stopPlayer(page);
   // … or, with Settings → Playback → Play only it, plays that song only (no Previous / Next)
-  await page.goto("/settings");
+  await page.goto("/settings?section=booth");
   const pb = page.getByTestId("settings-playback");
   await pb.getByRole("radio", { name: "Play only it" }).click();
   await page.goto("/");

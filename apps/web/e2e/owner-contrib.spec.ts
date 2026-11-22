@@ -74,7 +74,7 @@ async function seedDevice(page: Page) {
 }
 
 test("a DJ who is not the owner sees no Owner section and cannot contribute", async ({ page }) => {
-  await page.goto("/settings");
+  await page.goto("/settings?section=ai");
   await expect(page.getByTestId("ai-models")).toBeVisible();
   const r = await page.request.post("/api/owner/contributions", {
     data: {
@@ -92,7 +92,7 @@ test("a DJ who is not the owner sees no Owner section and cannot contribute", as
 test("the owner sends existing changes after a preview, then exports a contribution file", async ({
   page,
 }) => {
-  await page.goto("/settings");
+  await page.goto("/settings?section=library");
   await seedDevice(page);
   const unlock = await page.request.post("/api/admin/unlock", { data: { secret: SETUP_CODE } });
   expect(unlock.status()).toBe(200);

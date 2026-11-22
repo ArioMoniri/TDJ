@@ -2766,7 +2766,7 @@ export function Composer() {
               {aiError && /key/i.test(ai) && (
                 <>
                   {" "}
-                  <Link href="/settings" className="text-[var(--tint)]">
+                  <Link href="/settings#ai-key" className="text-[var(--tint)]">
                     {tx("composer.open_settings")}
                   </Link>
                 </>

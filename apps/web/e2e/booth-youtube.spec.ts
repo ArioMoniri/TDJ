@@ -56,7 +56,7 @@ test("Settings → On this device lists every source with a line, and YouTube sa
   page,
 }) => {
   await setup(page, null);
-  await page.goto("/settings");
+  await page.goto("/settings?section=booth");
   const g = page.getByTestId("booth-device-sources");
   await expect(g).toBeVisible({ timeout: 30000 });
   const rows = g.getByTestId("booth-device-source");

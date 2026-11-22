@@ -176,7 +176,7 @@ test.describe("Battery saver", () => {
     const sp = spotifyMock();
     await sp.install(page);
     await prepare(page, "off");
-    await page.goto("/settings");
+    await page.goto("/settings?section=battery");
     const group = page.getByTestId("settings-power");
     await expect(group).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("power-state")).toHaveAttribute("data-active", "0");

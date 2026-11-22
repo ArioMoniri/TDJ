@@ -206,7 +206,13 @@ test.describe("desktop touch targets", () => {
       );
     expect(rows.length).toBeGreaterThan(5);
     expect(rows.filter(([, h]) => h < 44 - 0.5)).toEqual([]);
-    for (const name of ["Language", "Theme"]) {
+    // (Language under General, Theme under Appearance, the controller under Audio & Outputs)
+    for (const [name, section] of [
+      ["Language", "general"],
+      ["Theme", "appearance"],
+    ]) {
+      await page.goto(`/settings?section=${section}`);
+      await expect(page.getByRole("radiogroup", { name })).toBeVisible();
       const hs = await page
         .getByRole("radiogroup", { name })
         .getByRole("radio")
@@ -218,6 +224,7 @@ test.describe("desktop touch targets", () => {
       ).toEqual([]);
     }
     // the controller's Learn buttons, disabled with no controller connected
+    await page.goto("/settings?section=audio");
     const learn = page.getByTestId("controller-learn-btn").first();
     if (!(await learn.isVisible())) {
       await page.getByText("MIDI Learn", { exact: true }).first().click();

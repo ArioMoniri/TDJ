@@ -136,7 +136,7 @@ test("Settings → Booth → Audio: every output with its connection, the chain,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await fakeDesk(page);
-  await page.goto("/settings");
+  await page.goto("/settings?section=audio");
   const audio = page.getByTestId("settings-booth-audio");
   const row = (id: string) => audio.locator(`[data-testid="booth-output-info"][data-device="${id}"]`);
   // (the outputs are listed once the page has asked the browser)

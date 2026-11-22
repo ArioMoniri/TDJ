@@ -145,7 +145,7 @@ test("the inspector's flow line; Floor emptied → a suggestion for the next tan
   await page.getByTestId("toast").getByRole("button", { name: /undo/i }).click();
   await expect.poll(() => tandaIds(page), { timeout: 20000 }).toEqual(before);
   // Settings → learning: the floor's lesson, with the source and the switch
-  await page.goto("/settings");
+  await page.goto("/settings?section=night");
   const g = page.getByTestId("floor-learning");
   await g.scrollIntoViewIfNeeded();
   await expect(g.getByTestId("floor-lesson").first()).toContainText(/From floor reactions/);

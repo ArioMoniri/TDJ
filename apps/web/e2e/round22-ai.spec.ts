@@ -126,7 +126,7 @@ test("an ACP agent works like a key: Settings → Models tests it, Edit with AI 
   await new Promise<void>((r) => agent.server.listen(0, "127.0.0.1", r));
   const port = (agent.server.address() as { port: number }).port;
   try {
-    await page.goto("/settings");
+    await page.goto("/settings?section=ai");
     const models = page.getByTestId("model-connections");
     await models.scrollIntoViewIfNeeded();
     await expect(models).toContainText("Anthropic");
@@ -259,7 +259,7 @@ test("thumbs up teaches: a toast says so, the next night composes with it, Datab
 test("a fresh profile sees what the featured night's edits taught: Settings and Database → Memory list it, and it switches off", async ({
   page,
 }) => {
-  await page.goto("/settings");
+  await page.goto("/settings?section=night");
   const group = page.getByTestId("featured-learned");
   await group.scrollIntoViewIfNeeded();
   await expect(group).toContainText("Learned from your edits to the featured night", { timeout: 30000 });

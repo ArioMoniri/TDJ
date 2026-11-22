@@ -31,8 +31,21 @@ export default defineConfig({
     // every spec at the default (desktop) viewport, as before the tablet projects existed
     {
       name: "default",
-      testIgnore: /round6-tablet|round7-corners|round23|wave2-layout|search\.spec|duo-fold|duo-layout/,
+      testIgnore:
+        /round6-tablet|round7-corners|round23|wave2-layout|search\.spec|duo-fold|duo-layout|settings-categories/,
     },
+    // 2026-11: Settings in categories with one search, on a desktop, an iPad (portrait) and an iPhone 15 Pro
+    ...(
+      [
+        ["desktop", { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }],
+        ["ipad", { ...devices["iPad Pro 11"] }],
+        ["phone", { ...devices["iPhone 15 Pro"], deviceScaleFactor: 2 }],
+      ] as const
+    ).map(([name, use]) => ({
+      name: `settings-${name}`,
+      testMatch: /settings-categories/,
+      use: { ...use, browserName: "chromium" as const, defaultBrowserType: undefined, launchOptions },
+    })),
     // 2026-11: the shared search on the Library and the Database, on a desktop and an iPhone 15 Pro (Chromium with the
     // phone's viewport, scale, touch and user agent)
     {

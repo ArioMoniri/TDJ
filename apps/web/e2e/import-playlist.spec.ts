@@ -275,7 +275,7 @@ test.describe("Import a playlist", () => {
     await expect(page.getByTestId("first-run-import")).toBeVisible({ timeout: 60_000 });
     await page.goto("/library");
     await expect(page.getByTestId("library-import")).toBeVisible();
-    await page.goto("/settings");
+    await page.goto("/settings?section=connections");
     await expect(page.locator("#settings-import")).toBeVisible();
     await page.locator("#settings-import").click();
     await expect(page).toHaveURL(/\/import/, { timeout: 60_000 });

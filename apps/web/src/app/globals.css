@@ -3121,25 +3121,179 @@ html.theming *::after {
   }
 }
 
-/* Settings on wide screens: two balanced columns of groups; a group never splits */
+/* Settings (2026-11, components/settings/SettingsShell.tsx): categories beside one pane from a 640 px content width
+   (macOS System Settings, iPadOS Settings); below it the iOS drill-down: the grouped list of categories, a category as
+   its own page. All content sits on the cell surface; no glass here (glass is the control layer's). */
+.settings-shell {
+  container: settings / inline-size;
+}
+.settings-split {
+  display: block;
+  padding-top: var(--space-2);
+}
+.settings-side {
+  min-width: 0;
+}
+.settings-search {
+  margin-bottom: var(--space-4);
+}
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.settings-nav-row {
+  text-decoration: none;
+  min-height: 44px;
+}
+.settings-main {
+  min-width: 0;
+}
+/* the drill-down: the list, a category page or the results, one at a time */
+.settings-split[data-view="root"] > .settings-main,
+.settings-split[data-view="pane"] > .settings-side,
+.settings-split[data-view="results"] .settings-nav {
+  display: none;
+}
+.settings-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  margin: calc(-1 * var(--space-2)) 0 var(--space-1) -8px;
+  padding: 0 8px 0 2px;
+  color: var(--tint);
+  font-size: var(--text-body);
+  border-radius: var(--radius-xs);
+}
+.settings-pane-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  padding: 0 var(--cell-px);
+}
+.settings-pane-tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex: none;
+}
+.settings-pane-tile svg {
+  width: 22px;
+  height: 22px;
+}
+.settings-pane-head h2 {
+  overflow-wrap: anywhere;
+}
+/* a deep link or a result lands clear of the top bar */
+.settings-pane [id],
+.settings-pane section {
+  scroll-margin-top: calc(var(--chrome-top) + 88px);
+}
+/* groups breathe: one rhythm between them, the first header close under the pane's title */
+.settings-pane > section,
+.settings-pane > div > section,
+.settings-results > section {
+  margin-bottom: var(--space-2);
+}
+.settings-pane .section-head,
+.settings-results .section-head {
+  margin-top: var(--space-6);
+}
+.settings-results > section:first-child > .section-head {
+  margin-top: 0;
+}
+.settings-results .cell-sub {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.settings-result-active {
+  background: rgb(var(--text) / 0.06);
+  box-shadow: inset 3px 0 0 var(--tint);
+}
+.settings-empty {
+  padding: var(--space-8) var(--cell-px);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+/* a setting a search result or a deep link landed on: a soft tint that fades */
+[data-flash] {
+  animation: settings-flash 2.4s var(--ease-settle) both;
+}
+@keyframes settings-flash {
+  0%,
+  35% {
+    background-color: color-mix(in srgb, var(--tint) 22%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-flash] {
+    animation-duration: 1.6s;
+    animation-timing-function: steps(1, end);
+  }
+}
+@container settings (min-width: 640px) {
+  .settings-split {
+    display: grid;
+    grid-template-columns: minmax(220px, 264px) minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: start;
+  }
+  .settings-split[data-view] > .settings-side,
+  .settings-split[data-view] > .settings-main,
+  .settings-split[data-view] .settings-nav {
+    display: flex;
+  }
+  .settings-split[data-view] > .settings-side,
+  .settings-split[data-view] > .settings-main {
+    flex-direction: column;
+  }
+  .settings-main {
+    max-width: 760px;
+  }
+  .settings-back {
+    display: none;
+  }
+  .settings-nav {
+    gap: var(--space-3);
+  }
+  .settings-nav-chevron {
+    display: none;
+  }
+  /* the chosen category: the sidebar's own selection fill (Sidebar.tsx), legible in light and dark */
+  .settings-nav-row[aria-current="page"] {
+    background: var(--fill-3);
+    font-weight: 600;
+  }
+  .settings-nav-row[aria-current="page"]::before,
+  .settings-nav-row[aria-current="page"] + .settings-nav-row::before {
+    opacity: 0;
+  }
+  .settings-pane-head {
+    padding: 0;
+    margin-top: var(--space-1);
+  }
+}
+/* the Mac and wide windows: the categories stay in view under the sticky toolbar */
 @media (min-width: 900px) {
-  .settings-cols {
-    column-count: 2;
-    column-gap: 24px;
-  }
-  .settings-cols > * {
-    break-inside: avoid;
-  }
-  /* a component that brings several groups (the featured night's learned rules: one of them taller than a column)
-     may break between them, never inside one */
-  .settings-cols > .settings-flow {
-    break-inside: auto;
-  }
-  .settings-cols > .settings-flow > * {
-    break-inside: avoid;
-  }
-  .settings-cols > section:first-child > .section-head {
-    margin-top: 0;
+  @container settings (min-width: 640px) {
+    .settings-split[data-view] > .settings-side {
+      position: sticky;
+      top: calc(var(--chrome-top) + 76px);
+      max-height: calc(100dvh - var(--chrome-top) - 92px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-bottom: var(--space-4);
+    }
   }
 }
 

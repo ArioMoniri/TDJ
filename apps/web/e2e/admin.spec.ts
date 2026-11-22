@@ -377,7 +377,7 @@ test("the page: unlock with the passphrase, paste Google credentials beside the 
   await expect(page.getByTestId("admin-test-google")).toContainText("Google accepted");
   expect(new URLSearchParams(last(/POST \/google\/token/)!.body).get("client_secret")).toBe(GG.secret);
   // Settings no longer offers the owner link (a service is configured) and Google reads as enabled
-  await page.goto(`${APP}/settings`);
+  await page.goto(`${APP}/settings?section=connections`);
   await expect(page.locator("#connector-google")).toContainText("Connect");
   await expect(page.locator("#connector-owner-setup")).toHaveCount(0);
   await page.goto(`${APP}/admin`);
@@ -624,7 +624,7 @@ test("the pages: /admin People and AI groups, Settings shows the organiser's key
     "DJs without a key of their own now get reviews",
   );
   // Settings, as a DJ without a key: the organiser's key is in use, the personal fields fold away
-  await page.goto(`${APP}/settings`);
+  await page.goto(`${APP}/settings?section=ai`);
   await expect(page.locator("#ai-status")).toContainText("Using the organiser's key · 0 of 20 today");
   await expect(page.locator("#ai-key")).toHaveCount(0);
   await page.locator("#ai-test").click();

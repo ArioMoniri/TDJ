@@ -48,7 +48,7 @@ async function hideDevOverlay(page: Page) {
 
 /** Settings → Booth → Gaps: pick a mode and wait until the app saved it (the store writes in idle time). */
 async function chooseMode(page: Page, mode: "gap" | "after" | "off") {
-  await page.goto("/settings");
+  await page.goto("/settings?section=booth");
   const group = page.getByTestId("booth-silence");
   await expect(group).toBeVisible({ timeout: 30000 });
   await page.getByTestId(`booth-silence-${mode}`).click();
@@ -173,10 +173,10 @@ test.describe("2026-11: a song's own silence and the gap", () => {
     page,
   }) => {
     await hideDevOverlay(page);
-    await page.goto("/settings");
+    await page.goto("/settings?section=booth");
     const group = page.getByTestId("settings-gaps");
     await expect(group).toBeVisible({ timeout: 30000 });
-    await expect(group).toContainText("Booth · Gaps");
+    await expect(group).toContainText("Gaps");
     await expect(page.getByTestId("booth-silence")).toHaveAttribute("data-mode", "gap");
     await expect(page.getByTestId("booth-silence").getByRole("radio")).toHaveCount(3);
     await expect(page.getByTestId("booth-silence-gap")).toHaveAttribute("aria-checked", "true");

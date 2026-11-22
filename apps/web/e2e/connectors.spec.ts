@@ -860,7 +860,7 @@ test("Settings (hosted): the Spotify row shows the account, the sheet has one pr
   const [name, value] = session.split("=");
   await ctx.addCookies([{ name: name!, value: value!, url: APP }]);
   const page = await ctx.newPage();
-  await page.goto("/settings");
+  await page.goto("/settings?section=connections");
   await expect(page.locator("#connector-spotify")).toContainText("Test DJ");
   await page.locator("#connector-spotify").click();
   const sheet = page.getByRole("dialog", { name: "Spotify" });
@@ -879,7 +879,7 @@ test("Settings (hosted): the Spotify row shows the account, the sheet has one pr
 test("Settings (hosted, logged out): one button sends the DJ to /api/spotify/login", async ({ browser }) => {
   const ctx = await browser.newContext({ baseURL: APP });
   const page = await ctx.newPage();
-  await page.goto("/settings");
+  await page.goto("/settings?section=connections");
   await expect(page.locator("#connector-spotify")).toContainText("Log in");
   await page.locator("#connector-spotify").click();
   const sheet = page.getByRole("dialog", { name: "Spotify" });
@@ -918,7 +918,7 @@ test("env-absent fallback: without server credentials the sheet shows the BYO Cl
         body: JSON.stringify({ hosted: false, user: null }),
       }),
     );
-  await page.goto("/settings");
+  await page.goto("/settings?section=connections");
   await expect(page.locator("#connector-spotify")).toContainText("Set up");
   await expect(page.locator("#connector-dropbox")).toContainText("Off");
   await expect(page.locator("#connector-google")).toContainText("Off");
@@ -1542,7 +1542,7 @@ test("cortina play length: the Export sheet's stepper changes the M3U8 (VLC stop
   expect(lens.length).toBeGreaterThan(0);
   expect(new Set(lens)).toEqual(new Set([50]));
   // Settings → Playback shows the same value and can hand it back to the composer
-  await page.goto("/settings");
+  await page.goto("/settings?section=night");
   const playback = page.getByRole("group", { name: "Cortina play length" });
   await expect(page.getByText("Your own length")).toBeVisible();
   await expect(playback).toContainText("50");
@@ -2021,7 +2021,7 @@ test("Settings (direct): Google and Dropbox rows show the account, permissions p
     }),
   );
   const page = await ctx.newPage();
-  await page.goto("/settings");
+  await page.goto("/settings?section=connections");
   await expect(page.locator("#connector-google")).toContainText("Test Google");
   await expect(page.locator("#connector-dropbox")).toContainText("Test Dropbox");
   await page.locator("#connector-google").click();
@@ -2039,7 +2039,7 @@ test("Settings (direct): Google and Dropbox rows show the account, permissions p
   const q = new URL(grant.url()).searchParams;
   expect(q.get("scope")).toBe("youtube");
   expect(q.get("next")).toBe("/settings");
-  await page.goto("/settings");
+  await page.goto("/settings?section=connections");
   await page.locator("#connector-dropbox").click();
   const dbx = page.getByRole("dialog", { name: "Dropbox" });
   await expect(dbx).toContainText("Connected as Test Dropbox");
@@ -2051,7 +2051,7 @@ test("Settings (direct): Google and Dropbox rows show the account, permissions p
   // logged out: one primary action per sheet, pointing at the server login routes
   const ctx2 = await browser.newContext({ baseURL: APP });
   const page2 = await ctx2.newPage();
-  await page2.goto("/settings");
+  await page2.goto("/settings?section=connections");
   await expect(page2.locator("#connector-google")).toContainText("Connect");
   await page2.locator("#connector-google").click();
   const g2 = page2.getByRole("dialog", { name: "Google" });
@@ -2062,7 +2062,7 @@ test("Settings (direct): Google and Dropbox rows show the account, permissions p
     g2.locator("#google-login").click(),
   ]);
   expect(new URL(login.url()).searchParams.get("scope")).toBeNull();
-  await page2.goto("/settings");
+  await page2.goto("/settings?section=connections");
   await page2.locator("#connector-dropbox").click();
   const d2 = page2.getByRole("dialog", { name: "Dropbox" });
   await expect(d2.locator("#dropbox-login")).toHaveText("Connect Dropbox");

@@ -301,20 +301,23 @@ test("1440 booth: the night bar heads the set list, the Cumparsita label whole, 
   }
 });
 
-test("settings: the DJ's own preferences first, accounts after Memory, statuses in plain words", async ({
+test("settings: the DJ's own preferences first, accounts after Library & Data, statuses in plain words", async ({
   page,
 }) => {
+  // 2026-11: Settings in categories — General (Language first), Appearance, … Library & Data before Connections and AI
   await page.goto("/settings");
-  const heads = page.locator("h2.section-head");
-  // the DJ's own preferences lead: Language (round 23), then Appearance
-  await expect(heads.first()).toHaveText(/Language/i);
-  await expect(heads.nth(1)).toHaveText(/Appearance/i);
-  const texts = (await heads.allInnerTexts()).map((t) => t.trim().toLowerCase());
-  expect(texts.indexOf("memory")).toBeLessThan(texts.indexOf("accounts and services"));
-  expect(texts.indexOf("accounts and services")).toBeLessThan(texts.indexOf("models"));
+  const names = (await page.getByTestId("settings-nav").locator("a").allInnerTexts()).map((t) => t.trim());
+  expect(names.slice(0, 2)).toEqual(["General", "Appearance"]);
+  expect(names.indexOf("Library & Data")).toBeLessThan(names.indexOf("Connections"));
+  expect(names.indexOf("Connections")).toBeLessThan(names.indexOf("AI"));
+  await expect(page.getByTestId("settings-pane-general").locator("h2.section-head").first()).toHaveText(
+    /Language/i,
+  );
+  await page.goto("/settings?section=connections");
   await expect(page.locator("#connector-deezer")).toContainText("Built in");
   await expect(page.locator("#connector-webhook")).toContainText("Off");
   await expect(page.locator("#connector-webhook")).not.toContainText("Not set");
+  await page.goto("/settings?section=ai");
   await expect(page.locator("#ai-status")).not.toContainText("No key");
 });
 

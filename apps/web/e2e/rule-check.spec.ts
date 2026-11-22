@@ -181,7 +181,7 @@ test("an AI edit goes through the same check: the answer says what it breaks and
   await new Promise<void>((r) => agent.listen(0, "127.0.0.1", r));
   const port = (agent.address() as { port: number }).port;
   try {
-    await page.goto("/settings");
+    await page.goto("/settings?section=ai");
     // (a click before the page hydrates is lost: wait until React owns the row)
     await clickHydrated(page.locator("#model-add-agent"));
     const sheet = page.getByTestId("agent-sheet");

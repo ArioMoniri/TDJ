@@ -171,7 +171,7 @@ test("orchestras: grouped, best years and singers, the era heatmap and editable 
 });
 
 test("settings: add a source; Discogs takes the DJ's token and stays in this browser", async ({ page }) => {
-  await page.goto("/settings");
+  await page.goto("/settings?section=library");
   const group = page.locator("#data-sources");
   await expect(group.getByTestId("source-deezer")).toContainText("On");
   // (a click before the page hydrates is lost: wait until React owns the button)
@@ -182,6 +182,8 @@ test("settings: add a source; Discogs takes the DJ's token and stays in this bro
   await sheet.getByLabel("Token").fill("abc123");
   await sheet.getByRole("button", { name: "Done" }).click();
   await expect(group.getByTestId("source-discogs")).toContainText("On");
+  // (the indicators live under Settings → Appearance)
+  await page.goto("/settings?section=appearance");
   await expect(page.getByRole("switch", { name: "Era badges" })).toBeVisible();
 });
 

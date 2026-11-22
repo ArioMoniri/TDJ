@@ -4,6 +4,7 @@ import {
   Brain,
   FolderOpen,
   Globe,
+  Hand,
   HardDrive,
   Heart,
   ImageIcon,
@@ -14,14 +15,17 @@ import {
   Music2,
   Palette,
   Play,
+  Server,
   ShieldCheck,
   Sparkles,
   Timer,
+  Users,
+  Volume2,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { About } from "@/components/About";
 import { AppConnections } from "@/components/AppConnections";
 import { IndicatorSwitches } from "@/components/booth/IndicatorSwitches";
@@ -46,9 +50,9 @@ import { KeyboardSettings } from "@/components/KeyboardSettings";
 import { ModelConnections } from "@/components/ModelConnections";
 import { NightClosingGroup } from "@/components/NightClosing";
 import { OwnerContributions } from "@/components/OwnerContributions";
-import { PageHeader } from "@/components/PageHeader";
 import { PowerSaverGroup } from "@/components/PowerSaver";
 import { Sheet } from "@/components/Sheet";
+import { SettingsShell } from "@/components/settings/SettingsShell";
 import { LyricsConnections } from "@/components/song/LyricsConnections";
 import { TandaRulesGroup } from "@/components/TandaRules";
 import { DataSources } from "@/components/ui/DataSources";
@@ -61,6 +65,7 @@ import { APP, KEYCHAIN_KEY } from "@/lib/app/target";
 import { whenIdle } from "@/lib/hooks";
 import { LOCALE_NAME, lazy, t as tx } from "@/lib/i18n";
 import { fade, t as tw } from "@/lib/motion";
+import { type SectionId, sectionOf } from "@/lib/settingsIndex";
 import { useStore } from "@/lib/store";
 import {
   AI_DEFAULT_MODEL,
@@ -195,7 +200,11 @@ function humanError(provider: AiProvider, status: number, raw: unknown): string 
   return tx("settings.answered", { name, status, p1: short ? `: ${short}` : "" });
 }
 
-export default function Settings() {
+type Search = Record<string, string | string[] | undefined>;
+
+export default function Settings({ searchParams }: { searchParams: Promise<Search> }) {
+  // the category the address names, already in the server's HTML (no flash of General before a deep link)
+  const sp = use(searchParams);
   const { settings, setSettings, storageMode, memory, options, setOptions, updateMemory } = useStore();
   const learnedLines = describeLearned(memory.learned);
   const router = useRouter();
@@ -287,16 +296,15 @@ export default function Settings() {
   const app = DJ_APPS.find((a) => a.id === folderFor);
   const remembered = memory.notes.length + memory.sets.length + memory.feedbackHistory.length;
 
-  return (
-    <div className="settings-page mx-auto max-w-[720px] lg:max-w-none">
-      <PageHeader title={tx("settings.settings")} />
-      {/* wide screens (round 23): the groups flow in two columns, the Mac preferences way */}
-      <div className="settings-cols">
-        {/* order (round8-ux.md §1.10): what the DJ changes most first; accounts and the owner's rows last */}
+  /* every category's content; the shell (components/settings/SettingsShell.tsx) shows one at a time */
+  const panes: Record<SectionId, React.ReactNode> = {
+    general: (
+      <>
         {/* wave 3: the app's language; Auto follows the browser (the system, in the apps) */}
         <Group header={tx("settings.language.header")} footer={tx("settings.language.footer")}>
           <SegmentedRow
             label={tx("settings.language.label")}
+            setting="language"
             tip={tx("settings.language.tip")}
             tips={{ auto: tx("settings.language.tip_auto"), en: LOCALE_NAME.en, tr: LOCALE_NAME.tr }}
             value={settings.language ?? "auto"}
@@ -313,12 +321,47 @@ export default function Settings() {
             }
           />
         </Group>
+        <Group header={tx("settings.region")} footer={tx("settings.default_for_tonight_s_region_on")}>
+          <PickerRow
+            label={tx("settings.where_you_usually_play")}
+            setting="region"
+            tip={tx("settings.sets_the_region_in_tonight_for")}
+            value={settings.region}
+            items={REGIONS}
+            onChange={(r) => r && setSettings({ region: r })}
+            tile={
+              <Tile color="#007aff">
+                <Globe size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+        <Group header={tx("settings.sounds_header")}>
+          <SwitchRow
+            label={tx("settings.sound_effects")}
+            setting="sounds"
+            tip={tx("settings.small_clicks_and_chimes_when_you")}
+            sub={tx("settings.small_clicks_and_chimes_when_you")}
+            checked={settings.sounds !== false}
+            onChange={(v) => setSettings({ sounds: v })}
+            tile={
+              <Tile color="#ff2d55">
+                <Volume2 size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+      </>
+    ),
+    appearance: (
+      <>
         <Group
           header={tx("settings.appearance")}
           footer={tx("settings.reduce_transparency_makes_navigation_and_sheets")}
         >
           <SegmentedRow
             label={tx("settings.theme")}
+            setting="theme"
             tips={{
               auto: tx("settings.follow_this_device_light_by_day"),
               light: tx("settings.always_light"),
@@ -335,109 +378,18 @@ export default function Settings() {
           />
           <SwitchRow
             label={tx("settings.reduce_transparency")}
+            setting="reduce-transparency"
             tip={tx("settings.makes_the_bars_and_sheets_solid")}
             checked={settings.reduceGlass}
             onChange={(v) => setSettings({ reduceGlass: v })}
           />
-          <SwitchRow
-            label={tx("settings.sound_effects")}
-            tip={tx("settings.small_clicks_and_chimes_when_you")}
-            checked={settings.sounds !== false}
-            onChange={(v) => setSettings({ sounds: v })}
-          />
         </Group>
-
-        {/* 2026-11: Settings → General → Battery saver (lib/power.ts) */}
-        <PowerSaverGroup />
-
-        <Group header={tx("settings.region")} footer={tx("settings.default_for_tonight_s_region_on")}>
-          <PickerRow
-            label={tx("settings.where_you_usually_play")}
-            tip={tx("settings.sets_the_region_in_tonight_for")}
-            value={settings.region}
-            items={REGIONS}
-            onChange={(r) => r && setSettings({ region: r })}
-            tile={
-              <Tile color="#007aff">
-                <Globe size={16} strokeWidth={2} />
-              </Tile>
-            }
-          />
-        </Group>
-
         {/* round 22: the song indicators (energy, BPM, key, era, artwork), the same switches as the player's Show */}
         <IndicatorSwitches />
-
-        {/* 2026-11: the Booth's light confirmation (lib/booth/confirm.ts) */}
-        <Group
-          header={tx("settings.booth.header")}
-          footer={tx("settings.booth.confirm_footer")}
-          data-testid="settings-booth"
-        >
-          <SwitchRow
-            label={tx("settings.booth.confirm")}
-            tip={tx("settings.booth.confirm_footer")}
-            checked={settings.boothConfirm !== false}
-            onChange={(v) => setSettings({ boothConfirm: v })}
-          />
-        </Group>
-        {/* 2026-11: Booth → Gaps — a song's own silence and the gap (lib/booth/engine.ts, core silenceJoin) */}
-        <SilenceGroup />
-        {/* 2026-11: Booth → Transitions — the DJ's transition templates and the defaults per join and rhythm */}
-        <TransitionTemplatesGroup />
-        {/* 2026-11: what can play the night on this device, and which one plays on Automatic */}
-        <WhenIdle>
-          <DeviceSourcesGroup />
-          {/* 2026-11: Booth → Audio — outputs, the chain, a controller's pairs, two speaker sets, Before the night */}
-          <BoothAudioSettings />
-          {/* 2026-11: Booth → Controller — a DJ controller over MIDI, its mapping and MIDI Learn (lib/controller) */}
-          <Group
-            header={tx("controller.settings.header")}
-            footer={tx("controller.settings.footer")}
-            data-testid="settings-booth-controller"
-          >
-            <ControllerSettingsBody />
-          </Group>
-        </WhenIdle>
-        {/* 2026-11: Settings → Keyboard — every shortcut, rebindable on this device (lib/keymap.ts) */}
-        <KeyboardSettings />
-
-        {/* 2026-11: the night's closing format and the opening La Cumparsita (components/NightClosing.tsx) */}
-        <NightClosingGroup />
-
-        <Group header={tx("settings.composing")} footer={tx("settings.after_every_compose_the_night_is")}>
-          <SwitchRow
-            label={tx("settings.auto_improve_against_published_sets")}
-            tip={tx("settings.after_each_compose_t_dj_compares")}
-            checked={settings.autoImprove}
-            onChange={(v) => setSettings({ autoImprove: v })}
-            tile={
-              <Tile color="#34c759">
-                <Sparkles size={16} strokeWidth={2} />
-              </Tile>
-            }
-          />
-        </Group>
-
-        {/* the rule check before an edit (lib/ruleCheck.ts): ask first, or apply with a toast and Undo */}
-        <Group
-          header={tx("settings.compose_rules")}
-          footer={tx("settings.compose_rules_footer")}
-          data-testid="settings-compose-rules"
-        >
-          <SwitchRow
-            label={tx("settings.ask_before_breaking_a_rule")}
-            sub={tx("settings.ask_before_breaking_a_rule_sub")}
-            checked={settings.askBeforeRuleBreak !== false}
-            onChange={(v) => setSettings({ askBeforeRuleBreak: v })}
-            tile={
-              <Tile color="#ff9500">
-                <ShieldCheck size={16} strokeWidth={2} />
-              </Tile>
-            }
-          />
-        </Group>
-
+      </>
+    ),
+    booth: (
+      <>
         {/* 2026-11: what follows a tap on a song or tanda (outside a running Booth night) */}
         <Group
           header={tx("settings.playback")}
@@ -446,6 +398,7 @@ export default function Settings() {
         >
           <SegmentedRow
             label={tx("settings.tap_play")}
+            setting="tap-play"
             tip={tx("settings.tap_play_footer")}
             value={settings.tapPlay ?? "continue"}
             items={[
@@ -460,7 +413,95 @@ export default function Settings() {
             }
           />
         </Group>
-
+        {/* 2026-11: the Booth's light confirmation (lib/booth/confirm.ts) */}
+        <Group
+          header={tx("settings.booth.header")}
+          footer={tx("settings.booth.confirm_footer")}
+          data-testid="settings-booth"
+        >
+          <SwitchRow
+            label={tx("settings.booth.confirm")}
+            setting="booth-confirm"
+            tip={tx("settings.booth.confirm_footer")}
+            checked={settings.boothConfirm !== false}
+            onChange={(v) => setSettings({ boothConfirm: v })}
+            tile={
+              <Tile color="#ff2d55">
+                <Hand size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+        {/* 2026-11: Booth → Gaps — a song's own silence and the gap (lib/booth/engine.ts, core silenceJoin) */}
+        <SilenceGroup header={tx("settings.gaps.short")} />
+        {/* 2026-11: Booth → Transitions — the DJ's transition templates and the defaults per join and rhythm */}
+        <TransitionTemplatesGroup />
+        {/* 2026-11: what can play the night on this device, and which one plays on Automatic */}
+        <WhenIdle>
+          <DeviceSourcesGroup />
+        </WhenIdle>
+      </>
+    ),
+    audio: (
+      <WhenIdle>
+        {/* 2026-11: Booth → Audio — outputs, the chain, a controller's pairs, two speaker sets, Before the night */}
+        <BoothAudioSettings />
+        {/* 2026-11: Booth → Controller — a DJ controller over MIDI, its mapping and MIDI Learn (lib/controller) */}
+        <Group
+          header={tx("controller.settings.header")}
+          footer={tx("controller.settings.footer")}
+          data-testid="settings-booth-controller"
+        >
+          <ControllerSettingsBody />
+        </Group>
+      </WhenIdle>
+    ),
+    keyboard: (
+      <>
+        {/* 2026-11: Settings → Keyboard — every shortcut, rebindable on this device (lib/keymap.ts) */}
+        <KeyboardSettings />
+      </>
+    ),
+    night: (
+      <>
+        <Group header={tx("settings.composing")} footer={tx("settings.after_every_compose_the_night_is")}>
+          <SwitchRow
+            label={tx("settings.auto_improve_against_published_sets")}
+            setting="auto-improve"
+            tip={tx("settings.after_each_compose_t_dj_compares")}
+            checked={settings.autoImprove}
+            onChange={(v) => setSettings({ autoImprove: v })}
+            tile={
+              <Tile color="#34c759">
+                <Sparkles size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+        {/* the rule check before an edit (lib/ruleCheck.ts): ask first, or apply with a toast and Undo */}
+        <Group
+          header={tx("settings.compose_rules")}
+          footer={tx("settings.compose_rules_footer")}
+          data-testid="settings-compose-rules"
+        >
+          <SwitchRow
+            label={tx("settings.ask_before_breaking_a_rule")}
+            setting="rule-check"
+            sub={tx("settings.ask_before_breaking_a_rule_sub")}
+            checked={settings.askBeforeRuleBreak !== false}
+            onChange={(v) => setSettings({ askBeforeRuleBreak: v })}
+            tile={
+              <Tile color="#ff9500">
+                <ShieldCheck size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+        <TandaRulesGroup
+          id="settings-tanda-rules"
+          value={options.tandaRules}
+          onChange={(tandaRules) => setOptions({ tandaRules })}
+        />
         <Group
           header={tx("settings.cortinas")}
           data-testid="settings-cortinas"
@@ -476,6 +517,7 @@ export default function Settings() {
           {/* 2026-11: a cortina must be told from tango at once: it starts at its chorus, not its intro */}
           <SwitchRow
             label={tx("settings.start_cortinas_at_the_chorus")}
+            setting="cortina-chorus"
             sub={
               settings.cortinaHookStart === false
                 ? tx("settings.start_cortinas_at_the_chorus_sub")
@@ -492,6 +534,7 @@ export default function Settings() {
           />
           <StepperRow
             label={tx("settings.cortina_play_length")}
+            setting="cortina-length"
             sub={
               settings.cortinaStopSec === null
                 ? tx("settings.follows_the_composer")
@@ -511,6 +554,7 @@ export default function Settings() {
           />
           <SwitchRow
             label={tx("settings.follow_the_composer_s_cortina_length")}
+            setting="cortina-follow"
             tip={tx("settings.use_the_cortina_length_you_set")}
             checked={settings.cortinaStopSec === null}
             onChange={(v) =>
@@ -519,78 +563,8 @@ export default function Settings() {
           />
         </Group>
 
-        <Group
-          header={tx("settings.dj_apps")}
-          footer={tx("settings.exports_point_at_real_paths_once", {
-            p1: settings.fileNaming || DEFAULT_NAMING,
-            p2: (settings.fileNaming || DEFAULT_NAMING)
-              .replace("{artist}", "Juan D'Arienzo")
-              .replace("{orchestra}", "Juan D'Arienzo")
-              .replace("{title}", "El Flete")
-              .replace("{singer}", "")
-              .replace("{year}", "1936")
-              .replace("{rhythm}", "tango")
-              .replace("{tanda}", "03")
-              .replace("{n}", "011")
-              .replace(/\s{2,}/g, " ")
-              .trim(),
-          })}
-        >
-          <FieldRow
-            label={tx("settings.file_naming")}
-            tip={tx("settings.how_your_music_files_are_named")}
-            id="file-naming"
-            tile={
-              <Tile color="#ff9500">
-                <FolderOpen size={16} strokeWidth={2} />
-              </Tile>
-            }
-          >
-            <input
-              id="file-naming"
-              className="field field-value min-w-0 flex-1 font-mono"
-              value={settings.fileNaming}
-              placeholder={DEFAULT_NAMING}
-              onChange={(e) => setSettings({ fileNaming: e.target.value })}
-              autoComplete="off"
-              spellCheck={false}
-            />
-          </FieldRow>
-          {DJ_APPS.map((a) => (
-            <Row
-              key={a.id}
-              label={a.label}
-              sub={a.format}
-              chevron
-              onClick={() => setFolderFor(a.id)}
-              tip={tx("settings.choose_the_folder_where_finds_your", { label: a.label })}
-              value={settings.djApps[a.id]?.folder ? tx("settings.set") : tx("settings.off")}
-              id={`folder-row-${a.id}`}
-            />
-          ))}
-        </Group>
-
-        {/* wave 4: the night's generated cover on the playlists it is exported to (Spotify) */}
-        <Group header={tx("settings.export.header")} footer={tx("settings.export.footer")}>
-          <SwitchRow
-            label={tx("settings.export.cover")}
-            tip={tx("settings.export.cover_tip")}
-            checked={settings.exportCover !== false}
-            onChange={(v) => setSettings({ exportCover: v })}
-            tile={
-              <Tile color="#a33159">
-                <ImageIcon size={16} strokeWidth={2} />
-              </Tile>
-            }
-          />
-        </Group>
-
-        <TandaRulesGroup
-          id="settings-tanda-rules"
-          value={options.tandaRules}
-          onChange={(tandaRules) => setOptions({ tandaRules })}
-        />
-
+        {/* 2026-11: the night's closing format and the opening La Cumparsita (components/NightClosing.tsx) */}
+        <NightClosingGroup />
         <Group
           header={tx("settings.what_t_dj_learned_from_your")}
           footer={tx("settings.every_swap_search_and_swap_ai")}
@@ -614,40 +588,10 @@ export default function Settings() {
         <FloorLearning />
         {/* the featured night's edits: the repo-level store every night composes with (weigh, delete, switch off) */}
         <FeaturedLearned />
-
-        <Group header={tx("settings.memory")} footer={tx("settings.the_assistant_keeps_notes_the_sets")}>
-          <Row
-            tile={
-              <Tile color="#ff2d55">
-                <Brain size={16} strokeWidth={2} />
-              </Tile>
-            }
-            label={tx("settings.stored")}
-            value={`${APP ? tx("settings.on_this_device") : storageMode === "server" ? tx("settings.kept_by_this_site") : tx("settings.in_this_browser")} · ${remembered} ${remembered === 1 ? tx("settings.item") : tx("settings.items")}`}
-          />
-          <SwitchRow
-            label={tx("settings.let_the_assistant_learn_from_my")}
-            tip={tx("settings.repeated_feedback_becomes_a_preference_for")}
-            checked={settings.learn}
-            onChange={(v) => setSettings({ learn: v })}
-          />
-          {/* 2026-11: dancer favourites live with the memory (Database → Memory) */}
-          <Row
-            tile={
-              <Tile color="#c9426a">
-                <Heart size={16} strokeWidth={2} />
-              </Tile>
-            }
-            label={tx("fav.title")}
-            tip={tx("fav.settings_tip")}
-            chevron
-            onClick={() => router.push("/database?tab=memory#dancer-favourites")}
-            id="settings-dancer-favourites"
-          />
-          {/* 2026-11: popularity from databases (DJ sets, canonical tandas, set lists), default on */}
-          <PopularitySwitch />
-        </Group>
-
+      </>
+    ),
+    connections: (
+      <>
         {APP && <AppConnections />}
         <Connectors />
         {/* 2026-11: where song details look for lyrics (LRCLIB; opt-in Musixmatch and Genius with your key) */}
@@ -667,11 +611,10 @@ export default function Settings() {
             id="settings-import"
           />
         </Group>
-        {/* round 22: where missing BPM, key, level, artwork and dates come from, and "Add a source" */}
-        <DataSources />
-        {/* 2026-11: the deployment owner only: catalogue edits to the shared repo data (lib/contrib/owner.ts) */}
-        <OwnerContributions />
-
+      </>
+    ),
+    ai: (
+      <>
         {/* Models and the note under its footer are one block: a column break never parts them (wide screens) */}
         <div data-testid="ai-models">
           <Group
@@ -859,9 +802,116 @@ export default function Settings() {
         </div>
 
         <ModelConnections />
+      </>
+    ),
+    library: (
+      <>
+        <Group
+          header={tx("settings.dj_apps")}
+          data-setting="dj-apps"
+          footer={tx("settings.exports_point_at_real_paths_once", {
+            p1: settings.fileNaming || DEFAULT_NAMING,
+            p2: (settings.fileNaming || DEFAULT_NAMING)
+              .replace("{artist}", "Juan D'Arienzo")
+              .replace("{orchestra}", "Juan D'Arienzo")
+              .replace("{title}", "El Flete")
+              .replace("{singer}", "")
+              .replace("{year}", "1936")
+              .replace("{rhythm}", "tango")
+              .replace("{tanda}", "03")
+              .replace("{n}", "011")
+              .replace(/\s{2,}/g, " ")
+              .trim(),
+          })}
+        >
+          <FieldRow
+            label={tx("settings.file_naming")}
+            tip={tx("settings.how_your_music_files_are_named")}
+            id="file-naming"
+            tile={
+              <Tile color="#ff9500">
+                <FolderOpen size={16} strokeWidth={2} />
+              </Tile>
+            }
+          >
+            <input
+              id="file-naming"
+              className="field field-value min-w-0 flex-1 font-mono"
+              value={settings.fileNaming}
+              placeholder={DEFAULT_NAMING}
+              onChange={(e) => setSettings({ fileNaming: e.target.value })}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </FieldRow>
+          {DJ_APPS.map((a) => (
+            <Row
+              key={a.id}
+              label={a.label}
+              sub={a.format}
+              chevron
+              onClick={() => setFolderFor(a.id)}
+              tip={tx("settings.choose_the_folder_where_finds_your", { label: a.label })}
+              value={settings.djApps[a.id]?.folder ? tx("settings.set") : tx("settings.off")}
+              id={`folder-row-${a.id}`}
+            />
+          ))}
+        </Group>
 
+        {/* wave 4: the night's generated cover on the playlists it is exported to (Spotify) */}
+        <Group header={tx("settings.export.header")} footer={tx("settings.export.footer")}>
+          <SwitchRow
+            label={tx("settings.export.cover")}
+            setting="export-cover"
+            tip={tx("settings.export.cover_tip")}
+            checked={settings.exportCover !== false}
+            onChange={(v) => setSettings({ exportCover: v })}
+            tile={
+              <Tile color="#a33159">
+                <ImageIcon size={16} strokeWidth={2} />
+              </Tile>
+            }
+          />
+        </Group>
+        <Group header={tx("settings.memory")} footer={tx("settings.the_assistant_keeps_notes_the_sets")}>
+          <Row
+            tile={
+              <Tile color="#ff2d55">
+                <Brain size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label={tx("settings.stored")}
+            value={`${APP ? tx("settings.on_this_device") : storageMode === "server" ? tx("settings.kept_by_this_site") : tx("settings.in_this_browser")} · ${remembered} ${remembered === 1 ? tx("settings.item") : tx("settings.items")}`}
+          />
+          <SwitchRow
+            label={tx("settings.let_the_assistant_learn_from_my")}
+            setting="memory-learn"
+            tip={tx("settings.repeated_feedback_becomes_a_preference_for")}
+            checked={settings.learn}
+            onChange={(v) => setSettings({ learn: v })}
+          />
+          {/* 2026-11: dancer favourites live with the memory (Database → Memory) */}
+          <Row
+            tile={
+              <Tile color="#c9426a">
+                <Heart size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label={tx("fav.title")}
+            tip={tx("fav.settings_tip")}
+            chevron
+            onClick={() => router.push("/database?tab=memory#dancer-favourites")}
+            id="settings-dancer-favourites"
+          />
+          {/* 2026-11: popularity from databases (DJ sets, canonical tandas, set lists), default on */}
+          <PopularitySwitch />
+        </Group>
+
+        {/* round 22: where missing BPM, key, level, artwork and dates come from, and "Add a source" */}
+        <DataSources />
         <Group
           header={tx("settings.storage")}
+          data-setting="storage"
           footer={
             APP
               ? tx("settings.your_database_memory_settings_and_the")
@@ -887,8 +937,53 @@ export default function Settings() {
           />
         </Group>
 
-        <About />
-      </div>
+        {/* 2026-11: the deployment owner only: catalogue edits to the shared repo data (lib/contrib/owner.ts) */}
+        <OwnerContributions />
+      </>
+    ),
+    rooms: (
+      <Group header={tx("rooms.rooms")} footer={tx("settings.rooms.footer")}>
+        <Row
+          tile={
+            <Tile color="#30b0c7">
+              <Users size={16} strokeWidth={2} />
+            </Tile>
+          }
+          label={tx("settings.rooms.open")}
+          sub={tx("settings.rooms.open_sub")}
+          chevron
+          onClick={() => router.push("/rooms")}
+          id="settings-rooms-open"
+        />
+        {/* the apps: a room goes through a linked TDJ server (Connections) */}
+        {APP && (
+          <Row
+            tile={
+              <Tile color="#636366">
+                <Server size={16} strokeWidth={2} />
+              </Tile>
+            }
+            label={tx("appConnections.tdj_server")}
+            sub={tx("settings.rooms.server_sub")}
+            chevron
+            onClick={() => router.push("/settings?section=connections#app-connections")}
+            id="settings-rooms-server"
+          />
+        )}
+      </Group>
+    ),
+    battery: (
+      <>
+        {/* 2026-11: Battery saver (lib/power.ts) */}
+        <PowerSaverGroup />
+      </>
+    ),
+    about: <About />,
+  };
+
+  return (
+    <>
+      <SettingsShell title={tx("settings.settings")} panes={panes} initial={sectionOf(sp)} />
 
       <Sheet
         open={!!app}
@@ -918,6 +1013,6 @@ export default function Settings() {
           </Group>
         )}
       </Sheet>
-    </div>
+    </>
   );
 }
