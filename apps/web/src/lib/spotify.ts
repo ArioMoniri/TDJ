@@ -246,6 +246,8 @@ export interface HostedState {
   token?: { access: string; expires: number };
   /** the scopes the session was granted, when Spotify reported them (wave 4: the cover needs ugc-image-upload) */
   scopes?: string[];
+  /** the apps: signed in, but Spotify refuses this account (a Development Mode app admits 5 listed users) */
+  notListed?: boolean;
 }
 export async function fetchHosted(): Promise<HostedState> {
   try {
@@ -256,6 +258,7 @@ export async function fetchHosted(): Promise<HostedState> {
       user: r.ok ? (j.user ?? null) : null,
       token: r.ok ? j.token : undefined,
       scopes: r.ok && Array.isArray(j.scopes) ? j.scopes : undefined,
+      ...(r.ok && j.notListed && !j.user ? { notListed: true } : {}),
     };
   } catch {
     return { hosted: false, user: null };

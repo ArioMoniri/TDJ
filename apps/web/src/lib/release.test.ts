@@ -1,6 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { channelOf, compareVersions, LINKS, updateLink, updateState, versionLabel } from "./release";
+import {
+  canSelfUpdate,
+  channelOf,
+  compareVersions,
+  LINKS,
+  updateLink,
+  updateState,
+  versionLabel,
+} from "./release";
 
 describe("release: one version for web and apps", () => {
   it("compares versions as semver", () => {
@@ -28,6 +36,17 @@ describe("release: one version for web and apps", () => {
     expect(channelOf(true, { platform: "macos", appStore: false, updater: true })).toBe("dmg");
     expect(channelOf(true, { platform: "macos", appStore: true })).toBe("mac-app-store");
     expect(channelOf(true, { platform: "ipados", appStore: true })).toBe("ios");
+  });
+
+  it('"Check for updates" only in the DMG Mac app, never the Mac App Store, iPhone/iPad or the web', () => {
+    expect(canSelfUpdate(true, { platform: "macos", appStore: false, updater: true })).toBe(true);
+    expect(canSelfUpdate(true, { platform: "macos", appStore: true, updater: true })).toBe(false);
+    expect(canSelfUpdate(true, { platform: "macos", appStore: false, updater: false })).toBe(false);
+    expect(canSelfUpdate(true, { platform: "macos", appStore: false })).toBe(false);
+    expect(canSelfUpdate(true, { platform: "ipados", appStore: true, updater: true })).toBe(false);
+    expect(canSelfUpdate(true, { platform: "ios", updater: true })).toBe(false);
+    expect(canSelfUpdate(false, { platform: "macos", updater: true })).toBe(false);
+    expect(canSelfUpdate(true, null)).toBe(false);
   });
 
   it("each channel gets its own link; the web reloads instead", () => {

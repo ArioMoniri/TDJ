@@ -217,6 +217,60 @@ test.describe("top chrome and the scroll edge", () => {
     await page.waitForTimeout(100);
     expect((await page.getByTestId("page-title").boundingBox())!.y).toBeLessThan(28);
   });
+
+  test("macOS window: Now playing, the Floor screen and sheets start below the traffic lights; the strip drags", async ({
+    page,
+  }) => {
+    test.skip(kind(page) !== "desktop", "the Mac app's window");
+    await page.addInitScript(() => {
+      (window as unknown as { __TDJ_NATIVE__: unknown }).__TDJ_NATIVE__ = Object.freeze({
+        platform: "macos",
+        titleBar: "overlay",
+      });
+    });
+    const lights = { x: 0, y: 0, width: 78, height: 28 };
+    await page.goto("/settings");
+    await expect(page.locator("html")).toHaveClass(/titlebar-overlay/);
+    // the window's drag strip: the whole title bar, over every layer
+    const strip = page.getByTestId("titlebar-drag");
+    await expect(strip).toHaveAttribute("data-tauri-drag-region");
+    const s = (await strip.boundingBox())!;
+    expect(s.y).toBe(0);
+    expect(s.height).toBe(28);
+    // the Now playing view's bar (chevron, title, buttons) and the Song DNA overlay's start below it
+    const bars = await page.evaluate(() =>
+      ["now-view-bar", "dna-overlay-bar"].map((c) => {
+        const el = document.createElement("div");
+        el.className = c;
+        el.innerHTML = '<button style="width:44px;height:44px">x</button>';
+        document.body.append(el);
+        const r = el.querySelector("button")!.getBoundingClientRect();
+        el.remove();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+      }),
+    );
+    for (const b of bars) {
+      expect(overlaps(lights, b), "a bar button under the traffic lights").toBe(false);
+      expect(b.y).toBeGreaterThanOrEqual(28);
+    }
+    // a sheet: its header and buttons clear the title bar
+    await page.locator("#connector-spotify").click();
+    const sheet = page.getByRole("dialog").last();
+    await expect(sheet).toBeVisible();
+    for (const b of await sheet.getByRole("button").all()) {
+      const bb = await b.boundingBox();
+      if (bb && bb.width > 0) expect(bb.y).toBeGreaterThanOrEqual(28);
+    }
+    // the dancers' Floor screen in the main window
+    await page.goto("/screen");
+    const floor = page.getByTestId("floor-screen");
+    await expect(floor).toBeVisible();
+    expect(await floor.evaluate((el) => getComputedStyle(el).paddingTop)).toBe("28px");
+    // full screen: no strip, no inset
+    await page.evaluate(() => document.documentElement.setAttribute("data-fullscreen", ""));
+    await expect(strip).toBeHidden();
+    expect(await floor.evaluate((el) => getComputedStyle(el).paddingTop)).toBe("0px");
+  });
 });
 
 test.describe("sidebar and wide layouts", () => {

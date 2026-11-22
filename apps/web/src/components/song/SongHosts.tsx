@@ -133,7 +133,7 @@ function DnaOverlay() {
       aria-label={t("song.song_dna")}
       data-testid="dna-overlay"
     >
-      <div className="dna-overlay-bar">
+      <div className="dna-overlay-bar" data-tauri-drag-region>
         <button
           type="button"
           className="btn-plain inline-flex min-h-11 items-center gap-0.5 px-2"
