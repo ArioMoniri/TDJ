@@ -2,6 +2,7 @@
 import { singerDisplay } from "@tdj/core";
 import { Footprints, Music2, RotateCw } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { FitText } from "./FitText";
 import { Tip } from "./Tip";
 
 /**
@@ -98,7 +99,8 @@ export function TandaTypeBadge({
       </span>
       {!compact && (
         <span className="tanda-type-mode" data-testid="tanda-mode">
-          {modeWords({ vocal, singer, songs })}
+          {/* 2026-11: a cut singer slides to show the rest on hover / focus (FitText) */}
+          <FitText text={modeWords({ vocal, singer, songs })} />
         </span>
       )}
       {otherRhythms(rhythm, songs).map((r) => (

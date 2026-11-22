@@ -4744,6 +4744,8 @@ export const tr: Partial<Record<MsgKey, string>> = {
   "booth.controls.short_crossfade": "Geçişli",
   "booth.controls.short_stop": "Durdur",
   "booth.controls.short_more": "Diğer",
+  "booth.controls.short_previous": "Geri",
+  "booth.controls.short_controls": "Kontrol",
   "booth.controls.trim_value": "Düzelt {db} dB",
   "booth.controls.more_below": "Devamı",
   "fav.floor_menu_short": "Pist",

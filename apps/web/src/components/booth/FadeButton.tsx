@@ -6,6 +6,7 @@ import { useBooth } from "@/lib/booth/store";
 import { haptic } from "@/lib/haptics";
 import { t } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
+import { FitText } from "../ui/FitText";
 import { ConfirmHint, ConfirmRing } from "./Confirm";
 
 /**
@@ -147,7 +148,7 @@ export function FadeButton({
     >
       {children}
       <span className={wordClass} aria-hidden>
-        {word}
+        <FitText text={word} />
       </span>
       {(holding || armed) && !run && <ConfirmRing />}
       {armed && !holding && !run && <ConfirmHint testId={`${testId}-nudge`} />}

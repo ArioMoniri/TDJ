@@ -4543,6 +4543,8 @@ export const en = {
   "booth.controls.short_crossfade": "Crossfade",
   "booth.controls.short_stop": "Stop",
   "booth.controls.short_more": "More",
+  "booth.controls.short_previous": "Prev",
+  "booth.controls.short_controls": "Panel",
   "booth.controls.trim_value": "Trim {db} dB",
   "booth.controls.more_below": "More",
   "fav.floor_menu_short": "Floor",

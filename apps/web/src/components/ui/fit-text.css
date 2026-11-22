@@ -1,0 +1,34 @@
+/* FitText (components/ui/FitText.tsx): one line that never ends in a silent cut. The base (`.marquee`, the box that
+   clips; `.marquee-inner`, the text that moves) is in globals.css; these add the reveal mode and the short label. */
+/* (a loop takes its fade margins outside its box: no cap there, booth.css / globals.css `.marquee[data-moving]`) */
+.fit[data-fit="reveal"] {
+  max-width: 100%;
+}
+/* the reveal: at rest the start and an ellipsis; while it slides the whole line, its edges faded, never cut */
+.fit[data-fit="reveal"][data-sliding="1"] .marquee-inner {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  will-change: transform;
+}
+.fit[data-fit="reveal"][data-sliding="1"] {
+  mask-image: linear-gradient(to right, transparent 0, #000 4px, #000 calc(100% - 8px), transparent 100%);
+}
+/* still and cut, with a shorter label: the whole text is measured (and read out) but the short one is drawn */
+.fit[data-short="1"] {
+  position: relative;
+}
+.fit[data-short="1"] > .marquee-inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  max-width: none;
+  visibility: hidden;
+  pointer-events: none;
+}
+.fit-short {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
